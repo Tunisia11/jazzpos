@@ -48,7 +48,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _loadShiftAndSuspended() async {
-    await ref.read(shiftNotifierProvider.notifier).checkActiveShift(widget.registerId);
+    await ref
+        .read(shiftNotifierProvider.notifier)
+        .checkActiveShift(widget.registerId);
     await _refreshSuspendedCount();
   }
 
@@ -122,7 +124,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _onBarcodeScanned(String barcode) async {
-    final success = await ref.read(cartNotifierProvider.notifier).addItemByBarcode(barcode);
+    final success = await ref
+        .read(cartNotifierProvider.notifier)
+        .addItemByBarcode(barcode);
     if (mounted) {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -159,7 +163,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               autofocus: true,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.account_balance_wallet),
@@ -177,7 +183,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             onPressed: () async {
               final val = double.tryParse(controller.text) ?? 0.0;
               final auth = ref.read(authNotifierProvider);
-              await ref.read(shiftNotifierProvider.notifier).openShift(
+              await ref
+                  .read(shiftNotifierProvider.notifier)
+                  .openShift(
                     registerId: widget.registerId,
                     cashierId: auth.user?.id ?? 'system',
                     openingCash: Money.fromTnd(val),
@@ -224,20 +232,31 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.primary,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
                         'JAZZ POS',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white, letterSpacing: 1),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.white,
+                          letterSpacing: 1,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Text(
                       'Caisse: ${widget.registerId}',
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
 
                     const Spacer(),
@@ -247,12 +266,19 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       onTap: shift == null ? _openShiftPrompt : null,
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: shift != null ? AppTheme.success.withValues(alpha: 0.15) : AppTheme.warning.withValues(alpha: 0.15),
+                          color: shift != null
+                              ? AppTheme.success.withValues(alpha: 0.15)
+                              : AppTheme.warning.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: shift != null ? AppTheme.success : AppTheme.warning,
+                            color: shift != null
+                                ? AppTheme.success
+                                : AppTheme.warning,
                           ),
                         ),
                         child: Row(
@@ -260,7 +286,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             Icon(
                               Icons.circle,
                               size: 10,
-                              color: shift != null ? AppTheme.success : AppTheme.warning,
+                              color: shift != null
+                                  ? AppTheme.success
+                                  : AppTheme.warning,
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -270,7 +298,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: shift != null ? AppTheme.success : AppTheme.warning,
+                                color: shift != null
+                                    ? AppTheme.success
+                                    : AppTheme.warning,
                               ),
                             ),
                           ],
@@ -285,7 +315,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     Stack(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.pause_circle_outline, color: AppTheme.warning),
+                          icon: const Icon(
+                            Icons.pause_circle_outline,
+                            color: AppTheme.warning,
+                          ),
                           onPressed: _showSuspendedSales,
                           tooltip: 'Ventes en attente (F6)',
                         ),
@@ -299,10 +332,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                                 color: AppTheme.warning,
                                 shape: BoxShape.circle,
                               ),
-                              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
                               child: Text(
                                 '$_suspendedCount',
-                                style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
@@ -312,13 +352,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
                     // Drawer Kick
                     IconButton(
-                      icon: const Icon(Icons.point_of_sale, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.point_of_sale,
+                        color: Colors.white70,
+                      ),
                       onPressed: _kickDrawer,
                       tooltip: 'Ouvrir tiroir-caisse (F10)',
                     ),
 
                     const SizedBox(width: 8),
-                    const VerticalDivider(color: AppTheme.border, indent: 12, endIndent: 12),
+                    const VerticalDivider(
+                      color: AppTheme.border,
+                      indent: 12,
+                      endIndent: 12,
+                    ),
                     const SizedBox(width: 8),
 
                     // Cashier User & Lock
@@ -326,10 +373,19 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       children: [
                         CircleAvatar(
                           radius: 16,
-                          backgroundColor: AppTheme.primaryLight.withValues(alpha: 0.2),
+                          backgroundColor: AppTheme.primaryLight.withValues(
+                            alpha: 0.2,
+                          ),
                           child: Text(
-                            auth.user?.displayName.substring(0, 1).toUpperCase() ?? 'U',
-                            style: const TextStyle(color: AppTheme.primaryLight, fontWeight: FontWeight.bold, fontSize: 14),
+                            auth.user?.displayName
+                                    .substring(0, 1)
+                                    .toUpperCase() ??
+                                'U',
+                            style: const TextStyle(
+                              color: AppTheme.primaryLight,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -339,18 +395,30 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           children: [
                             Text(
                               auth.user?.displayName ?? 'Utilisateur',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                             Text(
                               auth.user?.role.toUpperCase() ?? 'CAISSIER',
-                              style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppTheme.textSecondary,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(width: 12),
                         IconButton(
-                          icon: const Icon(Icons.lock_outline, color: AppTheme.textSecondary, size: 20),
-                          onPressed: () => ref.read(authNotifierProvider.notifier).lock(),
+                          icon: const Icon(
+                            Icons.lock_outline,
+                            color: AppTheme.textSecondary,
+                            size: 20,
+                          ),
+                          onPressed: () =>
+                              ref.read(authNotifierProvider.notifier).lock(),
                           tooltip: 'Verrouiller la caisse',
                         ),
                       ],
@@ -367,10 +435,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Catalog & Grid
-                      const Expanded(
-                        flex: 7,
-                        child: ProductCatalogGrid(),
-                      ),
+                      const Expanded(flex: 7, child: ProductCatalogGrid()),
 
                       const SizedBox(width: 12),
 

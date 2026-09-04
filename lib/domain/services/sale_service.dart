@@ -36,15 +36,28 @@ class SaleService {
       throw const ValidationException('Cannot checkout an empty cart');
     }
     if (request.payments.isEmpty) {
-      throw const ValidationException('At least one payment method is required');
+      throw const ValidationException(
+        'At least one payment method is required',
+      );
     }
 
     // 1. Check idempotency: if already processed, return existing sale
-    final existingSale = await (db.select(db.sales)..where((tbl) => tbl.idempotencyKey.equals(request.idempotencyKey))).getSingleOrNull();
+    final existingSale =
+        await (db.select(db.sales)..where(
+              (tbl) => tbl.idempotencyKey.equals(request.idempotencyKey),
+            ))
+            .getSingleOrNull();
     if (existingSale != null) {
-      PosLogger.instance.warning('Sales', 'Duplicate checkout prevented by idempotencyKey: ${request.idempotencyKey}');
-      final existingLines = await (db.select(db.saleLines)..where((tbl) => tbl.saleId.equals(existingSale.id))).get();
-      final existingPayments = await (db.select(db.salePayments)..where((tbl) => tbl.saleId.equals(existingSale.id))).get();
+      PosLogger.instance.warning(
+        'Sales',
+        'Duplicate checkout prevented by idempotencyKey: ${request.idempotencyKey}',
+      );
+      final existingLines = await (db.select(
+        db.saleLines,
+      )..where((tbl) => tbl.saleId.equals(existingSale.id))).get();
+      final existingPayments = await (db.select(
+        db.salePayments,
+      )..where((tbl) => tbl.saleId.equals(existingSale.id))).get();
       return SaleCompletedResult(
         sale: existingSale,
         lines: existingLines,
@@ -54,10 +67,16 @@ class SaleService {
     }
 
     // 2. Validate stock for each line according to store policy
-    final setting = await (db.select(db.appSettings)..where((tbl) => tbl.key.equals(AppConstants.keyNegativeStockPolicy))).getSingleOrNull();
+    final setting =
+        await (db.select(db.appSettings)..where(
+              (tbl) => tbl.key.equals(AppConstants.keyNegativeStockPolicy),
+            ))
+            .getSingleOrNull();
     final policy = setting?.value ?? AppConstants.negativeStockWarn;
 
-    final defaultLocation = await inventoryService.getDefaultLocation(request.storeId);
+    final defaultLocation = await inventoryService.getDefaultLocation(
+      request.storeId,
+    );
 
     for (final item in request.items) {
       await inventoryService.validateStockAvailability(
@@ -71,12 +90,16 @@ class SaleService {
 
     // 3. Compute totals in exact integer millimes
     final subtotal = request.subtotal;
-    final totalDiscount = request.cartDiscount + request.items.fold(Money.zero, (s, i) => s + i.lineDiscount);
+    final totalDiscount =
+        request.cartDiscount +
+        request.items.fold(Money.zero, (s, i) => s + i.lineDiscount);
     final totalAmount = request.total;
 
     // Validate payment sufficiency
     if (request.totalPaid < totalAmount) {
-      throw ValidationException('Tendered payment (${request.totalPaid}) is less than total amount ($totalAmount)');
+      throw ValidationException(
+        'Tendered payment (${request.totalPaid}) is less than total amount ($totalAmount)',
+      );
     }
 
     final saleId = IdGenerator.uuid();
@@ -101,7 +124,9 @@ class SaleService {
         customerId: Value(request.customerId),
         subtotalMillimes: subtotal.millimes,
         discountMillimes: Value(totalDiscount.millimes),
-        taxMillimes: Value(request.items.fold(0, (s, i) => s + i.taxAmount.millimes)),
+        taxMillimes: Value(
+          request.items.fold(0, (s, i) => s + i.taxAmount.millimes),
+        ),
         totalMillimes: totalAmount.millimes,
         status: const Value(AppConstants.saleCompleted),
         notes: Value(request.notes),
@@ -132,7 +157,11 @@ class SaleService {
           unitCostMillimes: Value(item.unitCost.millimes),
         );
         await db.into(db.saleLines).insert(lineCompanion);
-        insertedLines.add(await (db.select(db.saleLines)..where((tbl) => tbl.id.equals(lineId))).getSingle());
+        insertedLines.add(
+          await (db.select(
+            db.saleLines,
+          )..where((tbl) => tbl.id.equals(lineId))).getSingle(),
+        );
 
         // 4c. Deduct physical stock through StockMovements
         await inventoryService.recordMovement(
@@ -164,23 +193,36 @@ class SaleService {
           createdAt: now,
         );
         await db.into(db.salePayments).insert(paymentCompanion);
-        insertedPayments.add(await (db.select(db.salePayments)..where((tbl) => tbl.id.equals(paymentId))).getSingle());
+        insertedPayments.add(
+          await (db.select(
+            db.salePayments,
+          )..where((tbl) => tbl.id.equals(paymentId))).getSingle(),
+        );
       }
 
       // 4e. Update Customer spending if attached
       if (request.customerId != null) {
-        final cust = await (db.select(db.customers)..where((tbl) => tbl.id.equals(request.customerId!))).getSingleOrNull();
+        final cust =
+            await (db.select(db.customers)
+                  ..where((tbl) => tbl.id.equals(request.customerId!)))
+                .getSingleOrNull();
         if (cust != null) {
-          await (db.update(db.customers)..where((tbl) => tbl.id.equals(cust.id))).write(
+          await (db.update(
+            db.customers,
+          )..where((tbl) => tbl.id.equals(cust.id))).write(
             CustomersCompanion(
-              totalSpentMillimes: Value(cust.totalSpentMillimes + totalAmount.millimes),
+              totalSpentMillimes: Value(
+                cust.totalSpentMillimes + totalAmount.millimes,
+              ),
             ),
           );
         }
       }
 
       // 4f. Insert Audit Event
-      await db.into(db.auditEvents).insert(
+      await db
+          .into(db.auditEvents)
+          .insert(
             AuditEventsCompanion.insert(
               id: IdGenerator.uuid(),
               action: 'SALE_COMPLETED',
@@ -188,17 +230,21 @@ class SaleService {
               entityId: Value(saleId),
               userId: request.cashierId,
               managerId: Value(request.managerOverrideId),
-              detailsJson: Value(jsonEncode({
-                'receiptNumber': receiptNumber,
-                'total': totalAmount.millimes,
-                'itemsCount': request.items.length,
-              })),
+              detailsJson: Value(
+                jsonEncode({
+                  'receiptNumber': receiptNumber,
+                  'total': totalAmount.millimes,
+                  'itemsCount': request.items.length,
+                }),
+              ),
               createdAt: now,
             ),
           );
 
       // 4g. Queue Outbox Event for async cloud sync
-      await db.into(db.syncOutbox).insert(
+      await db
+          .into(db.syncOutbox)
+          .insert(
             SyncOutboxCompanion.insert(
               id: IdGenerator.uuid(),
               entityType: 'SALE',
@@ -215,7 +261,9 @@ class SaleService {
           );
 
       // 4h. Enqueue Print Job for hardware receipt printer
-      await db.into(db.printJobs).insert(
+      await db
+          .into(db.printJobs)
+          .insert(
             PrintJobsCompanion.insert(
               id: printJobId,
               jobType: 'RECEIPT',
@@ -230,12 +278,17 @@ class SaleService {
             ),
           );
 
-      committedSale = await (db.select(db.sales)..where((tbl) => tbl.id.equals(saleId))).getSingle();
+      committedSale = await (db.select(
+        db.sales,
+      )..where((tbl) => tbl.id.equals(saleId))).getSingle();
       committedLines = insertedLines;
       committedPayments = insertedPayments;
     });
 
-    PosLogger.instance.info('Sales', 'Sale #$receiptNumber successfully committed locally in transaction.');
+    PosLogger.instance.info(
+      'Sales',
+      'Sale #$receiptNumber successfully committed locally in transaction.',
+    );
 
     return SaleCompletedResult(
       sale: committedSale,
@@ -257,24 +310,28 @@ class SaleService {
     final json = jsonEncode({
       'cartDiscount': cartDiscount.millimes,
       'items': items
-          .map((i) => {
-                'variantId': i.variantId,
-                'productId': i.productId,
-                'productName': i.productName,
-                'variantDescription': i.variantDescription,
-                'sku': i.sku,
-                'barcode': i.barcode,
-                'unitPrice': i.unitPrice.millimes,
-                'originalPrice': i.originalPrice.millimes,
-                'quantity': i.quantity,
-                'lineDiscount': i.lineDiscount.millimes,
-                'taxRatePercent': i.taxRatePercent,
-                'unitCost': i.unitCost.millimes,
-              })
+          .map(
+            (i) => {
+              'variantId': i.variantId,
+              'productId': i.productId,
+              'productName': i.productName,
+              'variantDescription': i.variantDescription,
+              'sku': i.sku,
+              'barcode': i.barcode,
+              'unitPrice': i.unitPrice.millimes,
+              'originalPrice': i.originalPrice.millimes,
+              'quantity': i.quantity,
+              'lineDiscount': i.lineDiscount.millimes,
+              'taxRatePercent': i.taxRatePercent,
+              'unitCost': i.unitCost.millimes,
+            },
+          )
           .toList(),
     });
 
-    await db.into(db.suspendedCarts).insert(
+    await db
+        .into(db.suspendedCarts)
+        .insert(
           SuspendedCartsCompanion.insert(
             id: id,
             referenceName: referenceName,
@@ -290,12 +347,16 @@ class SaleService {
 
   /// Get all currently held carts
   Future<List<SuspendedCart>> getSuspendedCarts(String registerId) async {
-    return (db.select(db.suspendedCarts)..where((tbl) => tbl.registerId.equals(registerId))).get();
+    return (db.select(
+      db.suspendedCarts,
+    )..where((tbl) => tbl.registerId.equals(registerId))).get();
   }
 
   /// Remove a suspended cart upon resuming or discarding
   Future<void> deleteSuspendedCart(String id) async {
-    await (db.delete(db.suspendedCarts)..where((tbl) => tbl.id.equals(id))).go();
+    await (db.delete(
+      db.suspendedCarts,
+    )..where((tbl) => tbl.id.equals(id))).go();
   }
 
   /// Void an existing sale (requires manager authorization)
@@ -305,12 +366,22 @@ class SaleService {
     required String managerId,
     required String reason,
   }) async {
-    final sale = await (db.select(db.sales)..where((tbl) => tbl.id.equals(saleId))).getSingleOrNull();
-    if (sale == null) throw const ValidationException('Sale not found');
-    if (sale.status == AppConstants.saleVoided) throw const ValidationException('Sale is already voided');
+    final sale = await (db.select(
+      db.sales,
+    )..where((tbl) => tbl.id.equals(saleId))).getSingleOrNull();
+    if (sale == null) {
+      throw const ValidationException('Sale not found');
+    }
+    if (sale.status == AppConstants.saleVoided) {
+      throw const ValidationException('Sale is already voided');
+    }
 
-    final lines = await (db.select(db.saleLines)..where((tbl) => tbl.saleId.equals(saleId))).get();
-    final defaultLocation = await inventoryService.getDefaultLocation(sale.storeId);
+    final lines = await (db.select(
+      db.saleLines,
+    )..where((tbl) => tbl.saleId.equals(saleId))).get();
+    final defaultLocation = await inventoryService.getDefaultLocation(
+      sale.storeId,
+    );
     final now = DateTime.now();
 
     await db.transaction(() async {
@@ -338,7 +409,9 @@ class SaleService {
       }
 
       // 3. Audit log
-      await db.into(db.auditEvents).insert(
+      await db
+          .into(db.auditEvents)
+          .insert(
             AuditEventsCompanion.insert(
               id: IdGenerator.uuid(),
               action: 'SALE_VOIDED',
@@ -346,13 +419,17 @@ class SaleService {
               entityId: Value(saleId),
               userId: actorId,
               managerId: Value(managerId),
-              detailsJson: Value('{"reason":"$reason","receiptNumber":"${sale.receiptNumber}"}'),
+              detailsJson: Value(
+                '{"reason":"$reason","receiptNumber":"${sale.receiptNumber}"}',
+              ),
               createdAt: now,
             ),
           );
 
       // 4. Outbox sync
-      await db.into(db.syncOutbox).insert(
+      await db
+          .into(db.syncOutbox)
+          .insert(
             SyncOutboxCompanion.insert(
               id: IdGenerator.uuid(),
               entityType: 'SALE',
@@ -364,6 +441,9 @@ class SaleService {
           );
     });
 
-    PosLogger.instance.info('Sales', 'Sale #${sale.receiptNumber} voided by user $actorId authorized by $managerId');
+    PosLogger.instance.info(
+      'Sales',
+      'Sale #${sale.receiptNumber} voided by user $actorId authorized by $managerId',
+    );
   }
 }

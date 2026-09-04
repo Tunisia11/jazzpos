@@ -44,14 +44,23 @@ class HardwareManager {
     labelPrinter = customLabelPrinter ?? FakeLabelPrinter();
 
     // On desktop, default to USB HID keyboard scanner or fake scanner
-    barcodeScanner = customBarcodeScanner ?? (Platform.isMacOS ? FakeBarcodeScanner() : KeyboardBarcodeScanner());
+    barcodeScanner =
+        customBarcodeScanner ??
+        (Platform.isMacOS ? FakeBarcodeScanner() : KeyboardBarcodeScanner());
     barcodeScanner.startListening();
 
-    cashDrawer = customCashDrawer ?? (customReceiptPrinter != null ? PrinterKickCashDrawer(printer: receiptPrinter) : FakeCashDrawer());
+    cashDrawer =
+        customCashDrawer ??
+        (customReceiptPrinter != null
+            ? PrinterKickCashDrawer(printer: receiptPrinter)
+            : FakeCashDrawer());
     customerDisplay = customCustomerDisplay ?? FakeCustomerDisplay();
 
     _isInitialized = true;
-    PosLogger.instance.info('Hardware', 'Hardware Manager initialized. Target OS: ${Platform.operatingSystem}');
+    PosLogger.instance.info(
+      'Hardware',
+      'Hardware Manager initialized. Target OS: ${Platform.operatingSystem}',
+    );
   }
 
   /// Print test receipt

@@ -13,7 +13,8 @@ class ReportsScreen extends ConsumerStatefulWidget {
   ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTickerProviderStateMixin {
+class _ReportsScreenState extends ConsumerState<ReportsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _periodDays = 1; // 1 = today, 7 = week, 30 = month
 
@@ -40,11 +41,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     final reportService = ref.read(reportServiceProvider);
 
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: _periodDays - 1));
+    final start = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: _periodDays - 1));
     final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-    final sales = await reportService.getSalesReport(startDate: start, endDate: end);
-    final sizes = await reportService.getSizePerformance(startDate: start, endDate: end);
+    final sales = await reportService.getSalesReport(
+      startDate: start,
+      endDate: end,
+    );
+    final sizes = await reportService.getSizePerformance(
+      startDate: start,
+      endDate: end,
+    );
     final val = await reportService.getInventoryValuation();
 
     if (mounted) {
@@ -70,7 +81,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
           tabs: const [
             Tab(icon: Icon(Icons.analytics), text: 'VENTES & MARGE BRUTE'),
             Tab(icon: Icon(Icons.straighten), text: 'PERFORMANCE DES TAILLES'),
-            Tab(icon: Icon(Icons.account_balance_wallet), text: 'VALORISATION STOCK'),
+            Tab(
+              icon: Icon(Icons.account_balance_wallet),
+              text: 'VALORISATION STOCK',
+            ),
           ],
         ),
       ),
@@ -82,7 +96,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
             color: const Color(0xFF161F2E),
             child: Row(
               children: [
-                const Text('Période d\'analyse :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
+                const Text(
+                  'Période d\'analyse :',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 ChoiceChip(
                   label: const Text('Aujourd\'hui'),
@@ -154,13 +175,33 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
           // Row of Stat Cards
           Row(
             children: [
-              _buildMetricCard('Chiffre d\'Affaires Net', r.netSales, AppTheme.success, Icons.trending_up),
+              _buildMetricCard(
+                'Chiffre d\'Affaires Net',
+                r.netSales,
+                AppTheme.success,
+                Icons.trending_up,
+              ),
               const SizedBox(width: 14),
-              _buildMetricCard('Marge Brute Réalisée', r.grossProfit, Colors.blueAccent, Icons.pie_chart),
+              _buildMetricCard(
+                'Marge Brute Réalisée',
+                r.grossProfit,
+                Colors.blueAccent,
+                Icons.pie_chart,
+              ),
               const SizedBox(width: 14),
-              _buildMetricCard('Coût d\'Achat Marchandises', r.totalCost, AppTheme.textSecondary, Icons.shopping_basket),
+              _buildMetricCard(
+                'Coût d\'Achat Marchandises',
+                r.totalCost,
+                AppTheme.textSecondary,
+                Icons.shopping_basket,
+              ),
               const SizedBox(width: 14),
-              _buildSimpleCard('Taux de Marge Brute', '${r.grossMarginPercent.toStringAsFixed(1)} %', Colors.amber, Icons.percent),
+              _buildSimpleCard(
+                'Taux de Marge Brute',
+                '${r.grossMarginPercent.toStringAsFixed(1)} %',
+                Colors.amber,
+                Icons.percent,
+              ),
             ],
           ),
 
@@ -183,17 +224,51 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Détail Financier de la Période', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Détail Financier de la Période',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 16),
-                      _buildDetailRow('Nombre total de ventes clôturées', '${r.totalSalesCount}'),
-                      _buildDetailRowMoney('Chiffre d\'affaires brut', r.grossSales),
-                      _buildDetailRowMoney('Remises accordées (-)', r.totalDiscounts, color: AppTheme.error),
-                      _buildDetailRowMoney('Remboursements et retours (-)', r.totalRefunds, color: AppTheme.error),
+                      _buildDetailRow(
+                        'Nombre total de ventes clôturées',
+                        '${r.totalSalesCount}',
+                      ),
+                      _buildDetailRowMoney(
+                        'Chiffre d\'affaires brut',
+                        r.grossSales,
+                      ),
+                      _buildDetailRowMoney(
+                        'Remises accordées (-)',
+                        r.totalDiscounts,
+                        color: AppTheme.error,
+                      ),
+                      _buildDetailRowMoney(
+                        'Remboursements et retours (-)',
+                        r.totalRefunds,
+                        color: AppTheme.error,
+                      ),
                       const Divider(color: AppTheme.border, height: 20),
-                      _buildDetailRowMoney('Chiffre d\'Affaires Net Réel', r.netSales, isBold: true, color: AppTheme.success),
-                      _buildDetailRowMoney('Coût des marchandises vendues (COGS)', r.totalCost),
+                      _buildDetailRowMoney(
+                        'Chiffre d\'Affaires Net Réel',
+                        r.netSales,
+                        isBold: true,
+                        color: AppTheme.success,
+                      ),
+                      _buildDetailRowMoney(
+                        'Coût des marchandises vendues (COGS)',
+                        r.totalCost,
+                      ),
                       const Divider(color: AppTheme.border, height: 20),
-                      _buildDetailRowMoney('Bénéfice Brut Net', r.grossProfit, isBold: true, color: Colors.blueAccent, fontSize: 18),
+                      _buildDetailRowMoney(
+                        'Bénéfice Brut Net',
+                        r.grossProfit,
+                        isBold: true,
+                        color: Colors.blueAccent,
+                        fontSize: 18,
+                      ),
                     ],
                   ),
                 ),
@@ -214,10 +289,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Répartition par Mode de Paiement', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Répartition par Mode de Paiement',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       if (r.salesByPaymentMethod.isEmpty)
-                        const Text('Aucun paiement sur la période', style: TextStyle(color: AppTheme.textSecondary))
+                        const Text(
+                          'Aucun paiement sur la période',
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        )
                       else
                         ...r.salesByPaymentMethod.entries.map((entry) {
                           return Padding(
@@ -225,7 +309,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(entry.key.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                                Text(
+                                  entry.key.toUpperCase(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                                 MoneyDisplay(amount: entry.value, fontSize: 15),
                               ],
                             ),
@@ -245,11 +334,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
   Widget _buildSizePerformanceView() {
     if (_sizeReport.isEmpty) {
       return const Center(
-        child: Text('Aucune vente enregistrée sur cette période pour analyser les tailles', style: TextStyle(color: AppTheme.textSecondary)),
+        child: Text(
+          'Aucune vente enregistrée sur cette période pour analyser les tailles',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
       );
     }
 
-    final maxSold = _sizeReport.map((s) => s.unitsSold).reduce((a, b) => a > b ? a : b);
+    final maxSold = _sizeReport
+        .map((s) => s.unitsSold)
+        .reduce((a, b) => a > b ? a : b);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -263,9 +357,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Ventes par Taille de Vêtement', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text(
+              'Ventes par Taille de Vêtement',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 6),
-            const Text('Identifiez les tailles les plus demandées pour optimiser vos réassorts :', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+            const Text(
+              'Identifiez les tailles les plus demandées pour optimiser vos réassorts :',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
             const SizedBox(height: 20),
 
             ..._sizeReport.map((s) {
@@ -279,7 +379,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                       width: 60,
                       child: Text(
                         s.size,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -291,7 +395,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                           value: ratio,
                           minHeight: 24,
                           backgroundColor: const Color(0xFF161F2E),
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppTheme.primary,
+                          ),
                         ),
                       ),
                     ),
@@ -300,7 +406,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
                       width: 100,
                       child: Text(
                         '${s.unitsSold} pièces',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     SizedBox(
@@ -327,21 +436,51 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
         children: [
           Row(
             children: [
-              _buildMetricCard('Valeur au Coût d\'Achat', v.valuationAtCost, AppTheme.warning, Icons.inventory),
+              _buildMetricCard(
+                'Valeur au Coût d\'Achat',
+                v.valuationAtCost,
+                AppTheme.warning,
+                Icons.inventory,
+              ),
               const SizedBox(width: 14),
-              _buildMetricCard('Valeur Vente (Prix de détail)', v.valuationAtRetail, AppTheme.success, Icons.store),
+              _buildMetricCard(
+                'Valeur Vente (Prix de détail)',
+                v.valuationAtRetail,
+                AppTheme.success,
+                Icons.store,
+              ),
               const SizedBox(width: 14),
-              _buildMetricCard('Bénéfice Potentiel Stock', v.potentialProfit, Colors.blueAccent, Icons.auto_graph),
+              _buildMetricCard(
+                'Bénéfice Potentiel Stock',
+                v.potentialProfit,
+                Colors.blueAccent,
+                Icons.auto_graph,
+              ),
               const SizedBox(width: 14),
-              _buildSimpleCard('Pièces Totales en Stock', '${v.totalUnitsInStock}', Colors.white, Icons.checkroom),
+              _buildSimpleCard(
+                'Pièces Totales en Stock',
+                '${v.totalUnitsInStock}',
+                Colors.white,
+                Icons.checkroom,
+              ),
             ],
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              _buildSimpleCard('Alertes Stock Faible (≤ 2)', '${v.lowStockCount}', AppTheme.warning, Icons.warning_amber),
+              _buildSimpleCard(
+                'Alertes Stock Faible (≤ 2)',
+                '${v.lowStockCount}',
+                AppTheme.warning,
+                Icons.warning_amber,
+              ),
               const SizedBox(width: 14),
-              _buildSimpleCard('Articles en Rupture (0)', '${v.outOfStockCount}', AppTheme.error, Icons.remove_shopping_cart),
+              _buildSimpleCard(
+                'Articles en Rupture (0)',
+                '${v.outOfStockCount}',
+                AppTheme.error,
+                Icons.remove_shopping_cart,
+              ),
             ],
           ),
         ],
@@ -349,7 +488,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     );
   }
 
-  Widget _buildMetricCard(String title, Money amount, Color color, IconData icon) {
+  Widget _buildMetricCard(
+    String title,
+    Money amount,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -364,7 +508,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
                 Icon(icon, size: 16, color: color),
               ],
             ),
@@ -376,7 +526,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     );
   }
 
-  Widget _buildSimpleCard(String title, String value, Color color, IconData icon) {
+  Widget _buildSimpleCard(
+    String title,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -391,12 +546,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
                 Icon(icon, size: 16, color: color),
               ],
             ),
             const SizedBox(height: 8),
-            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
@@ -416,13 +584,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> with SingleTicker
     );
   }
 
-  Widget _buildDetailRowMoney(String label, Money amount, {bool isBold = false, Color? color, double fontSize = 14}) {
+  Widget _buildDetailRowMoney(
+    String label,
+    Money amount, {
+    bool isBold = false,
+    Color? color,
+    double fontSize = 14,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: isBold ? Colors.white : AppTheme.textSecondary, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(
+            label,
+            style: TextStyle(
+              color: isBold ? Colors.white : AppTheme.textSecondary,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
           MoneyDisplay(amount: amount, fontSize: fontSize, color: color),
         ],
       ),

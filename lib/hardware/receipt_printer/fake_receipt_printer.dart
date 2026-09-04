@@ -46,7 +46,10 @@ class FakeReceiptPrinter implements ReceiptPrinter {
   Future<void> openCashDrawer() async {
     if (!_connected) throw Exception('Printer $name is disconnected');
     drawerOpenCount++;
-    PosLogger.instance.info('CashDrawer', 'Cash drawer kick pulse fired via $name');
+    PosLogger.instance.info(
+      'CashDrawer',
+      'Cash drawer kick pulse fired via $name',
+    );
   }
 
   @override
@@ -70,9 +73,15 @@ class FakeReceiptPrinter implements ReceiptPrinter {
     // Header
     buffer.writeln(divider);
     buffer.writeln(_center(doc.storeName.toUpperCase(), width));
-    if (doc.storeAddress != null) buffer.writeln(_center(doc.storeAddress!, width));
-    if (doc.storePhone != null) buffer.writeln(_center('Tel: ${doc.storePhone}', width));
-    if (doc.fiscalId != null) buffer.writeln(_center('Mat. Fiscale: ${doc.fiscalId}', width));
+    if (doc.storeAddress != null) {
+      buffer.writeln(_center(doc.storeAddress!, width));
+    }
+    if (doc.storePhone != null) {
+      buffer.writeln(_center('Tel: ${doc.storePhone}', width));
+    }
+    if (doc.fiscalId != null) {
+      buffer.writeln(_center('Mat. Fiscale: ${doc.fiscalId}', width));
+    }
     buffer.writeln(divider);
 
     if (doc.isDuplicate) {
@@ -83,7 +92,9 @@ class FakeReceiptPrinter implements ReceiptPrinter {
     final dateStr = DateFormat('dd/MM/yyyy HH:mm:ss').format(doc.dateTime);
     buffer.writeln('Ticket: ${doc.receiptNumber}');
     buffer.writeln('Date:   $dateStr');
-    buffer.writeln('Caisse: ${doc.registerCode} | Caissier: ${doc.cashierName}');
+    buffer.writeln(
+      'Caisse: ${doc.registerCode} | Caissier: ${doc.cashierName}',
+    );
     buffer.writeln(thinDivider);
 
     // Items
@@ -94,7 +105,9 @@ class FakeReceiptPrinter implements ReceiptPrinter {
       final lineTotal = item.total.format();
       buffer.writeln(_formatTwoCol('  $qtyAndPrice', lineTotal, width));
       if (item.discount > Money.zero) {
-        buffer.writeln(_formatTwoCol('  Remise:', '-${item.discount.format()}', width));
+        buffer.writeln(
+          _formatTwoCol('  Remise:', '-${item.discount.format()}', width),
+        );
       }
     }
     buffer.writeln(thinDivider);
@@ -102,7 +115,9 @@ class FakeReceiptPrinter implements ReceiptPrinter {
     // Totals
     buffer.writeln(_formatTwoCol('SOUS-TOTAL:', doc.subtotal.format(), width));
     if (doc.discount > Money.zero) {
-      buffer.writeln(_formatTwoCol('REMISE:', '-${doc.discount.format()}', width));
+      buffer.writeln(
+        _formatTwoCol('REMISE:', '-${doc.discount.format()}', width),
+      );
     }
     if (doc.tax > Money.zero) {
       buffer.writeln(_formatTwoCol('TVA:', doc.tax.format(), width));
@@ -112,10 +127,16 @@ class FakeReceiptPrinter implements ReceiptPrinter {
 
     // Payments
     for (final p in doc.payments) {
-      buffer.writeln(_formatTwoCol('Paiement (${p.method}):', p.amount.format(), width));
+      buffer.writeln(
+        _formatTwoCol('Paiement (${p.method}):', p.amount.format(), width),
+      );
       if (p.tendered > Money.zero) {
-        buffer.writeln(_formatTwoCol('  Espèce reçu:', p.tendered.format(), width));
-        buffer.writeln(_formatTwoCol('  Monnaie rendue:', p.change.format(), width));
+        buffer.writeln(
+          _formatTwoCol('  Espèce reçu:', p.tendered.format(), width),
+        );
+        buffer.writeln(
+          _formatTwoCol('  Monnaie rendue:', p.change.format(), width),
+        );
       }
     }
 
@@ -124,7 +145,9 @@ class FakeReceiptPrinter implements ReceiptPrinter {
       buffer.writeln(_center(doc.footerMessage!, width));
     } else {
       buffer.writeln(_center('Merci pour votre visite !', width));
-      buffer.writeln(_center('Les articles peuvent etre echanges sous 15 jours', width));
+      buffer.writeln(
+        _center('Les articles peuvent etre echanges sous 15 jours', width),
+      );
     }
     buffer.writeln(_center('||||| ${doc.receiptNumber} |||||', width));
     buffer.writeln(divider);
@@ -134,7 +157,10 @@ class FakeReceiptPrinter implements ReceiptPrinter {
     printedTextReceipts.add(text);
     _receiptStreamController.add(text);
 
-    PosLogger.instance.info('Printer', 'Successfully printed simulated receipt #${doc.receiptNumber}');
+    PosLogger.instance.info(
+      'Printer',
+      'Successfully printed simulated receipt #${doc.receiptNumber}',
+    );
   }
 
   @override

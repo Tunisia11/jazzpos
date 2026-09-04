@@ -12,7 +12,9 @@ class TsplCommands {
     buffer.writeln('CLS');
 
     // Store Name
-    buffer.writeln('TEXT 20, 15, "2", 0, 1, 1, "${doc.storeName.toUpperCase()}"');
+    buffer.writeln(
+      'TEXT 20, 15, "2", 0, 1, 1, "${doc.storeName.toUpperCase()}"',
+    );
 
     // Brand and Collection if available
     if (doc.brandName != null && doc.brandName!.isNotEmpty) {
@@ -20,7 +22,9 @@ class TsplCommands {
     }
 
     // Product Name (truncated to 20 chars if needed)
-    final prodName = doc.productName.length > 22 ? doc.productName.substring(0, 22) : doc.productName;
+    final prodName = doc.productName.length > 22
+        ? doc.productName.substring(0, 22)
+        : doc.productName;
     buffer.writeln('TEXT 20, 55, "2", 0, 1, 1, "$prodName"');
 
     // Color & Size
@@ -40,7 +44,9 @@ class TsplCommands {
 
     // Old price if promotion / sale
     if (doc.oldPrice != null) {
-      buffer.writeln('TEXT 180, 130, "1", 0, 1, 1, "Av: ${doc.oldPrice!.format()}"');
+      buffer.writeln(
+        'TEXT 180, 130, "1", 0, 1, 1, "Av: ${doc.oldPrice!.format()}"',
+      );
     }
 
     // Print command: PRINT copies, 1

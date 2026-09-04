@@ -63,7 +63,8 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
       await HardwareManager.instance.labelPrinter.printLabel(doc);
       setState(() {
         _isPrinting = false;
-        _statusMessage = '$_copies étiquette(s) envoyée(s) à l\'imprimante TSPL/ZPL';
+        _statusMessage =
+            '$_copies étiquette(s) envoyée(s) à l\'imprimante TSPL/ZPL';
       });
     } catch (e) {
       setState(() {
@@ -107,17 +108,36 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                       children: [
                         const Text(
                           'Format du rouleau d\'étiquettes (mm)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 10,
                           runSpacing: 8,
                           children: [
-                            _buildFormatChip(40, 25, '40 x 25 mm (Bijoux / Accessoires)'),
-                            _buildFormatChip(40, 30, '40 x 30 mm (Standard Prêt-à-Porter)'),
-                            _buildFormatChip(50, 30, '50 x 30 mm (Grand format)'),
-                            _buildFormatChip(60, 40, '60 x 40 mm (Carton / Cartonnette)'),
+                            _buildFormatChip(
+                              40,
+                              25,
+                              '40 x 25 mm (Bijoux / Accessoires)',
+                            ),
+                            _buildFormatChip(
+                              40,
+                              30,
+                              '40 x 30 mm (Standard Prêt-à-Porter)',
+                            ),
+                            _buildFormatChip(
+                              50,
+                              30,
+                              '50 x 30 mm (Grand format)',
+                            ),
+                            _buildFormatChip(
+                              60,
+                              40,
+                              '60 x 40 mm (Carton / Cartonnette)',
+                            ),
                           ],
                         ),
                       ],
@@ -139,7 +159,10 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                       children: [
                         const Text(
                           'Sélection de l\'article :',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         TextField(
@@ -152,12 +175,18 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                                     icon: const Icon(Icons.clear, size: 16),
                                     onPressed: () {
                                       _searchCtrl.clear();
-                                      ref.read(catalogNotifierProvider.notifier).search('');
+                                      ref
+                                          .read(
+                                            catalogNotifierProvider.notifier,
+                                          )
+                                          .search('');
                                     },
                                   )
                                 : null,
                           ),
-                          onChanged: (val) => ref.read(catalogNotifierProvider.notifier).search(val),
+                          onChanged: (val) => ref
+                              .read(catalogNotifierProvider.notifier)
+                              .search(val),
                         ),
                         const SizedBox(height: 12),
 
@@ -166,19 +195,36 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                           child: ListView.separated(
                             shrinkWrap: true,
                             itemCount: catalogState.variants.length,
-                            separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                            separatorBuilder: (_, __) => const Divider(
+                              color: AppTheme.border,
+                              height: 1,
+                            ),
                             itemBuilder: (context, index) {
                               final v = catalogState.variants[index];
-                              final isSelected = v.variantId == _selectedVariant?.variantId;
+                              final isSelected =
+                                  v.variantId == _selectedVariant?.variantId;
 
                               return ListTile(
                                 dense: true,
                                 selected: isSelected,
-                                selectedTileColor: AppTheme.primary.withValues(alpha: 0.15),
-                                title: Text(v.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text('${v.variantDescription} • SKU: ${v.sku} • Stock: ${v.stock}'),
-                                trailing: MoneyDisplay(amount: v.salePrice, fontSize: 13),
-                                onTap: () => setState(() => _selectedVariant = v),
+                                selectedTileColor: AppTheme.primary.withValues(
+                                  alpha: 0.15,
+                                ),
+                                title: Text(
+                                  v.productName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${v.variantDescription} • SKU: ${v.sku} • Stock: ${v.stock}',
+                                ),
+                                trailing: MoneyDisplay(
+                                  amount: v.salePrice,
+                                  fontSize: 13,
+                                ),
+                                onTap: () =>
+                                    setState(() => _selectedVariant = v),
                               );
                             },
                           ),
@@ -202,7 +248,10 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                       children: [
                         const Text(
                           'Nombre d\'exemplaires :',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -215,10 +264,15 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                             const SizedBox(width: 8),
                             _buildCopiesButton(20),
                             const SizedBox(width: 12),
-                            if (_selectedVariant != null && _selectedVariant!.stock > 0)
+                            if (_selectedVariant != null &&
+                                _selectedVariant!.stock > 0)
                               OutlinedButton(
-                                onPressed: () => setState(() => _copies = _selectedVariant!.stock),
-                                child: Text('Selon Stock (${_selectedVariant!.stock})'),
+                                onPressed: () => setState(
+                                  () => _copies = _selectedVariant!.stock,
+                                ),
+                                child: Text(
+                                  'Selon Stock (${_selectedVariant!.stock})',
+                                ),
                               ),
                           ],
                         ),
@@ -227,25 +281,50 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.remove_circle_outline),
-                              onPressed: _copies > 1 ? () => setState(() => _copies--) : null,
+                              onPressed: _copies > 1
+                                  ? () => setState(() => _copies--)
+                                  : null,
                             ),
-                            Text('$_copies étiquette(s)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text(
+                              '$_copies étiquette(s)',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.add_circle_outline),
                               onPressed: () => setState(() => _copies++),
                             ),
                             const Spacer(),
                             ElevatedButton.icon(
-                              onPressed: (_selectedVariant == null || _isPrinting) ? null : _printLabels,
+                              onPressed:
+                                  (_selectedVariant == null || _isPrinting)
+                                  ? null
+                                  : _printLabels,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppTheme.primary,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 14,
+                                ),
                               ),
                               icon: _isPrinting
-                                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : const Icon(Icons.print, size: 20),
-                              label: Text(_isPrinting ? 'IMPRESSION...' : 'LANCER L\'IMPRESSION'),
+                              label: Text(
+                                _isPrinting
+                                    ? 'IMPRESSION...'
+                                    : 'LANCER L\'IMPRESSION',
+                              ),
                             ),
                           ],
                         ),
@@ -254,7 +333,9 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                           Text(
                             _statusMessage!,
                             style: TextStyle(
-                              color: _statusMessage!.contains('Erreur') ? AppTheme.error : AppTheme.success,
+                              color: _statusMessage!.contains('Erreur')
+                                  ? AppTheme.error
+                                  : AppTheme.success,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -281,19 +362,29 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                 children: [
                   const Text(
                     'Aperçu Réel de l\'Étiquette Thermique',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 20),
 
                   if (_selectedVariant == null)
-                    const Text('Veuillez sélectionner un article pour visualiser l\'étiquette', style: TextStyle(color: AppTheme.textSecondary))
+                    const Text(
+                      'Veuillez sélectionner un article pour visualiser l\'étiquette',
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    )
                   else
                     _buildWysiwygLabel(),
 
                   const SizedBox(height: 20),
                   Text(
                     'Format sélectionné : $_widthMm x $_heightMm mm',
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
@@ -320,7 +411,9 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
     return ElevatedButton(
       onPressed: () => setState(() => _copies = count),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _copies == count ? AppTheme.primary : const Color(0xFF161F2E),
+        backgroundColor: _copies == count
+            ? AppTheme.primary
+            : const Color(0xFF161F2E),
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       ),
@@ -414,7 +507,11 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
             children: [
               Text(
                 'REF: ${v.sku}',
-                style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               Text(
                 v.salePrice.format(),

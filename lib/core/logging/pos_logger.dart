@@ -50,7 +50,12 @@ class PosLogger {
     if (_initialized) return;
     try {
       final appDir = await getApplicationSupportDirectory();
-      final logDir = Directory(p.join(appDir.path, 'logs'));
+      // Ensure directory under JazzPOS
+      final baseDir =
+          (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
+          ? Directory(p.join(appDir.path, 'JazzPOS'))
+          : appDir;
+      final logDir = Directory(p.join(baseDir.path, 'logs'));
       if (!await logDir.exists()) {
         await logDir.create(recursive: true);
       }
@@ -83,8 +88,20 @@ class PosLogger {
   /// Sanitize messages to never leak PINs, passwords, or secret tokens
   String _sanitize(String text) {
     return text
-        .replaceAll(RegExp(r'(pin|password|secret|token|hash)[:=]\s*(\S+)', caseSensitive: false), r'$1=[REDACTED]')
-        .replaceAll(RegExp(r'\b\d{4,6}\b(?=.*(?:pin|password|auth))', caseSensitive: false), '[REDACTED_PIN]');
+        .replaceAll(
+          RegExp(
+            r'(pin|password|secret|token|hash)[:=]\s*(\S+)',
+            caseSensitive: false,
+          ),
+          r'$1=[REDACTED]',
+        )
+        .replaceAll(
+          RegExp(
+            r'\b\d{4,6}\b(?=.*(?:pin|password|auth))',
+            caseSensitive: false,
+          ),
+          '[REDACTED_PIN]',
+        );
   }
 
   void log(
@@ -118,17 +135,27 @@ class PosLogger {
     // Persist to file
     if (_logFile != null) {
       try {
-        _logFile!.writeAsStringSync('$formatted\n', mode: FileMode.append, flush: false);
+        _logFile!.writeAsStringSync(
+          '$formatted\n',
+          mode: FileMode.append,
+          flush: false,
+        );
       } catch (_) {}
     }
   }
 
-  void debug(String category, String message) => log(LogLevel.debug, category, message);
-  void info(String category, String message) => log(LogLevel.info, category, message);
+  void debug(String category, String message) =>
+      log(LogLevel.debug, category, message);
+  void info(String category, String message) =>
+      log(LogLevel.info, category, message);
   void warning(String category, String message, [Object? error]) =>
       log(LogLevel.warning, category, message, error);
-  void error(String category, String message, [Object? error, StackTrace? stackTrace]) =>
-      log(LogLevel.error, category, message, error, stackTrace);
+  void error(
+    String category,
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+  ]) => log(LogLevel.error, category, message, error, stackTrace);
 
   List<LogEntry> getRecentLogs([int count = 100]) {
     return _inMemoryBuffer.toList().reversed.take(count).toList();

@@ -10,7 +10,9 @@ class ZplCommands {
     buffer.writeln('^FO20,15^A0N,20,20^FD${doc.storeName.toUpperCase()}^FS');
 
     // Product Name
-    final prodName = doc.productName.length > 22 ? doc.productName.substring(0, 22) : doc.productName;
+    final prodName = doc.productName.length > 22
+        ? doc.productName.substring(0, 22)
+        : doc.productName;
     buffer.writeln('^FO20,40^A0N,22,22^FD$prodName^FS');
 
     // Size & Color

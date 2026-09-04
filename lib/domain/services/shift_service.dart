@@ -47,7 +47,11 @@ class ShiftService {
   /// Get active open shift for register or cashier
   Future<Shift?> getOpenShift(String registerId) async {
     return (db.select(db.shifts)
-          ..where((tbl) => tbl.registerId.equals(registerId) & tbl.status.equals(AppConstants.shiftOpen))
+          ..where(
+            (tbl) =>
+                tbl.registerId.equals(registerId) &
+                tbl.status.equals(AppConstants.shiftOpen),
+          )
           ..limit(1))
         .getSingleOrNull();
   }
@@ -59,15 +63,23 @@ class ShiftService {
     required Money openingCash,
     String? note,
   }) async {
+    if (openingCash.isNegative) {
+      throw const ValidationException('Opening float cash cannot be negative.');
+    }
+
     final existing = await getOpenShift(registerId);
     if (existing != null) {
-      throw const ValidationException('An active shift is already open for this register.');
+      throw const ValidationException(
+        'An active shift is already open for this register.',
+      );
     }
 
     final shiftId = IdGenerator.uuid();
     final now = DateTime.now();
 
-    await db.into(db.shifts).insert(
+    await db
+        .into(db.shifts)
+        .insert(
           ShiftsCompanion.insert(
             id: shiftId,
             registerId: registerId,
@@ -80,7 +92,9 @@ class ShiftService {
         );
 
     // Audit event
-    await db.into(db.auditEvents).insert(
+    await db
+        .into(db.auditEvents)
+        .insert(
           AuditEventsCompanion.insert(
             id: IdGenerator.uuid(),
             action: 'SHIFT_OPENED',
@@ -92,8 +106,13 @@ class ShiftService {
           ),
         );
 
-    PosLogger.instance.info('Shift', 'Shift $shiftId opened with float: ${openingCash.format()}');
-    return (db.select(db.shifts)..where((tbl) => tbl.id.equals(shiftId))).getSingle();
+    PosLogger.instance.info(
+      'Shift',
+      'Shift $shiftId opened with float: ${openingCash.format()}',
+    );
+    return (db.select(
+      db.shifts,
+    )..where((tbl) => tbl.id.equals(shiftId))).getSingle();
   }
 
   /// Record cash movement (Pay In, Pay Out, Cash Drop)
@@ -105,11 +124,15 @@ class ShiftService {
     required String reason,
   }) async {
     if (amount <= Money.zero) {
-      throw const ValidationException('Cash movement amount must be greater than zero');
+      throw const ValidationException(
+        'Cash movement amount must be greater than zero',
+      );
     }
 
     final now = DateTime.now();
-    await db.into(db.cashMovements).insert(
+    await db
+        .into(db.cashMovements)
+        .insert(
           CashMovementsCompanion.insert(
             id: IdGenerator.uuid(),
             shiftId: shiftId,
@@ -122,36 +145,55 @@ class ShiftService {
         );
 
     // Audit
-    await db.into(db.auditEvents).insert(
+    await db
+        .into(db.auditEvents)
+        .insert(
           AuditEventsCompanion.insert(
             id: IdGenerator.uuid(),
             action: 'CASH_MOVEMENT_$type',
             entityType: 'SHIFT',
             entityId: Value(shiftId),
             userId: userId,
-            detailsJson: Value('{"amount":${amount.millimes},"reason":"$reason"}'),
+            detailsJson: Value(
+              '{"amount":${amount.millimes},"reason":"$reason"}',
+            ),
             createdAt: now,
           ),
         );
 
-    PosLogger.instance.info('Shift', 'Cash movement $type: ${amount.format()} reason: $reason');
+    PosLogger.instance.info(
+      'Shift',
+      'Cash movement $type: ${amount.format()} reason: $reason',
+    );
   }
 
   /// Calculate live shift summary and expected cash balance
   Future<ShiftSummary> calculateShiftSummary(String shiftId) async {
-    final shift = await (db.select(db.shifts)..where((tbl) => tbl.id.equals(shiftId))).getSingle();
+    final shift = await (db.select(
+      db.shifts,
+    )..where((tbl) => tbl.id.equals(shiftId))).getSingle();
     final openingCash = Money.fromMillimes(shift.openingCashMillimes);
 
     // Sales in this shift
-    final sales = await (db.select(db.sales)
-          ..where((tbl) => tbl.shiftId.equals(shiftId) & tbl.status.equals(AppConstants.saleCompleted)))
-        .get();
+    final sales =
+        await (db.select(db.sales)..where(
+              (tbl) =>
+                  tbl.shiftId.equals(shiftId) &
+                  tbl.status.isIn([
+                    AppConstants.saleCompleted,
+                    AppConstants.salePartiallyRefunded,
+                    AppConstants.saleRefunded,
+                  ]),
+            ))
+            .get();
 
     // Payments in this shift
     final saleIds = sales.map((s) => s.id).toList();
     final payments = saleIds.isEmpty
         ? <SalePayment>[]
-        : await (db.select(db.salePayments)..where((tbl) => tbl.saleId.isIn(saleIds))).get();
+        : await (db.select(
+            db.salePayments,
+          )..where((tbl) => tbl.saleId.isIn(saleIds))).get();
 
     Money cashSales = Money.zero;
     Money cardSales = Money.zero;
@@ -177,7 +219,9 @@ class ShiftService {
     }
 
     // Cash refunds in this shift
-    final returns = await (db.select(db.returns)..where((tbl) => tbl.shiftId.equals(shiftId))).get();
+    final returns = await (db.select(
+      db.returns,
+    )..where((tbl) => tbl.shiftId.equals(shiftId))).get();
     Money cashRefunds = Money.zero;
     for (final r in returns) {
       if (r.refundMethod == AppConstants.paymentCash) {
@@ -186,7 +230,9 @@ class ShiftService {
     }
 
     // Cash movements (Pay In / Pay Out)
-    final movements = await (db.select(db.cashMovements)..where((tbl) => tbl.shiftId.equals(shiftId))).get();
+    final movements = await (db.select(
+      db.cashMovements,
+    )..where((tbl) => tbl.shiftId.equals(shiftId))).get();
     Money cashIn = Money.zero;
     Money cashOut = Money.zero;
 
@@ -200,7 +246,8 @@ class ShiftService {
     }
 
     // Expected cash formula: Opening Cash + Cash Sales - Cash Refunds + Pay In - Pay Out
-    final expectedCash = openingCash + cashSales - cashRefunds + cashIn - cashOut;
+    final expectedCash =
+        openingCash + cashSales - cashRefunds + cashIn - cashOut;
 
     Money? countedCash;
     Money? difference;
@@ -233,12 +280,24 @@ class ShiftService {
     required Money countedCash,
     String? note,
   }) async {
+    final existingShift = await (db.select(
+      db.shifts,
+    )..where((tbl) => tbl.id.equals(shiftId))).getSingleOrNull();
+    if (existingShift == null) {
+      throw const ValidationException('Shift not found.');
+    }
+    if (existingShift.status == AppConstants.shiftClosed) {
+      throw const ValidationException('This register shift is already closed.');
+    }
+
     final summary = await calculateShiftSummary(shiftId);
     final difference = countedCash - summary.expectedCash;
     final now = DateTime.now();
 
     await db.transaction(() async {
-      await (db.update(db.shifts)..where((tbl) => tbl.id.equals(shiftId))).write(
+      await (db.update(
+        db.shifts,
+      )..where((tbl) => tbl.id.equals(shiftId))).write(
         ShiftsCompanion(
           closedAt: Value(now),
           expectedCashMillimes: Value(summary.expectedCash.millimes),
@@ -250,7 +309,9 @@ class ShiftService {
       );
 
       // Enqueue Z-Report print job
-      await db.into(db.printJobs).insert(
+      await db
+          .into(db.printJobs)
+          .insert(
             PrintJobsCompanion.insert(
               id: IdGenerator.uuid(),
               jobType: 'SHIFT_REPORT',
@@ -270,18 +331,22 @@ class ShiftService {
           );
 
       // Audit event
-      await db.into(db.auditEvents).insert(
+      await db
+          .into(db.auditEvents)
+          .insert(
             AuditEventsCompanion.insert(
               id: IdGenerator.uuid(),
               action: 'SHIFT_CLOSED',
               entityType: 'SHIFT',
               entityId: Value(shiftId),
               userId: cashierId,
-              detailsJson: Value(jsonEncode({
-                'expectedCash': summary.expectedCash.millimes,
-                'countedCash': countedCash.millimes,
-                'difference': difference.millimes,
-              })),
+              detailsJson: Value(
+                jsonEncode({
+                  'expectedCash': summary.expectedCash.millimes,
+                  'countedCash': countedCash.millimes,
+                  'difference': difference.millimes,
+                }),
+              ),
               createdAt: now,
             ),
           );

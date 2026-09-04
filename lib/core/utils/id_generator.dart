@@ -66,7 +66,9 @@ class IdGenerator {
     String? sizeCode,
     int? sequenceNumber,
   }) {
-    final parts = <String>[productCode.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '')];
+    final parts = <String>[
+      productCode.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), ''),
+    ];
     if (sequenceNumber != null) {
       parts.add(sequenceNumber.toString().padLeft(6, '0'));
     }
@@ -89,7 +91,9 @@ class IdGenerator {
   /// Generate standard EAN-13 with calculated modulo-10 check digit
   static String generateEan13({String prefix = '200'}) {
     // 12 data digits + 1 check digit
-    final data = prefix + List.generate(12 - prefix.length, (_) => _random.nextInt(10)).join();
+    final data =
+        prefix +
+        List.generate(12 - prefix.length, (_) => _random.nextInt(10)).join();
     int sum = 0;
     for (int i = 0; i < 12; i++) {
       final digit = int.parse(data[i]);

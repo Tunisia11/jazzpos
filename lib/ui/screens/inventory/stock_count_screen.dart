@@ -11,10 +11,7 @@ import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
 class StockCountScreen extends ConsumerStatefulWidget {
   final String locationId;
 
-  const StockCountScreen({
-    super.key,
-    this.locationId = 'LOC-SHOP',
-  });
+  const StockCountScreen({super.key, this.locationId = 'LOC-SHOP'});
 
   @override
   ConsumerState<StockCountScreen> createState() => _StockCountScreenState();
@@ -56,7 +53,10 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {
@@ -131,12 +131,17 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
 
     try {
       final countService = ref.read(inventoryCountServiceProvider);
-      await countService.reconcileAndComplete(countId: _countId!, managerId: managerId!);
+      await countService.reconcileAndComplete(
+        countId: _countId!,
+        managerId: managerId!,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Inventaire réconcilié et stocks ajustés avec succès !'),
+            content: Text(
+              'Inventaire réconcilié et stocks ajustés avec succès !',
+            ),
             backgroundColor: AppTheme.success,
           ),
         );
@@ -145,7 +150,10 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     }
@@ -161,7 +169,8 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       totalCounted += l.line.countedQuantity;
       if (l.line.differenceQuantity != 0) {
         totalDiscrepancies++;
-        varianceCostMillimes += l.line.differenceQuantity * l.line.unitCostMillimes;
+        varianceCostMillimes +=
+            l.line.differenceQuantity * l.line.unitCostMillimes;
       }
     }
 
@@ -177,7 +186,10 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
               padding: const EdgeInsets.only(right: 16),
               child: ElevatedButton.icon(
                 onPressed: _isLoading ? null : _reconcileAndFinish,
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.success,
+                  foregroundColor: Colors.white,
+                ),
                 icon: const Icon(Icons.check_circle_outline, size: 20),
                 label: const Text('RÉCONCILIER & CLÔTURER'),
               ),
@@ -205,7 +217,11 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.qr_code_scanner, color: AppTheme.primaryLight, size: 28),
+                                const Icon(
+                                  Icons.qr_code_scanner,
+                                  color: AppTheme.primaryLight,
+                                  size: 28,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: TextField(
@@ -213,15 +229,20 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                                     focusNode: _barcodeFocus,
                                     autofocus: true,
                                     decoration: const InputDecoration(
-                                      hintText: 'Scannez le code-barres de l\'article ou tapez le SKU...',
+                                      hintText:
+                                          'Scannez le code-barres de l\'article ou tapez le SKU...',
                                       border: InputBorder.none,
                                     ),
                                     onSubmitted: _handleBarcode,
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.send, color: AppTheme.primary),
-                                  onPressed: () => _handleBarcode(_barcodeInputCtrl.text),
+                                  icon: const Icon(
+                                    Icons.send,
+                                    color: AppTheme.primary,
+                                  ),
+                                  onPressed: () =>
+                                      _handleBarcode(_barcodeInputCtrl.text),
                                 ),
                               ],
                             ),
@@ -244,7 +265,9 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                         _buildStatCard(
                           title: 'Articles en Écart',
                           value: '$totalDiscrepancies',
-                          color: totalDiscrepancies > 0 ? AppTheme.warning : AppTheme.success,
+                          color: totalDiscrepancies > 0
+                              ? AppTheme.warning
+                              : AppTheme.success,
                           icon: Icons.difference,
                         ),
 
@@ -253,8 +276,12 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                         // Stats Card 3: Value Variance
                         _buildStatCard(
                           title: 'Valeur de l\'Écart',
-                          value: Money.fromMillimes(varianceCostMillimes).format(),
-                          color: varianceCostMillimes < 0 ? AppTheme.error : AppTheme.success,
+                          value: Money.fromMillimes(
+                            varianceCostMillimes,
+                          ).format(),
+                          color: varianceCostMillimes < 0
+                              ? AppTheme.error
+                              : AppTheme.success,
                           icon: Icons.attach_money,
                         ),
                       ],
@@ -272,30 +299,43 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                         ),
                         child: ListView.separated(
                           itemCount: _lines.length,
-                          separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                          separatorBuilder: (_, __) =>
+                              const Divider(color: AppTheme.border, height: 1),
                           itemBuilder: (context, index) {
                             final item = _lines[index];
                             final diff = item.line.differenceQuantity;
                             final isDifferent = diff != 0;
 
                             return Container(
-                              color: isDifferent ? AppTheme.warning.withValues(alpha: 0.05) : Colors.transparent,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              color: isDifferent
+                                  ? AppTheme.warning.withValues(alpha: 0.05)
+                                  : Colors.transparent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               child: Row(
                                 children: [
                                   // Product & Variant
                                   Expanded(
                                     flex: 4,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           item.product.name,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                         Text(
                                           '${item.attributeDesc} • Code: ${item.variant.barcode}',
-                                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                          style: const TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -305,10 +345,23 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                                   Expanded(
                                     flex: 2,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
-                                        const Text('Théorique', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                                        Text('${item.line.expectedQuantity}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                        const Text(
+                                          'Théorique',
+                                          style: TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${item.line.expectedQuantity}',
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -317,29 +370,55 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                                   Expanded(
                                     flex: 3,
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.remove, size: 16),
-                                          onPressed: item.line.countedQuantity > 0
-                                              ? () => _handleBarcodeManualAdjust(item, -1)
+                                          icon: const Icon(
+                                            Icons.remove,
+                                            size: 16,
+                                          ),
+                                          onPressed:
+                                              item.line.countedQuantity > 0
+                                              ? () =>
+                                                    _handleBarcodeManualAdjust(
+                                                      item,
+                                                      -1,
+                                                    )
                                               : null,
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.primary.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: AppTheme.primaryLight),
+                                            color: AppTheme.primary.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: AppTheme.primaryLight,
+                                            ),
                                           ),
                                           child: Text(
                                             '${item.line.countedQuantity}',
-                                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
                                           ),
                                         ),
                                         IconButton(
                                           icon: const Icon(Icons.add, size: 16),
-                                          onPressed: () => _handleBarcodeManualAdjust(item, 1),
+                                          onPressed: () =>
+                                              _handleBarcodeManualAdjust(
+                                                item,
+                                                1,
+                                              ),
                                         ),
                                       ],
                                     ),
@@ -349,9 +428,16 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                                   Expanded(
                                     flex: 2,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
-                                        const Text('Écart', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                        const Text(
+                                          'Écart',
+                                          style: TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 11,
+                                          ),
+                                        ),
                                         Text(
                                           diff > 0 ? '+$diff' : '$diff',
                                           style: TextStyle(
@@ -360,8 +446,8 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                                             color: diff == 0
                                                 ? Colors.white54
                                                 : diff > 0
-                                                    ? AppTheme.success
-                                                    : AppTheme.error,
+                                                ? AppTheme.success
+                                                : AppTheme.error,
                                           ),
                                         ),
                                       ],
@@ -381,7 +467,10 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
     );
   }
 
-  Future<void> _handleBarcodeManualAdjust(InventoryCountLineWithDetails item, int delta) async {
+  Future<void> _handleBarcodeManualAdjust(
+    InventoryCountLineWithDetails item,
+    int delta,
+  ) async {
     if (_countId == null) return;
     final countService = ref.read(inventoryCountServiceProvider);
     await countService.recordScannedVariant(
@@ -392,7 +481,12 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
     _loadLines();
   }
 
-  Widget _buildStatCard({required String title, required String value, required Color color, required IconData icon}) {
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required Color color,
+    required IconData icon,
+  }) {
     return Container(
       width: 180,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -407,12 +501,25 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
               Icon(icon, size: 14, color: color),
             ],
           ),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

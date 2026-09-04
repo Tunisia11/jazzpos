@@ -8,12 +8,10 @@ void main() {
     HardwareManager.instance.initialize();
   });
 
-  testWidgets('JazzPosApp launches with ProviderScope and theme', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: JazzPosApp(),
-      ),
-    );
+  testWidgets('JazzPosApp launches with ProviderScope and theme', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: JazzPosApp()));
 
     // Initial frame renders MaterialApp with JazzPOS title
     expect(find.byType(JazzPosApp), findsOneWidget);

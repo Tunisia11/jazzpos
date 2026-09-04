@@ -27,10 +27,12 @@ class ReturnsExchangesScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ReturnsExchangesScreen> createState() => _ReturnsExchangesScreenState();
+  ConsumerState<ReturnsExchangesScreen> createState() =>
+      _ReturnsExchangesScreenState();
 }
 
-class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen> {
+class _ReturnsExchangesScreenState
+    extends ConsumerState<ReturnsExchangesScreen> {
   final _receiptSearchCtrl = TextEditingController();
 
   Sale? _foundSale;
@@ -66,10 +68,14 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
     });
 
     final db = ref.read(databaseProvider);
-    final sale = await (db.select(db.sales)..where((tbl) => tbl.receiptNumber.equals(clean))).getSingleOrNull();
+    final sale = await (db.select(
+      db.sales,
+    )..where((tbl) => tbl.receiptNumber.equals(clean))).getSingleOrNull();
 
     if (sale != null) {
-      final lines = await (db.select(db.saleLines)..where((tbl) => tbl.saleId.equals(sale.id))).get();
+      final lines = await (db.select(
+        db.saleLines,
+      )..where((tbl) => tbl.saleId.equals(sale.id))).get();
       if (mounted) {
         setState(() {
           _foundSale = sale;
@@ -86,7 +92,10 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
       if (mounted) {
         setState(() => _isSearching = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Aucun ticket trouvé pour "$clean"'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Aucun ticket trouvé pour "$clean"'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     }
@@ -109,7 +118,10 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
 
     if (shift == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez d\'abord ouvrir une session de caisse'), backgroundColor: AppTheme.error),
+        const SnackBar(
+          content: Text('Veuillez d\'abord ouvrir une session de caisse'),
+          backgroundColor: AppTheme.error,
+        ),
       );
       return;
     }
@@ -124,7 +136,9 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
             variantId: line.variantId,
             quantity: qty,
             refundUnitPrice: Money.fromMillimes(line.unitPriceMillimes),
-            condition: _returnConditions[line.id] ?? AppConstants.returnConditionSellable,
+            condition:
+                _returnConditions[line.id] ??
+                AppConstants.returnConditionSellable,
           ),
         );
       }
@@ -132,7 +146,12 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
 
     if (returnItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner au moins un article à retourner'), backgroundColor: AppTheme.error),
+        const SnackBar(
+          content: Text(
+            'Veuillez sélectionner au moins un article à retourner',
+          ),
+          backgroundColor: AppTheme.error,
+        ),
       );
       return;
     }
@@ -165,7 +184,9 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Retour #${result.returnNumber} validé avec succès !'),
+              content: Text(
+                'Retour #${result.returnNumber} validé avec succès !',
+              ),
               backgroundColor: AppTheme.success,
             ),
           );
@@ -175,7 +196,10 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
         // Exchange Mode
         if (_replacementItem == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Veuillez sélectionner un article de remplacement'), backgroundColor: AppTheme.error),
+            const SnackBar(
+              content: Text('Veuillez sélectionner un article de remplacement'),
+              backgroundColor: AppTheme.error,
+            ),
           );
           setState(() => _isSubmitting = false);
           return;
@@ -199,7 +223,9 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Échange validé ! Différence : ${result.difference.format()}'),
+              content: Text(
+                'Échange validé ! Différence : ${result.difference.format()}',
+              ),
               backgroundColor: AppTheme.success,
             ),
           );
@@ -209,7 +235,10 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {
@@ -252,7 +281,8 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                       child: TextField(
                         controller: _receiptSearchCtrl,
                         decoration: const InputDecoration(
-                          labelText: 'Numéro de Ticket ou Scanner Code-barres Ticket',
+                          labelText:
+                              'Numéro de Ticket ou Scanner Code-barres Ticket',
                           hintText: 'ex: REC-20260904-0001',
                           prefixIcon: Icon(Icons.receipt),
                         ),
@@ -261,14 +291,23 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton.icon(
-                      onPressed: _isSearching ? null : () => _searchSale(_receiptSearchCtrl.text),
+                      onPressed: _isSearching
+                          ? null
+                          : () => _searchSale(_receiptSearchCtrl.text),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(0, 50),
                       ),
                       icon: _isSearching
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : const Icon(Icons.search),
                       label: const Text('RECHERCHER TICKET'),
                     ),
@@ -281,7 +320,10 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
               if (_foundSale != null) ...[
                 // Ticket Summary Header
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF161F2E),
                     borderRadius: BorderRadius.circular(8),
@@ -289,20 +331,37 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.receipt_long, color: AppTheme.primaryLight, size: 20),
+                      const Icon(
+                        Icons.receipt_long,
+                        color: AppTheme.primaryLight,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Ticket: ${_foundSale!.receiptNumber}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Text(
                         'Date: ${DateFormat('dd/MM/yyyy HH:mm').format(_foundSale!.createdAt)}',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                       const Spacer(),
-                      const Text('Total Vente: ', style: TextStyle(color: AppTheme.textSecondary)),
-                      MoneyDisplay(amount: Money.fromMillimes(_foundSale!.totalMillimes), fontSize: 16),
+                      const Text(
+                        'Total Vente: ',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
+                      MoneyDisplay(
+                        amount: Money.fromMillimes(_foundSale!.totalMillimes),
+                        fontSize: 16,
+                      ),
                     ],
                   ),
                 ),
@@ -315,11 +374,14 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                     ChoiceChip(
                       label: const Text('Remboursement / Avoir'),
                       selected: !_isExchangeMode,
-                      onSelected: (_) => setState(() => _isExchangeMode = false),
+                      onSelected: (_) =>
+                          setState(() => _isExchangeMode = false),
                     ),
                     const SizedBox(width: 12),
                     ChoiceChip(
-                      label: const Text('Échange de Vêtement (Taille / Couleur)'),
+                      label: const Text(
+                        'Échange de Vêtement (Taille / Couleur)',
+                      ),
                       selected: _isExchangeMode,
                       onSelected: (_) => setState(() => _isExchangeMode = true),
                     ),
@@ -346,35 +408,59 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Articles achetés à retourner :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              const Text(
+                                'Articles achetés à retourner :',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
                               const SizedBox(height: 10),
                               Expanded(
                                 child: ListView.separated(
                                   itemCount: _saleLines.length,
-                                  separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                                  separatorBuilder: (_, __) => const Divider(
+                                    color: AppTheme.border,
+                                    height: 1,
+                                  ),
                                   itemBuilder: (context, index) {
                                     final line = _saleLines[index];
-                                    final returnQty = _selectedReturnQtys[line.id] ?? 0;
-                                    final condition = _returnConditions[line.id] ?? AppConstants.returnConditionSellable;
+                                    final returnQty =
+                                        _selectedReturnQtys[line.id] ?? 0;
+                                    final condition =
+                                        _returnConditions[line.id] ??
+                                        AppConstants.returnConditionSellable;
 
                                     return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
                                       child: Row(
                                         children: [
                                           Checkbox(
                                             value: returnQty > 0,
                                             onChanged: (val) {
                                               setState(() {
-                                                _selectedReturnQtys[line.id] = (val == true) ? 1 : 0;
+                                                _selectedReturnQtys[line.id] =
+                                                    (val == true) ? 1 : 0;
                                               });
                                             },
                                           ),
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Text(line.productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                                Text('${line.variantDescription} • Acheté : ${line.quantity}x • P.U: ${Money.fromMillimes(line.unitPriceMillimes).format()}'),
+                                                Text(
+                                                  line.productName,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '${line.variantDescription} • Acheté : ${line.quantity}x • P.U: ${Money.fromMillimes(line.unitPriceMillimes).format()}',
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -385,29 +471,78 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                                               value: condition,
                                               dropdownColor: AppTheme.surface,
                                               items: const [
-                                                DropdownMenuItem(value: AppConstants.returnConditionSellable, child: Text('Re-vendable (Rayon)')),
-                                                DropdownMenuItem(value: AppConstants.returnConditionDamaged, child: Text('Défectueux (Isoler)')),
+                                                DropdownMenuItem(
+                                                  value: AppConstants
+                                                      .returnConditionSellable,
+                                                  child: Text(
+                                                    'Re-vendable (Rayon)',
+                                                  ),
+                                                ),
+                                                DropdownMenuItem(
+                                                  value: AppConstants
+                                                      .returnConditionDamaged,
+                                                  child: Text(
+                                                    'Défectueux (Isoler)',
+                                                  ),
+                                                ),
                                               ],
-                                              onChanged: (v) => setState(() => _returnConditions[line.id] = v!),
+                                              onChanged: (v) => setState(
+                                                () =>
+                                                    _returnConditions[line.id] =
+                                                        v!,
+                                              ),
                                             ),
                                             const SizedBox(width: 8),
                                             // Qty
                                             Container(
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFF161F2E),
-                                                borderRadius: BorderRadius.circular(4),
-                                                border: Border.all(color: AppTheme.border),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: AppTheme.border,
+                                                ),
                                               ),
                                               child: Row(
                                                 children: [
                                                   IconButton(
-                                                    icon: const Icon(Icons.remove, size: 14),
-                                                    onPressed: returnQty > 1 ? () => setState(() => _selectedReturnQtys[line.id] = returnQty - 1) : null,
+                                                    icon: const Icon(
+                                                      Icons.remove,
+                                                      size: 14,
+                                                    ),
+                                                    onPressed: returnQty > 1
+                                                        ? () => setState(
+                                                            () =>
+                                                                _selectedReturnQtys[line
+                                                                        .id] =
+                                                                    returnQty -
+                                                                    1,
+                                                          )
+                                                        : null,
                                                   ),
-                                                  Text('$returnQty', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(
+                                                    '$returnQty',
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
                                                   IconButton(
-                                                    icon: const Icon(Icons.add, size: 14),
-                                                    onPressed: returnQty < line.quantity ? () => setState(() => _selectedReturnQtys[line.id] = returnQty + 1) : null,
+                                                    icon: const Icon(
+                                                      Icons.add,
+                                                      size: 14,
+                                                    ),
+                                                    onPressed:
+                                                        returnQty <
+                                                            line.quantity
+                                                        ? () => setState(
+                                                            () =>
+                                                                _selectedReturnQtys[line
+                                                                        .id] =
+                                                                    returnQty +
+                                                                    1,
+                                                          )
+                                                        : null,
                                                   ),
                                                 ],
                                               ),
@@ -450,11 +585,18 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.assignment_return_outlined, size: 64, color: AppTheme.textSecondary),
+                        Icon(
+                          Icons.assignment_return_outlined,
+                          size: 64,
+                          color: AppTheme.textSecondary,
+                        ),
                         SizedBox(height: 12),
                         Text(
                           'Saisissez le numéro de ticket ou scannez le ticket de caisse',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -471,38 +613,56 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Détails du Remboursement', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const Text(
+          'Détails du Remboursement',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         const SizedBox(height: 16),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Montant à Rembourser :'),
-            MoneyDisplay(amount: _totalRefundAmount, fontSize: 24, color: AppTheme.warning),
+            MoneyDisplay(
+              amount: _totalRefundAmount,
+              fontSize: 24,
+              color: AppTheme.warning,
+            ),
           ],
         ),
         const SizedBox(height: 16),
 
-        const Text('Mode de Remboursement :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
+        const Text(
+          'Mode de Remboursement :',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: AppTheme.textSecondary,
+          ),
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
             ChoiceChip(
               label: const Text('Espèces'),
               selected: _refundMethod == AppConstants.paymentCash,
-              onSelected: (_) => setState(() => _refundMethod = AppConstants.paymentCash),
+              onSelected: (_) =>
+                  setState(() => _refundMethod = AppConstants.paymentCash),
             ),
             const SizedBox(width: 8),
             ChoiceChip(
               label: const Text('Avoir Magasin'),
               selected: _refundMethod == AppConstants.paymentStoreCredit,
-              onSelected: (_) => setState(() => _refundMethod = AppConstants.paymentStoreCredit),
+              onSelected: (_) => setState(
+                () => _refundMethod = AppConstants.paymentStoreCredit,
+              ),
             ),
             const SizedBox(width: 8),
             ChoiceChip(
               label: const Text('Carte'),
               selected: _refundMethod == AppConstants.paymentCard,
-              onSelected: (_) => setState(() => _refundMethod = AppConstants.paymentCard),
+              onSelected: (_) =>
+                  setState(() => _refundMethod = AppConstants.paymentCard),
             ),
           ],
         ),
@@ -513,12 +673,27 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
           width: double.infinity,
           height: 48,
           child: ElevatedButton.icon(
-            onPressed: (_totalRefundAmount <= Money.zero || _isSubmitting) ? null : _submitReturn,
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning, foregroundColor: Colors.black),
+            onPressed: (_totalRefundAmount <= Money.zero || _isSubmitting)
+                ? null
+                : _submitReturn,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.warning,
+              foregroundColor: Colors.black,
+            ),
             icon: _isSubmitting
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.black,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : const Icon(Icons.check_circle, size: 20),
-            label: Text(_isSubmitting ? 'VALIDATION...' : 'VALIDER LE REMBOURSEMENT', style: const TextStyle(fontWeight: FontWeight.bold)),
+            label: Text(
+              _isSubmitting ? 'VALIDATION...' : 'VALIDER LE REMBOURSEMENT',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ],
@@ -526,13 +701,18 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
   }
 
   Widget _buildExchangePane(CatalogState catalogState) {
-    Money newTotal = _replacementItem != null ? _replacementItem!.total : Money.zero;
+    Money newTotal = _replacementItem != null
+        ? _replacementItem!.total
+        : Money.zero;
     Money diff = newTotal - _totalRefundAmount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Sélectionner le nouvel article de remplacement :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const Text(
+          'Sélectionner le nouvel article de remplacement :',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
         const SizedBox(height: 8),
 
         if (_replacementItem != null)
@@ -549,8 +729,13 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_replacementItem!.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text('${_replacementItem!.variantDescription} • ${_replacementItem!.unitPrice.format()}'),
+                      Text(
+                        _replacementItem!.productName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${_replacementItem!.variantDescription} • ${_replacementItem!.unitPrice.format()}',
+                      ),
                     ],
                   ),
                 ),
@@ -565,14 +750,24 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
           Expanded(
             child: ListView.separated(
               itemCount: catalogState.variants.length,
-              separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+              separatorBuilder: (_, __) =>
+                  const Divider(color: AppTheme.border, height: 1),
               itemBuilder: (context, index) {
                 final v = catalogState.variants[index];
                 return ListTile(
                   dense: true,
-                  title: Text(v.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text('${v.variantDescription} • ${v.salePrice.format()}'),
-                  trailing: const Icon(Icons.add_circle, color: AppTheme.primaryLight, size: 20),
+                  title: Text(
+                    v.productName,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    '${v.variantDescription} • ${v.salePrice.format()}',
+                  ),
+                  trailing: const Icon(
+                    Icons.add_circle,
+                    color: AppTheme.primaryLight,
+                    size: 20,
+                  ),
                   onTap: () {
                     setState(() {
                       _replacementItem = CartItem(
@@ -602,11 +797,32 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
           children: [
             const Text('Différence de Prix :'),
             if (diff == Money.zero)
-              const Text('0.000 TND (Échange Égal)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.success, fontSize: 16))
+              const Text(
+                '0.000 TND (Échange Égal)',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.success,
+                  fontSize: 16,
+                ),
+              )
             else if (diff > Money.zero)
-              Text('+${diff.format()} (Client Paye)', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, fontSize: 16))
+              Text(
+                '+${diff.format()} (Client Paye)',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                  fontSize: 16,
+                ),
+              )
             else
-              Text('-${diff.abs.format()} (À Rendre au Client)', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.warning, fontSize: 16)),
+              Text(
+                '-${diff.abs.format()} (À Rendre au Client)',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.warning,
+                  fontSize: 16,
+                ),
+              ),
           ],
         ),
 
@@ -616,12 +832,30 @@ class _ReturnsExchangesScreenState extends ConsumerState<ReturnsExchangesScreen>
           width: double.infinity,
           height: 48,
           child: ElevatedButton.icon(
-            onPressed: (_replacementItem == null || _totalRefundAmount <= Money.zero || _isSubmitting) ? null : _submitReturn,
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+            onPressed:
+                (_replacementItem == null ||
+                    _totalRefundAmount <= Money.zero ||
+                    _isSubmitting)
+                ? null
+                : _submitReturn,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+            ),
             icon: _isSubmitting
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : const Icon(Icons.swap_horiz, size: 20),
-            label: Text(_isSubmitting ? 'VALIDATION...' : 'VALIDER L\'ÉCHANGE DE TAILLE', style: const TextStyle(fontWeight: FontWeight.bold)),
+            label: Text(
+              _isSubmitting ? 'VALIDATION...' : 'VALIDER L\'ÉCHANGE DE TAILLE',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ],

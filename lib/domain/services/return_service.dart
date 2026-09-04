@@ -63,14 +63,18 @@ class ReturnService {
   Future<Sale?> findSaleForReturn(String query) async {
     final clean = query.trim();
     return (db.select(db.sales)
-          ..where((tbl) => tbl.receiptNumber.equals(clean) | tbl.id.equals(clean))
+          ..where(
+            (tbl) => tbl.receiptNumber.equals(clean) | tbl.id.equals(clean),
+          )
           ..limit(1))
         .getSingleOrNull();
   }
 
   /// Get lines for an original sale
   Future<List<SaleLine>> getSaleLines(String saleId) async {
-    return (db.select(db.saleLines)..where((tbl) => tbl.saleId.equals(saleId))).get();
+    return (db.select(
+      db.saleLines,
+    )..where((tbl) => tbl.saleId.equals(saleId))).get();
   }
 
   /// Process return transaction atomically
@@ -79,14 +83,110 @@ class ReturnService {
       throw const ValidationException('Cannot process return without items');
     }
 
-    // If no receipt return, verify manager authorization
-    if (request.originalSaleId == null) {
-      final allowNoReceipt = await (db.select(db.appSettings)..where((tbl) => tbl.key.equals(AppConstants.keyAllowNoReceiptReturns))).getSingleOrNull();
+    for (final item in request.items) {
+      if (item.quantity <= 0) {
+        throw const ValidationException(
+          'Return quantity must be greater than zero',
+        );
+      }
+    }
+
+    // If returning against an original sale, strictly enforce return quantity invariants
+    List<SaleLine> saleLines = [];
+    List<ReturnLine> priorReturnLines = [];
+    if (request.originalSaleId != null) {
+      final sale =
+          await (db.select(db.sales)
+                ..where((tbl) => tbl.id.equals(request.originalSaleId!)))
+              .getSingleOrNull();
+      if (sale == null) {
+        throw ValidationException(
+          'Original sale not found: ${request.originalSaleId}',
+        );
+      }
+      if (sale.status == AppConstants.saleRefunded) {
+        throw const ValidationException(
+          'This sale has already been completely refunded.',
+        );
+      }
+      if (sale.status == AppConstants.saleVoided) {
+        throw const ValidationException(
+          'Cannot return items from a voided sale.',
+        );
+      }
+
+      saleLines = await (db.select(
+        db.saleLines,
+      )..where((tbl) => tbl.saleId.equals(request.originalSaleId!))).get();
+      final saleLineMap = {for (final l in saleLines) l.id: l};
+
+      final priorReturns =
+          await (db.select(db.returns)..where(
+                (tbl) => tbl.originalSaleId.equals(request.originalSaleId!),
+              ))
+              .get();
+      final priorReturnIds = priorReturns.map((r) => r.id).toList();
+      priorReturnLines = priorReturnIds.isEmpty
+          ? <ReturnLine>[]
+          : await (db.select(
+              db.returnLines,
+            )..where((tbl) => tbl.returnId.isIn(priorReturnIds))).get();
+
+      for (final item in request.items) {
+        if (item.originalSaleLineId != null) {
+          final line = saleLineMap[item.originalSaleLineId];
+          if (line == null) {
+            throw ValidationException(
+              'Invalid original sale line ID: ${item.originalSaleLineId}',
+            );
+          }
+          final alreadyReturned = priorReturnLines
+              .where((prl) => prl.originalSaleLineId == item.originalSaleLineId)
+              .fold<int>(0, (s, l) => s + l.quantity);
+          if (alreadyReturned + item.quantity > line.quantity) {
+            throw ValidationException(
+              'Cannot return ${item.quantity} units for line "${line.productName}". Already returned: $alreadyReturned of ${line.quantity} originally purchased.',
+            );
+          }
+        } else {
+          final matchingLines = saleLines
+              .where((l) => l.variantId == item.variantId)
+              .toList();
+          final totalSoldForVariant = matchingLines.fold<int>(
+            0,
+            (s, l) => s + l.quantity,
+          );
+          if (totalSoldForVariant == 0) {
+            throw ValidationException(
+              'Variant ${item.variantId} was not part of original sale ${request.originalSaleId}',
+            );
+          }
+          final alreadyReturned = priorReturnLines
+              .where((prl) => prl.variantId == item.variantId)
+              .fold<int>(0, (s, l) => s + l.quantity);
+          if (alreadyReturned + item.quantity > totalSoldForVariant) {
+            throw ValidationException(
+              'Cannot return ${item.quantity} units. Already returned: $alreadyReturned of $totalSoldForVariant originally purchased.',
+            );
+          }
+        }
+      }
+    } else {
+      // If no receipt return, verify manager authorization
+      final allowNoReceipt =
+          await (db.select(db.appSettings)..where(
+                (tbl) => tbl.key.equals(AppConstants.keyAllowNoReceiptReturns),
+              ))
+              .getSingleOrNull();
       if (allowNoReceipt?.value == 'false') {
-        throw const ValidationException('No-receipt returns are disabled in store settings');
+        throw const ValidationException(
+          'No-receipt returns are disabled in store settings',
+        );
       }
       if (request.managerId == null || request.managerId!.isEmpty) {
-        throw const AuthException('Manager authorization is required for no-receipt returns');
+        throw const AuthException(
+          'Manager authorization is required for no-receipt returns',
+        );
       }
     }
 
@@ -96,16 +196,24 @@ class ReturnService {
     final totalRefund = request.totalRefund;
 
     // Get default shop floor and damaged locations
-    final shopFloor = await inventoryService.getDefaultLocation(request.storeId);
-    final damagedLocation = await (db.select(db.stockLocations)
-          ..where((tbl) => tbl.storeId.equals(request.storeId) & tbl.locationType.equals(AppConstants.locationDamaged)))
-        .getSingleOrNull();
+    final shopFloor = await inventoryService.getDefaultLocation(
+      request.storeId,
+    );
+    final damagedLocation =
+        await (db.select(db.stockLocations)..where(
+              (tbl) =>
+                  tbl.storeId.equals(request.storeId) &
+                  tbl.locationType.equals(AppConstants.locationDamaged),
+            ))
+            .getSingleOrNull();
 
     late Return committedReturn;
 
     await db.transaction(() async {
       // 1. Insert Return record
-      await db.into(db.returns).insert(
+      await db
+          .into(db.returns)
+          .insert(
             ReturnsCompanion.insert(
               id: returnId,
               returnNumber: returnNumber,
@@ -124,11 +232,14 @@ class ReturnService {
 
       // 2. Insert Return Lines and update stock movements
       for (final item in request.items) {
-        final restockLocationId = (item.condition == AppConstants.returnConditionDamaged)
+        final restockLocationId =
+            (item.condition == AppConstants.returnConditionDamaged)
             ? (damagedLocation?.id ?? shopFloor.id)
             : shopFloor.id;
 
-        await db.into(db.returnLines).insert(
+        await db
+            .into(db.returnLines)
+            .insert(
               ReturnLinesCompanion.insert(
                 id: IdGenerator.uuid(),
                 returnId: returnId,
@@ -154,21 +265,42 @@ class ReturnService {
           referenceId: returnId,
           referenceType: 'RETURN',
           actorId: request.cashierId,
-          reason: 'Return #$returnNumber: ${request.reason} (${item.condition})',
+          reason:
+              'Return #$returnNumber: ${request.reason} (${item.condition})',
         );
       }
 
-      // 3. Update original sale status if fully returned
+      // 3. Update original sale status (PARTIALLY_REFUNDED or REFUNDED)
       if (request.originalSaleId != null) {
-        await (db.update(db.sales)..where((tbl) => tbl.id.equals(request.originalSaleId!))).write(
-          const SalesCompanion(
-            status: Value(AppConstants.saleRefunded),
+        final totalUnitsSold = saleLines.fold<int>(0, (s, l) => s + l.quantity);
+        final totalUnitsReturnedPrior = priorReturnLines.fold<int>(
+          0,
+          (s, l) => s + l.quantity,
+        );
+        final totalUnitsReturnedNow = request.items.fold<int>(
+          0,
+          (s, i) => s + i.quantity,
+        );
+        final isFullyReturned =
+            (totalUnitsReturnedPrior + totalUnitsReturnedNow) >= totalUnitsSold;
+
+        await (db.update(
+          db.sales,
+        )..where((tbl) => tbl.id.equals(request.originalSaleId!))).write(
+          SalesCompanion(
+            status: Value(
+              isFullyReturned
+                  ? AppConstants.saleRefunded
+                  : 'PARTIALLY_REFUNDED',
+            ),
           ),
         );
       }
 
       // 4. Audit entry
-      await db.into(db.auditEvents).insert(
+      await db
+          .into(db.auditEvents)
+          .insert(
             AuditEventsCompanion.insert(
               id: IdGenerator.uuid(),
               action: 'RETURN_PROCESSED',
@@ -176,27 +308,37 @@ class ReturnService {
               entityId: Value(returnId),
               userId: request.cashierId,
               managerId: Value(request.managerId),
-              detailsJson: Value('{"returnNumber":"$returnNumber","totalRefund":${totalRefund.millimes},"method":"${request.refundMethod}"}'),
+              detailsJson: Value(
+                '{"returnNumber":"$returnNumber","totalRefund":${totalRefund.millimes},"method":"${request.refundMethod}"}',
+              ),
               createdAt: now,
             ),
           );
 
       // 5. Outbox event
-      await db.into(db.syncOutbox).insert(
+      await db
+          .into(db.syncOutbox)
+          .insert(
             SyncOutboxCompanion.insert(
               id: IdGenerator.uuid(),
               entityType: 'RETURN',
               operation: 'INSERT',
-              payloadJson: '{"id":"$returnId","returnNumber":"$returnNumber","totalRefund":${totalRefund.millimes}}',
+              payloadJson:
+                  '{"id":"$returnId","returnNumber":"$returnNumber","totalRefund":${totalRefund.millimes}}',
               createdAt: now,
               updatedAt: now,
             ),
           );
 
-      committedReturn = await (db.select(db.returns)..where((tbl) => tbl.id.equals(returnId))).getSingle();
+      committedReturn = await (db.select(
+        db.returns,
+      )..where((tbl) => tbl.id.equals(returnId))).getSingle();
     });
 
-    PosLogger.instance.info('Returns', 'Return #$returnNumber completed: total refund $totalRefund');
+    PosLogger.instance.info(
+      'Returns',
+      'Return #$returnNumber completed: total refund $totalRefund',
+    );
     return committedReturn;
   }
 }

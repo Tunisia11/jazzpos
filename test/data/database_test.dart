@@ -24,7 +24,9 @@ void main() {
       final registerId = IdGenerator.uuid();
       final userId = IdGenerator.uuid();
 
-      await db.into(db.companies).insert(
+      await db
+          .into(db.companies)
+          .insert(
             CompaniesCompanion.insert(
               id: companyId,
               name: 'Jazz Fashion SARL',
@@ -36,7 +38,9 @@ void main() {
             ),
           );
 
-      await db.into(db.stores).insert(
+      await db
+          .into(db.stores)
+          .insert(
             StoresCompanion.insert(
               id: storeId,
               companyId: companyId,
@@ -47,7 +51,9 @@ void main() {
             ),
           );
 
-      await db.into(db.registers).insert(
+      await db
+          .into(db.registers)
+          .insert(
             RegistersCompanion.insert(
               id: registerId,
               storeId: storeId,
@@ -61,7 +67,9 @@ void main() {
       final salt = PasswordHasher.generateSalt();
       final hash = PasswordHasher.hashPin('1234', salt);
 
-      await db.into(db.users).insert(
+      await db
+          .into(db.users)
+          .insert(
             UsersCompanion.insert(
               id: userId,
               username: 'admin',
@@ -77,25 +85,44 @@ void main() {
       final users = await db.select(db.users).get();
       expect(users.length, 1);
       expect(users.first.username, 'admin');
-      expect(PasswordHasher.verifyPin(pin: '1234', saltHex: salt, expectedHashHex: hash), isTrue);
-      expect(PasswordHasher.verifyPin(pin: '9999', saltHex: salt, expectedHashHex: hash), isFalse);
-    });
-
-    test('Foreign key enforcement blocks orphan store with nonexistent company', () async {
-      final now = DateTime.now();
       expect(
-        () async => await db.into(db.stores).insert(
-              StoresCompanion.insert(
-                id: IdGenerator.uuid(),
-                companyId: 'nonexistent-company-id',
-                name: 'Bad Store',
-                code: 'BAD-01',
-                createdAt: now,
-                updatedAt: now,
-              ),
-            ),
-        throwsA(isA<Exception>()),
+        PasswordHasher.verifyPin(
+          pin: '1234',
+          saltHex: salt,
+          expectedHashHex: hash,
+        ),
+        isTrue,
+      );
+      expect(
+        PasswordHasher.verifyPin(
+          pin: '9999',
+          saltHex: salt,
+          expectedHashHex: hash,
+        ),
+        isFalse,
       );
     });
+
+    test(
+      'Foreign key enforcement blocks orphan store with nonexistent company',
+      () async {
+        final now = DateTime.now();
+        expect(
+          () async => await db
+              .into(db.stores)
+              .insert(
+                StoresCompanion.insert(
+                  id: IdGenerator.uuid(),
+                  companyId: 'nonexistent-company-id',
+                  name: 'Bad Store',
+                  code: 'BAD-01',
+                  createdAt: now,
+                  updatedAt: now,
+                ),
+              ),
+          throwsA(isA<Exception>()),
+        );
+      },
+    );
   });
 }

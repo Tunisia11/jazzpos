@@ -29,7 +29,8 @@ class MatrixAttributeValue {
 /// A single variant generated from the matrix
 class MatrixVariantItem {
   final String id;
-  final Map<String, MatrixAttributeValue> selectedAttributes; // attributeTypeId -> value
+  final Map<String, MatrixAttributeValue>
+  selectedAttributes; // attributeTypeId -> value
   String sku;
   String barcode;
   Money costPrice;
@@ -67,7 +68,9 @@ class VariantMatrixGenerator {
     if (attributes.isEmpty) return [];
 
     // Filter out attributes with no selected values
-    final activeAttributes = attributes.where((a) => a.selectedValues.isNotEmpty).toList();
+    final activeAttributes = attributes
+        .where((a) => a.selectedValues.isNotEmpty)
+        .toList();
     if (activeAttributes.isEmpty) return [];
 
     List<Map<String, MatrixAttributeValue>> combinations = [{}];

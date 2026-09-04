@@ -24,7 +24,10 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
     if (_listening) return;
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _listening = true;
-    PosLogger.instance.info('Scanner', 'Started listening to USB HID scanner hardware');
+    PosLogger.instance.info(
+      'Scanner',
+      'Started listening to USB HID scanner hardware',
+    );
   }
 
   @override
@@ -47,12 +50,16 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
       _buffer.clear();
     }
 
-    if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
       final barcode = _buffer.toString().trim();
       _buffer.clear();
 
       if (barcode.isNotEmpty && barcode.length >= 3) {
-        PosLogger.instance.info('Scanner', 'Hardware barcode scanned: $barcode');
+        PosLogger.instance.info(
+          'Scanner',
+          'Hardware barcode scanned: $barcode',
+        );
         _scanController.add(barcode);
         return true; // Handled
       }

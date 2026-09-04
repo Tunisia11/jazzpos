@@ -33,6 +33,8 @@ class AppRoles {
           AppPermissions.viewReports,
           AppPermissions.hardwareConfig,
           AppPermissions.managePromotions,
+          AppPermissions.manageSettings,
+          AppPermissions.backupRestore,
         };
 
       case stockManager:

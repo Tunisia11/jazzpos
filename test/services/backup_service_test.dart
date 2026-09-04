@@ -20,11 +20,18 @@ void main() {
 
   group('BackupService Tests', () {
     test('Refuses invalid or corrupted backup files', () async {
-      final tempFile = File('${Directory.systemTemp.path}/fake_corrupt_db.sqlite');
-      await tempFile.writeAsString('This is not an SQLite database file at all!');
+      final tempFile = File(
+        '${Directory.systemTemp.path}/fake_corrupt_db.sqlite',
+      );
+      await tempFile.writeAsString(
+        'This is not an SQLite database file at all!',
+      );
 
       try {
-        expect(() => backupService.validateBackupFile(tempFile.path), throwsA(isA<ValidationException>()));
+        expect(
+          () => backupService.validateBackupFile(tempFile.path),
+          throwsA(isA<ValidationException>()),
+        );
       } finally {
         if (await tempFile.exists()) await tempFile.delete();
       }

@@ -19,7 +19,8 @@ class MoneyDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = color ?? (amount.isNegative ? Colors.redAccent : Colors.white);
+    final textColor =
+        color ?? (amount.isNegative ? Colors.redAccent : Colors.white);
     return Text(
       amount.format(includeCurrency: showCurrency),
       style: TextStyle(

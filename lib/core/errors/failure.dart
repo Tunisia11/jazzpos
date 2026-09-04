@@ -5,10 +5,16 @@ class PosException implements Exception {
   final Object? originalError;
   final StackTrace? stackTrace;
 
-  const PosException(this.message, {this.code, this.originalError, this.stackTrace});
+  const PosException(
+    this.message, {
+    this.code,
+    this.originalError,
+    this.stackTrace,
+  });
 
   @override
-  String toString() => 'PosException: $message ${code != null ? '($code)' : ''}';
+  String toString() =>
+      'PosException: $message ${code != null ? '($code)' : ''}';
 }
 
 class ValidationException extends PosException {

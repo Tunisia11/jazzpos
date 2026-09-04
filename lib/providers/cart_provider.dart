@@ -54,11 +54,14 @@ class CartNotifier extends StateNotifier<CartState> {
   final CatalogService catalogService;
   final SaleService saleService;
 
-  CartNotifier(this.catalogService, this.saleService) : super(const CartState());
+  CartNotifier(this.catalogService, this.saleService)
+    : super(const CartState());
 
   /// Add item to cart from search result
   void addItem(VariantSearchResult variant, {int quantity = 1}) {
-    final existingIndex = state.items.indexWhere((i) => i.variantId == variant.variantId);
+    final existingIndex = state.items.indexWhere(
+      (i) => i.variantId == variant.variantId,
+    );
     if (existingIndex >= 0) {
       final existing = state.items[existingIndex];
       final updated = existing.copyWith(quantity: existing.quantity + quantity);
@@ -108,7 +111,9 @@ class CartNotifier extends StateNotifier<CartState> {
   }
 
   void removeItem(String variantId) {
-    final newItems = state.items.where((i) => i.variantId != variantId).toList();
+    final newItems = state.items
+        .where((i) => i.variantId != variantId)
+        .toList();
     state = state.copyWith(items: newItems);
   }
 
@@ -212,7 +217,9 @@ class CartNotifier extends StateNotifier<CartState> {
   }
 }
 
-final cartNotifierProvider = StateNotifierProvider<CartNotifier, CartState>((ref) {
+final cartNotifierProvider = StateNotifierProvider<CartNotifier, CartState>((
+  ref,
+) {
   return CartNotifier(
     ref.watch(catalogServiceProvider),
     ref.watch(saleServiceProvider),

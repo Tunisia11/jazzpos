@@ -21,15 +21,18 @@ void main() {
       expect(m4.format(), '0.500 TND');
     });
 
-    test('Strict 3 decimal string formatting without floating point errors', () {
-      expect(Money.fromMillimes(0).format(), '0.000 TND');
-      expect(Money.fromMillimes(5).format(), '0.005 TND');
-      expect(Money.fromMillimes(50).format(), '0.050 TND');
-      expect(Money.fromMillimes(500).format(), '0.500 TND');
-      expect(Money.fromMillimes(1000).format(), '1.000 TND');
-      expect(Money.fromMillimes(1542500).format(), '1,542.500 TND');
-      expect(Money.fromMillimes(-2500).format(), '-2.500 TND');
-    });
+    test(
+      'Strict 3 decimal string formatting without floating point errors',
+      () {
+        expect(Money.fromMillimes(0).format(), '0.000 TND');
+        expect(Money.fromMillimes(5).format(), '0.005 TND');
+        expect(Money.fromMillimes(50).format(), '0.050 TND');
+        expect(Money.fromMillimes(500).format(), '0.500 TND');
+        expect(Money.fromMillimes(1000).format(), '1.000 TND');
+        expect(Money.fromMillimes(1542500).format(), '1,542.500 TND');
+        expect(Money.fromMillimes(-2500).format(), '-2.500 TND');
+      },
+    );
 
     test('Parsing user inputs accurately', () {
       expect(Money.parse('12.500').millimes, 12500);

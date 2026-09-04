@@ -84,11 +84,13 @@ class AppConstants {
   static const String keyStorePhone = 'store_phone';
   static const String keyStoreFiscalId = 'store_fiscal_id';
   static const String keyNegativeStockPolicy = 'negative_stock_policy';
-  static const String keyMaxCashierDiscountPercent = 'max_cashier_discount_percent';
+  static const String keyMaxCashierDiscountPercent =
+      'max_cashier_discount_percent';
   static const String keyAllowNoReceiptReturns = 'allow_no_receipt_returns';
   static const String keyAutoLockSeconds = 'auto_lock_seconds';
   static const String keyReceiptFooterMessage = 'receipt_footer_message';
-  static const String keyLabelPaperSize = 'label_paper_size'; // 40x25, 40x30, 50x30, 60x40
+  static const String keyLabelPaperSize =
+      'label_paper_size'; // 40x25, 40x30, 50x30, 60x40
   static const String keyCloudSyncEnabled = 'cloud_sync_enabled';
   static const String keyCloudSupabaseUrl = 'cloud_supabase_url';
   static const String keyCloudSupabaseKey = 'cloud_supabase_key';

@@ -10,12 +10,14 @@ class Shifts extends Table {
   TextColumn get cashierId => text().references(Users, #id)();
   DateTimeColumn get openedAt => dateTime()();
   DateTimeColumn get closedAt => dateTime().nullable()();
-  IntColumn get openingCashMillimes => integer().withDefault(const Constant(0))();
+  IntColumn get openingCashMillimes =>
+      integer().withDefault(const Constant(0))();
   IntColumn get expectedCashMillimes => integer().nullable()();
   IntColumn get countedCashMillimes => integer().nullable()();
   IntColumn get cashDifferenceMillimes => integer().nullable()();
   TextColumn get note => text().nullable()();
-  TextColumn get status => text().withDefault(const Constant('OPEN'))(); // OPEN, CLOSED
+  TextColumn get status =>
+      text().withDefault(const Constant('OPEN'))(); // OPEN, CLOSED
 
   @override
   Set<Column> get primaryKey => {id};
@@ -40,8 +42,10 @@ class Customers extends Table {
   TextColumn get phone => text().nullable()();
   TextColumn get email => text().nullable()();
   TextColumn get notes => text().nullable()();
-  IntColumn get totalSpentMillimes => integer().withDefault(const Constant(0))();
-  IntColumn get storeCreditMillimes => integer().withDefault(const Constant(0))();
+  IntColumn get totalSpentMillimes =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get storeCreditMillimes =>
+      integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -60,9 +64,12 @@ class Sales extends Table {
   IntColumn get discountMillimes => integer().withDefault(const Constant(0))();
   IntColumn get taxMillimes => integer().withDefault(const Constant(0))();
   IntColumn get totalMillimes => integer()();
-  TextColumn get status => text().withDefault(const Constant('COMPLETED'))(); // COMPLETED, VOIDED, EXCHANGED, REFUNDED, PARTIALLY_REFUNDED
+  TextColumn get status => text().withDefault(
+    const Constant('COMPLETED'),
+  )(); // COMPLETED, VOIDED, EXCHANGED, REFUNDED, PARTIALLY_REFUNDED
   TextColumn get notes => text().nullable()();
-  BoolColumn get offlineSynced => boolean().withDefault(const Constant(false))();
+  BoolColumn get offlineSynced =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get idempotencyKey => text().unique()();
   DateTimeColumn get createdAt => dateTime()();
 
@@ -95,7 +102,8 @@ class SaleLines extends Table {
 class SalePayments extends Table {
   TextColumn get id => text()();
   TextColumn get saleId => text().references(Sales, #id)();
-  TextColumn get paymentMethod => text()(); // CASH, CARD, MIXED, STORE_CREDIT, OTHER
+  TextColumn get paymentMethod =>
+      text()(); // CASH, CARD, MIXED, STORE_CREDIT, OTHER
   IntColumn get amountMillimes => integer()();
   IntColumn get tenderedMillimes => integer().withDefault(const Constant(0))();
   IntColumn get changeMillimes => integer().withDefault(const Constant(0))();
@@ -127,13 +135,16 @@ class Returns extends Table {
 class ReturnLines extends Table {
   TextColumn get id => text()();
   TextColumn get returnId => text().references(Returns, #id)();
-  TextColumn get originalSaleLineId => text().nullable().references(SaleLines, #id)();
+  TextColumn get originalSaleLineId =>
+      text().nullable().references(SaleLines, #id)();
   TextColumn get variantId => text().references(ProductVariants, #id)();
   IntColumn get quantity => integer()();
   IntColumn get refundUnitPriceMillimes => integer()();
   IntColumn get totalRefundMillimes => integer()();
-  TextColumn get condition => text().withDefault(const Constant('SELLABLE'))(); // SELLABLE, DAMAGED
-  TextColumn get restockedLocationId => text().nullable().references(StockLocations, #id)();
+  TextColumn get condition =>
+      text().withDefault(const Constant('SELLABLE'))(); // SELLABLE, DAMAGED
+  TextColumn get restockedLocationId =>
+      text().nullable().references(StockLocations, #id)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -143,7 +154,8 @@ class Exchanges extends Table {
   TextColumn get id => text()();
   TextColumn get returnId => text().references(Returns, #id)();
   TextColumn get newSaleId => text().references(Sales, #id)();
-  IntColumn get differenceMillimes => integer()(); // positive (customer pays) or negative (customer refunded)
+  IntColumn get differenceMillimes =>
+      integer()(); // positive (customer pays) or negative (customer refunded)
   TextColumn get paymentMethod => text().nullable()();
   TextColumn get cashierId => text().references(Users, #id)();
   DateTimeColumn get createdAt => dateTime()();
@@ -168,7 +180,9 @@ class Reservations extends Table {
   TextColumn get id => text()();
   TextColumn get reservationNumber => text().unique()();
   TextColumn get customerId => text().references(Customers, #id)();
-  TextColumn get status => text().withDefault(const Constant('ACTIVE'))(); // ACTIVE, COMPLETED, EXPIRED, CANCELLED
+  TextColumn get status => text().withDefault(
+    const Constant('ACTIVE'),
+  )(); // ACTIVE, COMPLETED, EXPIRED, CANCELLED
   DateTimeColumn get expiresAt => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
 

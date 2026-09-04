@@ -14,11 +14,7 @@ class CartView extends ConsumerWidget {
   final String storeId;
   final String registerId;
 
-  const CartView({
-    super.key,
-    required this.storeId,
-    required this.registerId,
-  });
+  const CartView({super.key, required this.storeId, required this.registerId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,22 +41,37 @@ class CartView extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.shopping_cart_outlined, color: AppTheme.primaryLight, size: 22),
+                    const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: AppTheme.primaryLight,
+                      size: 22,
+                    ),
                     const SizedBox(width: 8),
                     const Text(
                       'Panier en cours',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.primary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${cartState.totalItemsCount} pièce(s)',
-                        style: const TextStyle(color: AppTheme.primaryLight, fontWeight: FontWeight.bold, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppTheme.primaryLight,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -68,8 +79,15 @@ class CartView extends ConsumerWidget {
                 if (cartState.items.isNotEmpty)
                   TextButton.icon(
                     onPressed: () => _confirmClearCart(context, cartNotifier),
-                    icon: const Icon(Icons.delete_sweep, size: 18, color: AppTheme.error),
-                    label: const Text('Vider (F7)', style: TextStyle(color: AppTheme.error, fontSize: 12)),
+                    icon: const Icon(
+                      Icons.delete_sweep,
+                      size: 18,
+                      color: AppTheme.error,
+                    ),
+                    label: const Text(
+                      'Vider (F7)',
+                      style: TextStyle(color: AppTheme.error, fontSize: 12),
+                    ),
                   ),
               ],
             ),
@@ -82,17 +100,29 @@ class CartView extends ConsumerWidget {
               color: AppTheme.primary.withValues(alpha: 0.1),
               child: Row(
                 children: [
-                  const Icon(Icons.person, size: 16, color: AppTheme.primaryLight),
+                  const Icon(
+                    Icons.person,
+                    size: 16,
+                    color: AppTheme.primaryLight,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Client: ${cartState.customer!.name} (${cartState.customer!.phone ?? "Sans tél"})',
-                      style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: AppTheme.textSecondary,
+                    ),
                     onPressed: () => cartNotifier.setCustomer(null),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -108,16 +138,27 @@ class CartView extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.shopping_bag_outlined, size: 56, color: AppTheme.textSecondary.withValues(alpha: 0.4)),
+                        Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 56,
+                          color: AppTheme.textSecondary.withValues(alpha: 0.4),
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'Panier vide',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 16, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Scannez un code-barres ou sélectionnez un article',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -125,14 +166,17 @@ class CartView extends ConsumerWidget {
                 : ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: cartState.items.length,
-                    separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                    separatorBuilder: (_, __) =>
+                        const Divider(color: AppTheme.border, height: 1),
                     itemBuilder: (context, index) {
                       final item = cartState.items[index];
                       return _CartItemTile(
                         item: item,
-                        onQuantityChanged: (qty) => cartNotifier.updateQuantity(item.variantId, qty),
+                        onQuantityChanged: (qty) =>
+                            cartNotifier.updateQuantity(item.variantId, qty),
                         onRemove: () => cartNotifier.removeItem(item.variantId),
-                        onDiscount: () => _showDiscountDialog(context, ref, item),
+                        onDiscount: () =>
+                            _showDiscountDialog(context, ref, item),
                       );
                     },
                   ),
@@ -155,7 +199,13 @@ class CartView extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Sous-total:', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                    const Text(
+                      'Sous-total:',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
                     MoneyDisplay(amount: cartState.subtotal, fontSize: 16),
                   ],
                 ),
@@ -166,19 +216,34 @@ class CartView extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          const Text('Remise globale:', style: TextStyle(color: AppTheme.error, fontSize: 13)),
+                          const Text(
+                            'Remise globale:',
+                            style: TextStyle(
+                              color: AppTheme.error,
+                              fontSize: 13,
+                            ),
+                          ),
                           const SizedBox(width: 4),
                           IconButton(
-                            icon: const Icon(Icons.close, size: 14, color: AppTheme.error),
+                            icon: const Icon(
+                              Icons.close,
+                              size: 14,
+                              color: AppTheme.error,
+                            ),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            onPressed: () => cartNotifier.applyCartDiscount(Money.zero),
+                            onPressed: () =>
+                                cartNotifier.applyCartDiscount(Money.zero),
                           ),
                         ],
                       ),
                       Text(
                         '-${cartState.cartDiscount.format()}',
-                        style: const TextStyle(color: AppTheme.error, fontSize: 14, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: AppTheme.error,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -192,8 +257,21 @@ class CartView extends ConsumerWidget {
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('TOTAL A PAYER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
-                        Text('TTC inclus', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        Text(
+                          'TOTAL A PAYER',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'TTC inclus',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                     MoneyDisplay(
@@ -217,8 +295,15 @@ class CartView extends ConsumerWidget {
                           minimumSize: const Size(0, 42),
                           side: const BorderSide(color: AppTheme.border),
                         ),
-                        icon: const Icon(Icons.pause, size: 16, color: AppTheme.warning),
-                        label: const Text('Attente (F6)', style: TextStyle(fontSize: 12)),
+                        icon: const Icon(
+                          Icons.pause,
+                          size: 16,
+                          color: AppTheme.warning,
+                        ),
+                        label: const Text(
+                          'Attente (F6)',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -231,8 +316,15 @@ class CartView extends ConsumerWidget {
                           minimumSize: const Size(0, 42),
                           side: const BorderSide(color: AppTheme.border),
                         ),
-                        icon: const Icon(Icons.percent, size: 16, color: Colors.amber),
-                        label: const Text('Remise', style: TextStyle(fontSize: 12)),
+                        icon: const Icon(
+                          Icons.percent,
+                          size: 16,
+                          color: Colors.amber,
+                        ),
+                        label: const Text(
+                          'Remise',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
                   ],
@@ -251,13 +343,21 @@ class CartView extends ConsumerWidget {
                       backgroundColor: AppTheme.success,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppTheme.border,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       elevation: 4,
                     ),
                     icon: const Icon(Icons.payment, size: 24),
                     label: Text(
-                      shift == null ? 'OUVRIR CAISSE REQUISE' : 'ENCAISSER (F12)',
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      shift == null
+                          ? 'OUVRIR CAISSE REQUISE'
+                          : 'ENCAISSER (F12)',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ),
@@ -305,7 +405,9 @@ class CartView extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surface,
         title: const Text('Vider le panier'),
-        content: const Text('Êtes-vous sûr de vouloir supprimer tous les articles du panier ?'),
+        content: const Text(
+          'Êtes-vous sûr de vouloir supprimer tous les articles du panier ?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -324,7 +426,11 @@ class CartView extends ConsumerWidget {
     );
   }
 
-  Future<void> _showDiscountDialog(BuildContext context, WidgetRef ref, CartItem item) async {
+  Future<void> _showDiscountDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CartItem item,
+  ) async {
     final controller = TextEditingController();
     int mode = 0; // 0: percentage, 1: fixed amount in millimes
 
@@ -381,7 +487,9 @@ class CartView extends ConsumerWidget {
                   return;
                 }
                 if (mode == 0) {
-                  final discMillimes = ((item.unitPrice.millimes * item.quantity) * (val / 100)).round();
+                  final discMillimes =
+                      ((item.unitPrice.millimes * item.quantity) * (val / 100))
+                          .round();
                   Navigator.of(ctx).pop(Money.fromMillimes(discMillimes));
                 } else {
                   final disc = Money.fromTnd(val);
@@ -396,11 +504,16 @@ class CartView extends ConsumerWidget {
     );
 
     if (discount != null) {
-      ref.read(cartNotifierProvider.notifier).applyLineDiscount(item.variantId, discount);
+      ref
+          .read(cartNotifierProvider.notifier)
+          .applyLineDiscount(item.variantId, discount);
     }
   }
 
-  Future<void> _showGlobalDiscountDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showGlobalDiscountDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final controller = TextEditingController();
     int mode = 0; // 0: percentage, 1: fixed amount
 
@@ -459,7 +572,8 @@ class CartView extends ConsumerWidget {
                   return;
                 }
                 if (mode == 0) {
-                  final discMillimes = (cartState.subtotal.millimes * (val / 100)).round();
+                  final discMillimes =
+                      (cartState.subtotal.millimes * (val / 100)).round();
                   Navigator.of(ctx).pop(Money.fromMillimes(discMillimes));
                 } else {
                   final disc = Money.fromTnd(val);
@@ -514,7 +628,10 @@ class _CartItemTile extends StatelessWidget {
                   icon: const Icon(Icons.remove, size: 14),
                   onPressed: () => onQuantityChanged(item.quantity - 1),
                   padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                   tooltip: 'Diminuer',
                 ),
                 GestureDetector(
@@ -523,7 +640,10 @@ class _CartItemTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       '${item.quantity}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -531,7 +651,10 @@ class _CartItemTile extends StatelessWidget {
                   icon: const Icon(Icons.add, size: 14),
                   onPressed: () => onQuantityChanged(item.quantity + 1),
                   padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                   tooltip: 'Augmenter',
                 ),
               ],
@@ -546,26 +669,39 @@ class _CartItemTile extends StatelessWidget {
               children: [
                 Text(
                   item.productName,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (item.variantDescription.isNotEmpty)
                   Text(
                     item.variantDescription,
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                 Row(
                   children: [
                     Text(
                       '${item.unitPrice.format()} /u',
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 11,
+                      ),
                     ),
                     if (item.lineDiscount > Money.zero) ...[
                       const SizedBox(width: 6),
                       Text(
                         '(-${item.lineDiscount.format()})',
-                        style: const TextStyle(color: AppTheme.error, fontSize: 11),
+                        style: const TextStyle(
+                          color: AppTheme.error,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ],
@@ -583,17 +719,31 @@ class _CartItemTile extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.percent, size: 14, color: AppTheme.textSecondary),
+                    icon: const Icon(
+                      Icons.percent,
+                      size: 14,
+                      color: AppTheme.textSecondary,
+                    ),
                     onPressed: onDiscount,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                    constraints: const BoxConstraints(
+                      minWidth: 26,
+                      minHeight: 26,
+                    ),
                     tooltip: 'Remise sur la ligne',
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 14, color: AppTheme.error),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 14,
+                      color: AppTheme.error,
+                    ),
                     onPressed: onRemove,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+                    constraints: const BoxConstraints(
+                      minWidth: 26,
+                      minHeight: 26,
+                    ),
                     tooltip: 'Supprimer',
                   ),
                 ],

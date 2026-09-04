@@ -32,18 +32,16 @@ class Numpad extends StatelessWidget {
             if (showDecimal)
               Expanded(child: _buildKey('.', () => onKeyPress('.')))
             else
-              Expanded(child: _buildKey('C', onClear, color: Colors.orange.shade800)),
+              Expanded(
+                child: _buildKey('C', onClear, color: Colors.orange.shade800),
+              ),
             const SizedBox(width: 8),
             Expanded(child: _buildKey('0', () => onKeyPress('0'))),
             const SizedBox(width: 8),
             Expanded(child: _buildKey('00', () => onKeyPress('00'))),
             const SizedBox(width: 8),
             Expanded(
-              child: _buildKey(
-                '⌫',
-                onBackspace,
-                color: Colors.red.shade900,
-              ),
+              child: _buildKey('⌫', onBackspace, color: Colors.red.shade900),
             ),
           ],
         ),

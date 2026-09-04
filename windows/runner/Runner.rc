@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "jazzpos" "\0"
+            VALUE "CompanyName", "JazzPOS" "\0"
+            VALUE "FileDescription", "JAZZ POS — Point de Vente Prêt-à-Porter" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "jazzpos" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 JazzPOS. Tous droits réservés." "\0"
             VALUE "OriginalFilename", "jazzpos.exe" "\0"
-            VALUE "ProductName", "jazzpos" "\0"
+            VALUE "ProductName", "JAZZ POS" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

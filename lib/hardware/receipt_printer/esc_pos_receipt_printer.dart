@@ -29,16 +29,27 @@ class EscPosReceiptPrinter implements ReceiptPrinter {
   Future<bool> connect() async {
     try {
       if (connectionType == 'NETWORK') {
-        _socket = await Socket.connect(address, port, timeout: const Duration(seconds: 3));
+        _socket = await Socket.connect(
+          address,
+          port,
+          timeout: const Duration(seconds: 3),
+        );
         _connected = true;
-        PosLogger.instance.info('Printer', 'Connected to ESC/POS network printer at $address:$port');
+        PosLogger.instance.info(
+          'Printer',
+          'Connected to ESC/POS network printer at $address:$port',
+        );
         return true;
       }
       _connected = true;
       return true;
     } catch (e) {
       _connected = false;
-      PosLogger.instance.error('Printer', 'Failed to connect to ESC/POS printer at $address', e);
+      PosLogger.instance.error(
+        'Printer',
+        'Failed to connect to ESC/POS printer at $address',
+        e,
+      );
       return false;
     }
   }
@@ -69,14 +80,24 @@ class EscPosReceiptPrinter implements ReceiptPrinter {
     // Header Center & Bold
     bytes.addAll(EscPosCommands.setAlign(1));
     bytes.addAll(EscPosCommands.setBold(true));
-    bytes.addAll(EscPosCommands.setTextSize(doubleHeight: true, doubleWidth: true));
+    bytes.addAll(
+      EscPosCommands.setTextSize(doubleHeight: true, doubleWidth: true),
+    );
     bytes.addAll(utf8.encode('${doc.storeName}\n'));
-    bytes.addAll(EscPosCommands.setTextSize(doubleHeight: false, doubleWidth: false));
+    bytes.addAll(
+      EscPosCommands.setTextSize(doubleHeight: false, doubleWidth: false),
+    );
     bytes.addAll(EscPosCommands.setBold(false));
 
-    if (doc.storeAddress != null) bytes.addAll(utf8.encode('${doc.storeAddress}\n'));
-    if (doc.storePhone != null) bytes.addAll(utf8.encode('Tel: ${doc.storePhone}\n'));
-    if (doc.fiscalId != null) bytes.addAll(utf8.encode('Matricule Fiscale: ${doc.fiscalId}\n'));
+    if (doc.storeAddress != null) {
+      bytes.addAll(utf8.encode('${doc.storeAddress}\n'));
+    }
+    if (doc.storePhone != null) {
+      bytes.addAll(utf8.encode('Tel: ${doc.storePhone}\n'));
+    }
+    if (doc.fiscalId != null) {
+      bytes.addAll(utf8.encode('Matricule Fiscale: ${doc.fiscalId}\n'));
+    }
     bytes.addAll(utf8.encode('${'=' * width}\n'));
 
     // Align Left
@@ -90,8 +111,16 @@ class EscPosReceiptPrinter implements ReceiptPrinter {
     }
 
     bytes.addAll(utf8.encode('Ticket: ${doc.receiptNumber}\n'));
-    bytes.addAll(utf8.encode('Date:   ${doc.dateTime.toLocal().toString().split('.')[0]}\n'));
-    bytes.addAll(utf8.encode('Caisse: ${doc.registerCode} | Caissier: ${doc.cashierName}\n'));
+    bytes.addAll(
+      utf8.encode(
+        'Date:   ${doc.dateTime.toLocal().toString().split('.')[0]}\n',
+      ),
+    );
+    bytes.addAll(
+      utf8.encode(
+        'Caisse: ${doc.registerCode} | Caissier: ${doc.cashierName}\n',
+      ),
+    );
     bytes.addAll(utf8.encode('${'-' * width}\n'));
 
     // Items
@@ -100,40 +129,77 @@ class EscPosReceiptPrinter implements ReceiptPrinter {
       bytes.addAll(utf8.encode('${line.productName}\n'));
       bytes.addAll(EscPosCommands.setBold(false));
 
-      final details = '  ${line.variantDescription} (${line.quantity} x ${line.unitPrice.format()})';
+      final details =
+          '  ${line.variantDescription} (${line.quantity} x ${line.unitPrice.format()})';
       final total = line.total.format();
-      final lineStr = EscPosCommands.formatColumns(left: details, right: total, width: width);
+      final lineStr = EscPosCommands.formatColumns(
+        left: details,
+        right: total,
+        width: width,
+      );
       bytes.addAll(utf8.encode('$lineStr\n'));
 
       if (line.discount > Money.zero) {
-        final remStr = EscPosCommands.formatColumns(left: '  Remise:', right: '-${line.discount.format()}', width: width);
+        final remStr = EscPosCommands.formatColumns(
+          left: '  Remise:',
+          right: '-${line.discount.format()}',
+          width: width,
+        );
         bytes.addAll(utf8.encode('$remStr\n'));
       }
     }
     bytes.addAll(utf8.encode('${'-' * width}\n'));
 
     // Totals
-    bytes.addAll(utf8.encode('${EscPosCommands.formatColumns(left: 'SOUS-TOTAL:', right: doc.subtotal.format(), width: width)}\n'));
+    bytes.addAll(
+      utf8.encode(
+        '${EscPosCommands.formatColumns(left: 'SOUS-TOTAL:', right: doc.subtotal.format(), width: width)}\n',
+      ),
+    );
     if (doc.discount > Money.zero) {
-      bytes.addAll(utf8.encode('${EscPosCommands.formatColumns(left: 'REMISE:', right: '-${doc.discount.format()}', width: width)}\n'));
+      bytes.addAll(
+        utf8.encode(
+          '${EscPosCommands.formatColumns(left: 'REMISE:', right: '-${doc.discount.format()}', width: width)}\n',
+        ),
+      );
     }
     if (doc.tax > Money.zero) {
-      bytes.addAll(utf8.encode('${EscPosCommands.formatColumns(left: 'TVA:', right: doc.tax.format(), width: width)}\n'));
+      bytes.addAll(
+        utf8.encode(
+          '${EscPosCommands.formatColumns(left: 'TVA:', right: doc.tax.format(), width: width)}\n',
+        ),
+      );
     }
     bytes.addAll(EscPosCommands.setBold(true));
     bytes.addAll(EscPosCommands.setTextSize(doubleHeight: true));
-    bytes.addAll(utf8.encode('${EscPosCommands.formatColumns(left: 'TOTAL:', right: doc.total.format(), width: width)}\n'));
+    bytes.addAll(
+      utf8.encode(
+        '${EscPosCommands.formatColumns(left: 'TOTAL:', right: doc.total.format(), width: width)}\n',
+      ),
+    );
     bytes.addAll(EscPosCommands.setTextSize(doubleHeight: false));
     bytes.addAll(EscPosCommands.setBold(false));
     bytes.addAll(utf8.encode('${'-' * width}\n'));
 
     // Payments
     for (final p in doc.payments) {
-      final pStr = EscPosCommands.formatColumns(left: 'Paiement (${p.method}):', right: p.amount.format(), width: width);
+      final pStr = EscPosCommands.formatColumns(
+        left: 'Paiement (${p.method}):',
+        right: p.amount.format(),
+        width: width,
+      );
       bytes.addAll(utf8.encode('$pStr\n'));
       if (p.tendered > Money.zero) {
-        bytes.addAll(utf8.encode('${EscPosCommands.formatColumns(left: '  Espece:', right: p.tendered.format(), width: width)}\n'));
-        bytes.addAll(utf8.encode('${EscPosCommands.formatColumns(left: '  Rendu:', right: p.change.format(), width: width)}\n'));
+        bytes.addAll(
+          utf8.encode(
+            '${EscPosCommands.formatColumns(left: '  Espece:', right: p.tendered.format(), width: width)}\n',
+          ),
+        );
+        bytes.addAll(
+          utf8.encode(
+            '${EscPosCommands.formatColumns(left: '  Rendu:', right: p.change.format(), width: width)}\n',
+          ),
+        );
       }
     }
 
@@ -148,7 +214,11 @@ class EscPosReceiptPrinter implements ReceiptPrinter {
       bytes.addAll(utf8.encode('${doc.footerMessage}\n'));
     } else {
       bytes.addAll(utf8.encode('Merci de votre visite !\n'));
-      bytes.addAll(utf8.encode('Articles echangeables sous 15 jours sur presentation du ticket\n'));
+      bytes.addAll(
+        utf8.encode(
+          'Articles echangeables sous 15 jours sur presentation du ticket\n',
+        ),
+      );
     }
 
     bytes.addAll(EscPosCommands.feed(3));

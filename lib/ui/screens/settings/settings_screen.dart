@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:jazzpos/core/platform/windows_startup.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/database_integrity_service.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
@@ -18,7 +21,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTickerProviderStateMixin {
+class _SettingsScreenState extends ConsumerState<SettingsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   bool _isBackingUp = false;
@@ -26,12 +30,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
   IntegrityReport? _integrityReport;
   List<BackupRecord> _backups = [];
   String? _hardwareStatusMsg;
+  bool _autoStartEnabled = false;
+  Map<String, bool>? _storageHealth;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _loadBackups();
+    _checkAutoStart();
+    _checkStorageHealth();
+  }
+
+  Future<void> _checkAutoStart() async {
+    if (Platform.isWindows) {
+      final enabled = await WindowsStartup.isAutoStartEnabled();
+      if (mounted) setState(() => _autoStartEnabled = enabled);
+    }
+  }
+
+  Future<void> _checkStorageHealth() async {
+    final health = await AppPaths.instance.verifyStorageHealth();
+    if (mounted) setState(() => _storageHealth = health);
+  }
+
+  Future<void> _toggleAutoStart(bool enable) async {
+    if (enable) {
+      await WindowsStartup.enableAutoStart();
+    } else {
+      await WindowsStartup.disableAutoStart();
+    }
+    await _checkAutoStart();
   }
 
   @override
@@ -42,7 +71,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
 
   Future<void> _loadBackups() async {
     final db = ref.read(databaseProvider);
-    final backups = await (db.select(db.backupRecords)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
+    final backups = await (db.select(
+      db.backupRecords,
+    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
     if (mounted) setState(() => _backups = backups);
   }
 
@@ -54,13 +85,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
       await _loadBackups();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sauvegarde SQLite atomique créée avec succès !'), backgroundColor: AppTheme.success),
+          const SnackBar(
+            content: Text('Sauvegarde SQLite atomique créée avec succès !'),
+            backgroundColor: AppTheme.success,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur sauvegarde: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Erreur sauvegarde: $e'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {
@@ -83,7 +120,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
       if (mounted) {
         setState(() => _isRunningDiagnostics = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur diagnostic: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Erreur diagnostic: $e'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     }
@@ -112,7 +152,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
         discount: Money.zero,
         tax: const Money.fromMillimes(7823),
         total: const Money.fromMillimes(49000),
-        payments: const [ReceiptPaymentItem(method: 'ESPECES', amount: Money.fromMillimes(49000))],
+        payments: const [
+          ReceiptPaymentItem(
+            method: 'ESPECES',
+            amount: Money.fromMillimes(49000),
+          ),
+        ],
       );
       await HardwareManager.instance.receiptPrinter.printReceipt(doc);
       setState(() => _hardwareStatusMsg = 'Test Ticket ESC/POS envoyé');
@@ -142,7 +187,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
   Future<void> _testCashDrawer() async {
     try {
       await HardwareManager.instance.cashDrawer.openDrawer();
-      setState(() => _hardwareStatusMsg = 'Impulsion tiroir-caisse RJ11 envoyée');
+      setState(
+        () => _hardwareStatusMsg = 'Impulsion tiroir-caisse RJ11 envoyée',
+      );
     } catch (e) {
       setState(() => _hardwareStatusMsg = 'Erreur tiroir: $e');
     }
@@ -151,7 +198,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
   Future<void> _testCustomerDisplay() async {
     try {
       await HardwareManager.instance.customerDisplay.showWelcome();
-      setState(() => _hardwareStatusMsg = 'Message de bienvenue envoyé à l\'afficheur client');
+      setState(
+        () => _hardwareStatusMsg =
+            'Message de bienvenue envoyé à l\'afficheur client',
+      );
     } catch (e) {
       setState(() => _hardwareStatusMsg = 'Erreur afficheur: $e');
     }
@@ -198,19 +248,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: _hardwareStatusMsg!.contains('Erreur') ? Colors.red.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
+                color: _hardwareStatusMsg!.contains('Erreur')
+                    ? Colors.red.withValues(alpha: 0.2)
+                    : Colors.green.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(_hardwareStatusMsg!.contains('Erreur') ? Icons.error_outline : Icons.check_circle, color: Colors.white),
+                  Icon(
+                    _hardwareStatusMsg!.contains('Erreur')
+                        ? Icons.error_outline
+                        : Icons.check_circle,
+                    color: Colors.white,
+                  ),
                   const SizedBox(width: 8),
-                  Text(_hardwareStatusMsg!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    _hardwareStatusMsg!,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
 
-          const Text('Diagnostics et Tests des Périphériques POSBANK / Windows :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Diagnostics et Tests des Périphériques POSBANK / Windows :',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
 
           Row(
@@ -259,7 +322,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
     );
   }
 
-  Widget _buildDeviceCard({required String title, required String subtitle, required IconData icon, required VoidCallback onTest, required String testLabel}) {
+  Widget _buildDeviceCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTest,
+    required String testLabel,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -286,8 +355,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -298,7 +379,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: onTest,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF161F2E), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF161F2E),
+                  foregroundColor: Colors.white,
+                ),
                 icon: const Icon(Icons.play_arrow, size: 18),
                 label: Text(testLabel),
               ),
@@ -322,22 +406,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                 ),
                 icon: _isBackingUp
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Icon(Icons.backup),
-                label: Text(_isBackingUp ? 'SAUVEGARDE EN COURS...' : 'CRÉER UNE SAUVEGARDE (VACUUM INTO)'),
+                label: Text(
+                  _isBackingUp
+                      ? 'SAUVEGARDE EN COURS...'
+                      : 'CRÉER UNE SAUVEGARDE (VACUUM INTO)',
+                ),
               ),
               const SizedBox(width: 16),
               OutlinedButton.icon(
                 onPressed: _isRunningDiagnostics ? null : _runDiagnostics,
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppTheme.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                 ),
                 icon: _isRunningDiagnostics
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.health_and_safety),
                 label: const Text('DIAGNOSTIC D\'INTÉGRITÉ SQLITE'),
               ),
@@ -349,28 +454,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _integrityReport!.isHealthy ? AppTheme.success.withValues(alpha: 0.1) : AppTheme.error.withValues(alpha: 0.1),
+                color: _integrityReport!.isHealthy
+                    ? AppTheme.success.withValues(alpha: 0.1)
+                    : AppTheme.error.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _integrityReport!.isHealthy ? AppTheme.success : AppTheme.error),
+                border: Border.all(
+                  color: _integrityReport!.isHealthy
+                      ? AppTheme.success
+                      : AppTheme.error,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(_integrityReport!.isHealthy ? Icons.check_circle : Icons.error, color: _integrityReport!.isHealthy ? AppTheme.success : AppTheme.error),
+                      Icon(
+                        _integrityReport!.isHealthy
+                            ? Icons.check_circle
+                            : Icons.error,
+                        color: _integrityReport!.isHealthy
+                            ? AppTheme.success
+                            : AppTheme.error,
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        _integrityReport!.isHealthy ? 'Base de données saine et intègre (PRAGMA OK)' : 'Anomalies détectées',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _integrityReport!.isHealthy ? AppTheme.success : AppTheme.error),
+                        _integrityReport!.isHealthy
+                            ? 'Base de données saine et intègre (PRAGMA OK)'
+                            : 'Anomalies détectées',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: _integrityReport!.isHealthy
+                              ? AppTheme.success
+                              : AppTheme.error,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text('Ventes: ${_integrityReport!.totalSales} • Articles: ${_integrityReport!.totalProducts} • Mouvements: ${_integrityReport!.totalMovements}'),
+                  Text(
+                    'Ventes: ${_integrityReport!.totalSales} • Articles: ${_integrityReport!.totalProducts} • Mouvements: ${_integrityReport!.totalMovements}',
+                  ),
                   if (_integrityReport!.issues.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    ..._integrityReport!.issues.map((i) => Text('• $i', style: const TextStyle(color: Colors.redAccent))),
+                    ..._integrityReport!.issues.map(
+                      (i) => Text(
+                        '• $i',
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -378,7 +511,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           ],
 
           const SizedBox(height: 24),
-          const Text('Historique des Sauvegardes Locales :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            'Historique des Sauvegardes Locales :',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 12),
 
           Container(
@@ -390,23 +526,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             child: _backups.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.all(24),
-                    child: Center(child: Text('Aucune sauvegarde locale pour le moment', style: TextStyle(color: AppTheme.textSecondary))),
+                    child: Center(
+                      child: Text(
+                        'Aucune sauvegarde locale pour le moment',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
+                    ),
                   )
                 : ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _backups.length,
-                    separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                    separatorBuilder: (_, __) =>
+                        const Divider(color: AppTheme.border, height: 1),
                     itemBuilder: (context, index) {
                       final b = _backups[index];
-                      final sizeMb = (b.fileSizeBytes / (1024 * 1024)).toStringAsFixed(2);
-                      final dateStr = DateFormat('dd/MM/yyyy HH:mm:ss').format(b.createdAt);
+                      final sizeMb = (b.fileSizeBytes / (1024 * 1024))
+                          .toStringAsFixed(2);
+                      final dateStr = DateFormat(
+                        'dd/MM/yyyy HH:mm:ss',
+                      ).format(b.createdAt);
 
                       return ListTile(
-                        leading: const Icon(Icons.storage, color: AppTheme.primaryLight),
-                        title: Text('Sauvegarde du $dateStr', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Fichier: ${b.filePath}\nSHA-256: ${b.checksum.substring(0, 16)}... • Taille: $sizeMb Mo'),
-                        trailing: const Icon(Icons.verified, color: AppTheme.success, size: 20),
+                        leading: const Icon(
+                          Icons.storage,
+                          color: AppTheme.primaryLight,
+                        ),
+                        title: Text(
+                          'Sauvegarde du $dateStr',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          'Fichier: ${b.filePath}\nSHA-256: ${b.checksum.substring(0, 16)}... • Taille: $sizeMb Mo',
+                        ),
+                        trailing: const Icon(
+                          Icons.verified,
+                          color: AppTheme.success,
+                          size: 20,
+                        ),
                       );
                     },
                   ),
@@ -422,7 +579,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Import & Export de Données Catalogue :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Import & Export de Données Catalogue :',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
 
           Row(
@@ -444,17 +604,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                             controller: TextEditingController(text: csvData),
                             maxLines: null,
                             readOnly: true,
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 11,
+                            ),
                           ),
                         ),
                         actions: [
-                          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Fermer')),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Fermer'),
+                          ),
                         ],
                       ),
                     );
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                ),
                 icon: const Icon(Icons.download),
                 label: const Text('EXPORTER CATALOGUE CSV'),
               ),
@@ -466,12 +635,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
   }
 
   Widget _buildSystemInfoTab() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Informations Système & Point de Vente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Informations Système & Point de Vente',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(20),
@@ -480,17 +652,105 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppTheme.border),
             ),
-            child: const Column(
+            child: Column(
               children: [
-                _InfoRow('Application :', 'JazzPOS Desktop v1.0.0 (Production Build)'),
-                Divider(color: AppTheme.border),
-                _InfoRow('Moteur de Base de Données :', 'SQLite 3 via Drift (WAL Mode enabled)'),
-                Divider(color: AppTheme.border),
-                _InfoRow('Devise Principale :', 'Dinar Tunisien (TND - 3 décimales, calculs en millimes entiers)'),
-                Divider(color: AppTheme.border),
-                _InfoRow('Architecture Cible :', 'Windows 10 / 11 POS (Compatible Terminaux POSBANK)'),
-                Divider(color: AppTheme.border),
-                _InfoRow('Politique Hors-ligne :', '100% Autonome (Opérations caisse, stocks, tickets garanties hors-ligne)'),
+                const _InfoRow(
+                  'Application :',
+                  'JazzPOS Desktop v1.0.0-RC1 (Release Candidate 1)',
+                ),
+                const Divider(color: AppTheme.border),
+                const _InfoRow(
+                  'Moteur de Base de Données :',
+                  'SQLite 3 via Drift (WAL Mode, synchronous=NORMAL)',
+                ),
+                const Divider(color: AppTheme.border),
+                const _InfoRow(
+                  'Devise Principale :',
+                  'Dinar Tunisien (TND - 3 décimales, calculs en millimes entiers)',
+                ),
+                const Divider(color: AppTheme.border),
+                const _InfoRow(
+                  'Architecture Cible :',
+                  'Windows 10 / 11 POS (Terminaux POSBANK Apexa G / AnyPOS)',
+                ),
+                const Divider(color: AppTheme.border),
+                const _InfoRow(
+                  'Politique Hors-ligne :',
+                  '100% Autonome (Opérations caisse, stocks, tickets garanties hors-ligne)',
+                ),
+                const Divider(color: AppTheme.border),
+                _InfoRow(
+                  'Base de Données Locale :',
+                  AppPaths.instance.databaseFilePath,
+                ),
+                const Divider(color: AppTheme.border),
+                _InfoRow(
+                  'Fichier Journaux (Logs) :',
+                  AppPaths.instance.logFilePath,
+                ),
+                const Divider(color: AppTheme.border),
+                _InfoRow(
+                  'Dossier Sauvegardes :',
+                  AppPaths.instance.backupsDir.path,
+                ),
+                if (_storageHealth != null) ...[
+                  const Divider(color: AppTheme.border),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Santé Stockage / Permissions :',
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
+                        Text(
+                          _storageHealth!.values.every((v) => v)
+                              ? 'TOUS DOSSIERS ACCESSIBLES EN ÉCRITURE (OK)'
+                              : 'ERREUR PERMISSION DOSSIER',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _storageHealth!.values.every((v) => v)
+                                ? AppTheme.success
+                                : AppTheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (Platform.isWindows) ...[
+                  const Divider(color: AppTheme.border),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Démarrage automatique Windows :',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Lancer JAZZ POS automatiquement au démarrage du terminal caisse',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: _autoStartEnabled,
+                          onChanged: (val) => _toggleAutoStart(val),
+                          activeThumbColor: AppTheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

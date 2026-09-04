@@ -11,6 +11,9 @@ class FakeCashDrawer implements CashDrawer {
   @override
   Future<void> openDrawer() async {
     openCount++;
-    PosLogger.instance.info('CashDrawer', 'Cash drawer popped open (Simulated)');
+    PosLogger.instance.info(
+      'CashDrawer',
+      'Cash drawer popped open (Simulated)',
+    );
   }
 }

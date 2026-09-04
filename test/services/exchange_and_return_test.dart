@@ -41,7 +41,9 @@ void main() {
     cashierId = IdGenerator.uuid();
     shiftId = IdGenerator.uuid();
 
-    await db.into(db.companies).insert(
+    await db
+        .into(db.companies)
+        .insert(
           CompaniesCompanion.insert(
             id: companyId,
             name: 'Jazz Retail SARL',
@@ -50,7 +52,9 @@ void main() {
           ),
         );
 
-    await db.into(db.stores).insert(
+    await db
+        .into(db.stores)
+        .insert(
           StoresCompanion.insert(
             id: storeId,
             companyId: companyId,
@@ -61,7 +65,9 @@ void main() {
           ),
         );
 
-    await db.into(db.registers).insert(
+    await db
+        .into(db.registers)
+        .insert(
           RegistersCompanion.insert(
             id: registerId,
             storeId: storeId,
@@ -72,7 +78,9 @@ void main() {
           ),
         );
 
-    await db.into(db.users).insert(
+    await db
+        .into(db.users)
+        .insert(
           UsersCompanion.insert(
             id: cashierId,
             username: 'cashier1',
@@ -86,7 +94,9 @@ void main() {
         );
 
     managerId = IdGenerator.uuid();
-    await db.into(db.users).insert(
+    await db
+        .into(db.users)
+        .insert(
           UsersCompanion.insert(
             id: managerId,
             username: 'manager1',
@@ -99,7 +109,9 @@ void main() {
           ),
         );
 
-    await db.into(db.shifts).insert(
+    await db
+        .into(db.shifts)
+        .insert(
           ShiftsCompanion.insert(
             id: shiftId,
             registerId: registerId,
@@ -113,7 +125,9 @@ void main() {
     shopFloor = await inventoryService.getDefaultLocation(storeId);
 
     // Create damaged location
-    await db.into(db.stockLocations).insert(
+    await db
+        .into(db.stockLocations)
+        .insert(
           StockLocationsCompanion.insert(
             id: IdGenerator.uuid(),
             storeId: storeId,
@@ -129,7 +143,9 @@ void main() {
     variantM = IdGenerator.uuid();
     variantL = IdGenerator.uuid();
 
-    await db.into(db.products).insert(
+    await db
+        .into(db.products)
+        .insert(
           ProductsCompanion.insert(
             id: prodId,
             name: 'Polo Shirt',
@@ -140,7 +156,9 @@ void main() {
           ),
         );
 
-    await db.into(db.productVariants).insert(
+    await db
+        .into(db.productVariants)
+        .insert(
           ProductVariantsCompanion.insert(
             id: variantM,
             productId: prodId,
@@ -151,13 +169,17 @@ void main() {
           ),
         );
 
-    await db.into(db.productVariants).insert(
+    await db
+        .into(db.productVariants)
+        .insert(
           ProductVariantsCompanion.insert(
             id: variantL,
             productId: prodId,
             sku: 'POLO-BLK-L',
             barcode: '200222222222',
-            salePriceOverrideMillimes: const Value(49900), // Size L is 49.900 TND
+            salePriceOverrideMillimes: const Value(
+              49900,
+            ), // Size L is 49.900 TND
             createdAt: now,
             updatedAt: now,
           ),
@@ -214,81 +236,90 @@ void main() {
       expect(stockM, 11);
     });
 
-    test('Damaged return puts item into damaged location, NOT sellable shop floor', () async {
-      final returnItem = ReturnLineItem(
-        variantId: variantM,
-        quantity: 1,
-        refundUnitPrice: const Money.fromMillimes(39900),
-        condition: AppConstants.returnConditionDamaged,
-      );
+    test(
+      'Damaged return puts item into damaged location, NOT sellable shop floor',
+      () async {
+        final returnItem = ReturnLineItem(
+          variantId: variantM,
+          quantity: 1,
+          refundUnitPrice: const Money.fromMillimes(39900),
+          condition: AppConstants.returnConditionDamaged,
+        );
 
-      final req = ReturnRequest(
-        storeId: storeId,
-        registerId: registerId,
-        shiftId: shiftId,
-        cashierId: cashierId,
-        reason: 'Torn seam',
-        refundMethod: AppConstants.paymentCash,
-        items: [returnItem],
-        managerId: managerId,
-      );
+        final req = ReturnRequest(
+          storeId: storeId,
+          registerId: registerId,
+          shiftId: shiftId,
+          cashierId: cashierId,
+          reason: 'Torn seam',
+          refundMethod: AppConstants.paymentCash,
+          items: [returnItem],
+          managerId: managerId,
+        );
 
-      await returnService.processReturn(req);
+        await returnService.processReturn(req);
 
-      // Sellable shop floor stock must NOT increase (remains 10)
-      final sellableStock = await inventoryService.getStock(variantM, locationId: shopFloor.id);
-      expect(sellableStock, 10);
-    });
+        // Sellable shop floor stock must NOT increase (remains 10)
+        final sellableStock = await inventoryService.getStock(
+          variantM,
+          locationId: shopFloor.id,
+        );
+        expect(sellableStock, 10);
+      },
+    );
 
-    test('Exchange Size M for Size L with net price difference settlement', () async {
-      // Customer bought M (39.900 TND) and now exchanges for L (49.900 TND).
-      // Customer pays +10.000 TND cash.
-      final returned = ReturnLineItem(
-        variantId: variantM,
-        quantity: 1,
-        refundUnitPrice: const Money.fromMillimes(39900),
-        condition: AppConstants.returnConditionSellable,
-      );
+    test(
+      'Exchange Size M for Size L with net price difference settlement',
+      () async {
+        // Customer bought M (39.900 TND) and now exchanges for L (49.900 TND).
+        // Customer pays +10.000 TND cash.
+        final returned = ReturnLineItem(
+          variantId: variantM,
+          quantity: 1,
+          refundUnitPrice: const Money.fromMillimes(39900),
+          condition: AppConstants.returnConditionSellable,
+        );
 
-      final newItem = CartItem(
-        variantId: variantL,
-        productId: 'prod-1',
-        productName: 'Polo Shirt',
-        variantDescription: 'BLACK / L',
-        sku: 'POLO-BLK-L',
-        barcode: '200222222222',
-        unitPrice: const Money.fromMillimes(49900),
-        originalPrice: const Money.fromMillimes(49900),
-        quantity: 1,
-      );
+        final newItem = CartItem(
+          variantId: variantL,
+          productId: 'prod-1',
+          productName: 'Polo Shirt',
+          variantDescription: 'BLACK / L',
+          sku: 'POLO-BLK-L',
+          barcode: '200222222222',
+          unitPrice: const Money.fromMillimes(49900),
+          originalPrice: const Money.fromMillimes(49900),
+          quantity: 1,
+        );
 
-      final exchangeReq = ExchangeRequest(
-        storeId: storeId,
-        registerId: registerId,
-        shiftId: shiftId,
-        cashierId: cashierId,
-        returnedItems: [returned],
-        newItems: [newItem],
-        paymentMethod: AppConstants.paymentCash,
-        tendered: const Money.fromMillimes(10000), // 10.000 TND
-        reason: 'Size exchange M to L',
-        managerOverrideId: managerId,
-      );
+        final exchangeReq = ExchangeRequest(
+          storeId: storeId,
+          registerId: registerId,
+          shiftId: shiftId,
+          cashierId: cashierId,
+          returnedItems: [returned],
+          newItems: [newItem],
+          paymentMethod: AppConstants.paymentCash,
+          tendered: const Money.fromMillimes(10000), // 10.000 TND
+          reason: 'Size exchange M to L',
+          managerOverrideId: managerId,
+        );
 
-      expect(exchangeReq.difference.millimes, 10000); // 49900 - 39900 = 10000
+        expect(exchangeReq.difference.millimes, 10000); // 49900 - 39900 = 10000
 
-      final result = await exchangeService.processExchange(exchangeReq);
+        final result = await exchangeService.processExchange(exchangeReq);
 
-      expect(result.difference.millimes, 10000);
-      expect(result.exchange.differenceMillimes, 10000);
+        expect(result.difference.millimes, 10000);
+        expect(result.exchange.differenceMillimes, 10000);
 
-      // Stock M increased by 1 (10 -> 11)
-      final stockM = await inventoryService.getStock(variantM);
-      expect(stockM, 11);
+        // Stock M increased by 1 (10 -> 11)
+        final stockM = await inventoryService.getStock(variantM);
+        expect(stockM, 11);
 
-      // Stock L decreased by 1 (10 -> 9)
-      final stockL = await inventoryService.getStock(variantL);
-      expect(stockL, 9);
-    });
+        // Stock L decreased by 1 (10 -> 9)
+        final stockL = await inventoryService.getStock(variantL);
+        expect(stockL, 9);
+      },
+    );
   });
 }

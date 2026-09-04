@@ -22,7 +22,8 @@ class VariantSelectionDialog extends ConsumerWidget {
   }) {
     return showDialog(
       context: context,
-      builder: (ctx) => VariantSelectionDialog(productName: productName, variants: variants),
+      builder: (ctx) =>
+          VariantSelectionDialog(productName: productName, variants: variants),
     );
   }
 
@@ -44,7 +45,11 @@ class VariantSelectionDialog extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     productName,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -80,7 +85,10 @@ class VariantSelectionDialog extends ConsumerWidget {
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF161F2E),
                         borderRadius: BorderRadius.circular(8),
@@ -89,7 +97,10 @@ class VariantSelectionDialog extends ConsumerWidget {
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppTheme.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(6),
@@ -97,7 +108,10 @@ class VariantSelectionDialog extends ConsumerWidget {
                             ),
                             child: Text(
                               v.variantDescription,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -105,8 +119,20 @@ class VariantSelectionDialog extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('SKU: ${v.sku}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                                Text('Code: ${v.barcode}', style: const TextStyle(fontSize: 11, color: Colors.white38)),
+                                Text(
+                                  'SKU: ${v.sku}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  'Code: ${v.barcode}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white38,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -116,17 +142,26 @@ class VariantSelectionDialog extends ConsumerWidget {
                               MoneyDisplay(amount: v.salePrice, fontSize: 16),
                               const SizedBox(height: 2),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isOutOfStock ? Colors.red.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
+                                  color: isOutOfStock
+                                      ? Colors.red.withValues(alpha: 0.2)
+                                      : Colors.green.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  isOutOfStock ? 'Rupture' : '${v.stock} en stock',
+                                  isOutOfStock
+                                      ? 'Rupture'
+                                      : '${v.stock} en stock',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: isOutOfStock ? Colors.redAccent : Colors.greenAccent,
+                                    color: isOutOfStock
+                                        ? Colors.redAccent
+                                        : Colors.greenAccent,
                                   ),
                                 ),
                               ),

@@ -17,7 +17,10 @@ class EscPosCommands {
   static List<int> setBold(bool enabled) => [esc, 0x45, enabled ? 1 : 0];
 
   /// Double size (height & width): 0x11 = double both, 0x00 = normal
-  static List<int> setTextSize({bool doubleWidth = false, bool doubleHeight = false}) {
+  static List<int> setTextSize({
+    bool doubleWidth = false,
+    bool doubleHeight = false,
+  }) {
     int n = 0;
     if (doubleWidth) n |= 0x20;
     if (doubleHeight) n |= 0x01;
@@ -37,12 +40,23 @@ class EscPosCommands {
   static List<int> openCashDrawer() => [esc, 0x70, 0x00, 0x19, 0xFA];
 
   /// Print standard Code 128 barcode
-  static List<int> printBarcode128(String barcode, {int height = 64, int width = 2}) {
+  static List<int> printBarcode128(
+    String barcode, {
+    int height = 64,
+    int width = 2,
+  }) {
     final bytes = <int>[];
     bytes.addAll([gs, 0x68, height]); // Height
     bytes.addAll([gs, 0x77, width]); // Width
     bytes.addAll([gs, 0x48, 0x02]); // HRI characters below barcode
-    bytes.addAll([gs, 0x6B, 0x49, barcode.length + 2, 0x7B, 0x42]); // Code 128 subset B
+    bytes.addAll([
+      gs,
+      0x6B,
+      0x49,
+      barcode.length + 2,
+      0x7B,
+      0x42,
+    ]); // Code 128 subset B
     bytes.addAll(barcode.codeUnits);
     return bytes;
   }
@@ -56,7 +70,9 @@ class EscPosCommands {
     final totalLen = left.length + right.length;
     if (totalLen >= width) {
       final availableForLeft = width - right.length - 1;
-      final truncatedLeft = availableForLeft > 0 ? left.substring(0, availableForLeft) : left;
+      final truncatedLeft = availableForLeft > 0
+          ? left.substring(0, availableForLeft)
+          : left;
       final spaces = width - truncatedLeft.length - right.length;
       return '$truncatedLeft${' ' * (spaces > 0 ? spaces : 1)}$right';
     }
@@ -75,7 +91,9 @@ class EscPosCommands {
     final col3Width = 12;
     final col1Width = width - col2Width - col3Width;
 
-    final c1 = col1.length > col1Width ? col1.substring(0, col1Width - 1) : col1.padRight(col1Width);
+    final c1 = col1.length > col1Width
+        ? col1.substring(0, col1Width - 1)
+        : col1.padRight(col1Width);
     final c2 = col2.padLeft(col2Width);
     final c3 = col3.padLeft(col3Width);
 

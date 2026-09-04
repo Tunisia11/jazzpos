@@ -16,16 +16,22 @@ class ManagerOverrideDialog extends ConsumerStatefulWidget {
     this.reason,
   });
 
-  static Future<User?> show(BuildContext context, {required String actionTitle, String? reason}) {
+  static Future<User?> show(
+    BuildContext context, {
+    required String actionTitle,
+    String? reason,
+  }) {
     return showDialog<User>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => ManagerOverrideDialog(actionTitle: actionTitle, reason: reason),
+      builder: (ctx) =>
+          ManagerOverrideDialog(actionTitle: actionTitle, reason: reason),
     );
   }
 
   @override
-  ConsumerState<ManagerOverrideDialog> createState() => _ManagerOverrideDialogState();
+  ConsumerState<ManagerOverrideDialog> createState() =>
+      _ManagerOverrideDialogState();
 }
 
 class _ManagerOverrideDialogState extends ConsumerState<ManagerOverrideDialog> {
@@ -98,24 +104,38 @@ class _ManagerOverrideDialogState extends ConsumerState<ManagerOverrideDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.shield_outlined, color: AppTheme.warning, size: 48),
+            const Icon(
+              Icons.shield_outlined,
+              color: AppTheme.warning,
+              size: 48,
+            ),
             const SizedBox(height: 12),
             const Text(
               'Autorisation Responsable Requise',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
               widget.actionTitle,
-              style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
             if (widget.reason != null) ...[
               const SizedBox(height: 4),
               Text(
                 widget.reason!,
-                style: const TextStyle(fontSize: 12, color: Colors.orangeAccent),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.orangeAccent,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -143,7 +163,11 @@ class _ManagerOverrideDialogState extends ConsumerState<ManagerOverrideDialog> {
               const SizedBox(height: 12),
               Text(
                 _error!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
 
@@ -162,7 +186,9 @@ class _ManagerOverrideDialogState extends ConsumerState<ManagerOverrideDialog> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(null),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(null),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white70,
                       minimumSize: const Size(0, 48),

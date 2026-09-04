@@ -17,7 +17,8 @@ class InventoryScreen extends ConsumerStatefulWidget {
   ConsumerState<InventoryScreen> createState() => _InventoryScreenState();
 }
 
-class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTickerProviderStateMixin {
+class _InventoryScreenState extends ConsumerState<InventoryScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<StockLocation> _locations = [];
   List<StockMovement> _movements = [];
@@ -46,10 +47,11 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
     final catalogService = ref.read(catalogServiceProvider);
 
     final locations = await db.select(db.stockLocations).get();
-    final movements = await (db.select(db.stockMovements)
-          ..orderBy([(t) => OrderingTerm.desc(t.id)])
-          ..limit(100))
-        .get();
+    final movements =
+        await (db.select(db.stockMovements)
+              ..orderBy([(t) => OrderingTerm.desc(t.id)])
+              ..limit(100))
+            .get();
     final variants = await catalogService.searchVariants(_searchCtrl.text);
 
     if (mounted) {
@@ -68,9 +70,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
   void _openStockCount() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (ctx) => StockCountScreen(
-          locationId: _selectedLocationId ?? 'LOC-SHOP',
-        ),
+        builder: (ctx) =>
+            StockCountScreen(locationId: _selectedLocationId ?? 'LOC-SHOP'),
       ),
     );
     _loadData();
@@ -79,7 +80,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
   Future<void> _showTransferDialog(VariantSearchResult variant) async {
     if (_locations.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Au moins deux emplacements de stock sont requis'), backgroundColor: AppTheme.warning),
+        const SnackBar(
+          content: Text('Au moins deux emplacements de stock sont requis'),
+          backgroundColor: AppTheme.warning,
+        ),
       );
       return;
     }
@@ -99,36 +103,57 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Variante: ${variant.variantDescription} (SKU: ${variant.sku})'),
+              Text(
+                'Variante: ${variant.variantDescription} (SKU: ${variant.sku})',
+              ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: fromLoc,
-                decoration: const InputDecoration(labelText: 'Emplacement Source'),
-                items: _locations.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
+                decoration: const InputDecoration(
+                  labelText: 'Emplacement Source',
+                ),
+                items: _locations
+                    .map(
+                      (l) => DropdownMenuItem(value: l.id, child: Text(l.name)),
+                    )
+                    .toList(),
                 onChanged: (v) => setDialogState(() => fromLoc = v!),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: toLoc,
-                decoration: const InputDecoration(labelText: 'Emplacement Destination'),
-                items: _locations.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
+                decoration: const InputDecoration(
+                  labelText: 'Emplacement Destination',
+                ),
+                items: _locations
+                    .map(
+                      (l) => DropdownMenuItem(value: l.id, child: Text(l.name)),
+                    )
+                    .toList(),
                 onChanged: (v) => setDialogState(() => toLoc = v!),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: qtyCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Quantité à transférer'),
+                decoration: const InputDecoration(
+                  labelText: 'Quantité à transférer',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: reasonCtrl,
-                decoration: const InputDecoration(labelText: 'Motif du transfert'),
+                decoration: const InputDecoration(
+                  labelText: 'Motif du transfert',
+                ),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Annuler')),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Annuler'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final qty = int.tryParse(qtyCtrl.text) ?? 0;
@@ -160,7 +185,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
       _loadData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transfert effectué avec succès !'), backgroundColor: AppTheme.success),
+          const SnackBar(
+            content: Text('Transfert effectué avec succès !'),
+            backgroundColor: AppTheme.success,
+          ),
         );
       }
     }
@@ -177,8 +205,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
           controller: _tabController,
           indicatorColor: AppTheme.primary,
           tabs: const [
-            Tab(icon: Icon(Icons.inventory_2), text: 'NIVEAUX DE STOCK PAR ARTICLE'),
-            Tab(icon: Icon(Icons.history), text: 'HISTORIQUE DES MOUVEMENTS (AUDIT)'),
+            Tab(
+              icon: Icon(Icons.inventory_2),
+              text: 'NIVEAUX DE STOCK PAR ARTICLE',
+            ),
+            Tab(
+              icon: Icon(Icons.history),
+              text: 'HISTORIQUE DES MOUVEMENTS (AUDIT)',
+            ),
           ],
         ),
         actions: [
@@ -186,9 +220,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
             padding: const EdgeInsets.only(right: 16),
             child: ElevatedButton.icon(
               onPressed: _openStockCount,
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning, foregroundColor: Colors.black),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.warning,
+                foregroundColor: Colors.black,
+              ),
               icon: const Icon(Icons.fact_check, size: 20),
-              label: const Text('LANCER UN INVENTAIRE', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                'LANCER UN INVENTAIRE',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
@@ -228,7 +268,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                   child: TextField(
                     controller: _searchCtrl,
                     decoration: InputDecoration(
-                      hintText: 'Filtrer les articles par nom, SKU ou code-barres...',
+                      hintText:
+                          'Filtrer les articles par nom, SKU ou code-barres...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? IconButton(
@@ -265,7 +306,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
               ),
               child: ListView.separated(
                 itemCount: _variants.length,
-                separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+                separatorBuilder: (_, __) =>
+                    const Divider(color: AppTheme.border, height: 1),
                 itemBuilder: (context, index) {
                   final v = _variants[index];
                   final isLowStock = v.stock <= 2;
@@ -274,16 +316,28 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: isLowStock ? AppTheme.error.withValues(alpha: 0.15) : AppTheme.success.withValues(alpha: 0.15),
+                        color: isLowStock
+                            ? AppTheme.error.withValues(alpha: 0.15)
+                            : AppTheme.success.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
-                        isLowStock ? Icons.warning_amber : Icons.check_circle_outline,
+                        isLowStock
+                            ? Icons.warning_amber
+                            : Icons.check_circle_outline,
                         color: isLowStock ? AppTheme.error : AppTheme.success,
                       ),
                     ),
-                    title: Text(v.productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text('${v.variantDescription} • SKU: ${v.sku} • Code: ${v.barcode}'),
+                    title: Text(
+                      v.productName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${v.variantDescription} • SKU: ${v.sku} • Code: ${v.barcode}',
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -296,7 +350,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
-                                color: isLowStock ? AppTheme.error : Colors.white,
+                                color: isLowStock
+                                    ? AppTheme.error
+                                    : Colors.white,
                               ),
                             ),
                             MoneyDisplay(amount: v.salePrice, fontSize: 12),
@@ -306,7 +362,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                         OutlinedButton.icon(
                           onPressed: () => _showTransferDialog(v),
                           icon: const Icon(Icons.swap_horiz, size: 16),
-                          label: const Text('Transférer', style: TextStyle(fontSize: 12)),
+                          label: const Text(
+                            'Transférer',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
@@ -329,10 +388,16 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
         border: Border.all(color: AppTheme.border),
       ),
       child: _movements.isEmpty
-          ? const Center(child: Text('Aucun mouvement de stock enregistré', style: TextStyle(color: AppTheme.textSecondary)))
+          ? const Center(
+              child: Text(
+                'Aucun mouvement de stock enregistré',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            )
           : ListView.separated(
               itemCount: _movements.length,
-              separatorBuilder: (_, __) => const Divider(color: AppTheme.border, height: 1),
+              separatorBuilder: (_, __) =>
+                  const Divider(color: AppTheme.border, height: 1),
               itemBuilder: (context, index) {
                 final m = _movements[index];
                 final isPositive = m.quantityDelta > 0;
@@ -341,7 +406,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isPositive ? AppTheme.success.withValues(alpha: 0.15) : AppTheme.error.withValues(alpha: 0.15),
+                      color: isPositive
+                          ? AppTheme.success.withValues(alpha: 0.15)
+                          : AppTheme.error.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Icon(
@@ -352,11 +419,17 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                   ),
                   title: Text(
                     'Type: ${m.movementType} (${m.referenceType ?? ""})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                   subtitle: Text(
                     'Réf: ${m.referenceId ?? "Manuel"} • Date: ${DateFormat("dd/MM/yyyy HH:mm").format(m.createdAt)}',
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 12,
+                    ),
                   ),
                   trailing: Text(
                     isPositive ? '+${m.quantityDelta}' : '${m.quantityDelta}',

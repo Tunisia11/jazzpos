@@ -37,9 +37,12 @@ class ExchangeRequest {
     this.managerOverrideId,
   });
 
-  Money get returnedTotal => returnedItems.fold(Money.zero, (s, i) => s + i.totalRefund);
+  Money get returnedTotal =>
+      returnedItems.fold(Money.zero, (s, i) => s + i.totalRefund);
   Money get newTotal => newItems.fold(Money.zero, (s, i) => s + i.total);
-  Money get difference => newTotal - returnedTotal; // positive: customer pays, negative: customer refunded
+  Money get difference =>
+      newTotal -
+      returnedTotal; // positive: customer pays, negative: customer refunded
 }
 
 class ExchangeCompletedResult {
@@ -64,17 +67,25 @@ class ExchangeService {
   ExchangeService(this.db, this.returnService, this.saleService);
 
   /// Process an atomic exchange of clothing items
-  Future<ExchangeCompletedResult> processExchange(ExchangeRequest request) async {
+  Future<ExchangeCompletedResult> processExchange(
+    ExchangeRequest request,
+  ) async {
     if (request.returnedItems.isEmpty) {
-      throw const ValidationException('Exchange must include at least one returned item');
+      throw const ValidationException(
+        'Exchange must include at least one returned item',
+      );
     }
     if (request.newItems.isEmpty) {
-      throw const ValidationException('Exchange must include at least one new item');
+      throw const ValidationException(
+        'Exchange must include at least one new item',
+      );
     }
 
     final diff = request.difference;
 
     // 1. Process return part
+    // The returned items provide exchange credit. We record the return refund method as STORE_CREDIT
+    // so that the gross value of returned items is not deducted from physical cash drawer in ShiftService.
     final returnRecord = await returnService.processReturn(
       ReturnRequest(
         originalSaleId: request.originalSaleId,
@@ -83,11 +94,29 @@ class ExchangeService {
         shiftId: request.shiftId,
         cashierId: request.cashierId,
         reason: 'Exchange: ${request.reason}',
-        refundMethod: request.paymentMethod,
+        refundMethod: AppConstants.paymentStoreCredit,
         items: request.returnedItems,
         managerId: request.managerOverrideId,
       ),
     );
+
+    // If customer returned a more expensive item and is owed cash difference, record a cash payout
+    if (diff.isNegative && request.paymentMethod == AppConstants.paymentCash) {
+      await db
+          .into(db.cashMovements)
+          .insert(
+            CashMovementsCompanion.insert(
+              id: IdGenerator.uuid(),
+              shiftId: request.shiftId,
+              userId: request.cashierId,
+              movementType: AppConstants.cashPayOut,
+              amountMillimes: diff.abs.millimes,
+              reason:
+                  'Exchange refund difference for Return #${returnRecord.returnNumber}',
+              createdAt: DateTime.now(),
+            ),
+          );
+    }
 
     // 2. Prepare checkout for new item(s)
     // If difference > 0, customer pays difference.
@@ -95,7 +124,9 @@ class ExchangeService {
     final payments = <PaymentSplit>[];
     if (diff.isPositive) {
       // Customer pays the difference
-      final change = request.tendered > diff ? request.tendered - diff : Money.zero;
+      final change = request.tendered > diff
+          ? request.tendered - diff
+          : Money.zero;
       payments.add(
         PaymentSplit(
           method: request.paymentMethod,
@@ -110,7 +141,8 @@ class ExchangeService {
         PaymentSplit(
           method: AppConstants.paymentStoreCredit,
           amount: request.returnedTotal,
-          reference: 'Exchange credit from Return #${returnRecord.returnNumber}',
+          reference:
+              'Exchange credit from Return #${returnRecord.returnNumber}',
         ),
       );
     } else {
@@ -119,7 +151,8 @@ class ExchangeService {
         PaymentSplit(
           method: AppConstants.paymentStoreCredit,
           amount: request.newTotal,
-          reference: 'Exchange credit from Return #${returnRecord.returnNumber}',
+          reference:
+              'Exchange credit from Return #${returnRecord.returnNumber}',
         ),
       );
     }
@@ -133,7 +166,8 @@ class ExchangeService {
         items: request.newItems,
         payments: payments,
         idempotencyKey: 'EXCHANGE-${returnRecord.id}',
-        notes: 'Exchange for Return #${returnRecord.returnNumber}. Net difference: ${diff.format()}',
+        notes:
+            'Exchange for Return #${returnRecord.returnNumber}. Net difference: ${diff.format()}',
         managerOverrideId: request.managerOverrideId,
       ),
     );
@@ -142,7 +176,9 @@ class ExchangeService {
     final exchangeId = IdGenerator.uuid();
     final now = DateTime.now();
 
-    await db.into(db.exchanges).insert(
+    await db
+        .into(db.exchanges)
+        .insert(
           ExchangesCompanion.insert(
             id: exchangeId,
             returnId: returnRecord.id,
@@ -154,7 +190,9 @@ class ExchangeService {
           ),
         );
 
-    final exchange = await (db.select(db.exchanges)..where((tbl) => tbl.id.equals(exchangeId))).getSingle();
+    final exchange = await (db.select(
+      db.exchanges,
+    )..where((tbl) => tbl.id.equals(exchangeId))).getSingle();
 
     PosLogger.instance.info(
       'Exchange',

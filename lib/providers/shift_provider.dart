@@ -9,11 +9,7 @@ class ShiftState {
   final ShiftSummary? summary;
   final bool isLoading;
 
-  const ShiftState({
-    this.activeShift,
-    this.summary,
-    this.isLoading = false,
-  });
+  const ShiftState({this.activeShift, this.summary, this.isLoading = false});
 
   bool get hasActiveShift => activeShift != null;
 
@@ -67,7 +63,11 @@ class ShiftNotifier extends StateNotifier<ShiftState> {
       note: note,
     );
     final summary = await shiftService.calculateShiftSummary(shift.id);
-    state = state.copyWith(activeShift: shift, summary: summary, isLoading: false);
+    state = state.copyWith(
+      activeShift: shift,
+      summary: summary,
+      isLoading: false,
+    );
     return shift;
   }
 
@@ -85,7 +85,9 @@ class ShiftNotifier extends StateNotifier<ShiftState> {
       amount: amount,
       reason: reason,
     );
-    final updated = await shiftService.calculateShiftSummary(state.activeShift!.id);
+    final updated = await shiftService.calculateShiftSummary(
+      state.activeShift!.id,
+    );
     state = state.copyWith(summary: updated);
   }
 
@@ -102,11 +104,17 @@ class ShiftNotifier extends StateNotifier<ShiftState> {
       countedCash: countedCash,
       note: note,
     );
-    state = state.copyWith(clearShift: true, summary: summary, isLoading: false);
+    state = state.copyWith(
+      clearShift: true,
+      summary: summary,
+      isLoading: false,
+    );
     return summary;
   }
 }
 
-final shiftNotifierProvider = StateNotifierProvider<ShiftNotifier, ShiftState>((ref) {
+final shiftNotifierProvider = StateNotifierProvider<ShiftNotifier, ShiftState>((
+  ref,
+) {
   return ShiftNotifier(ref.watch(shiftServiceProvider));
 });

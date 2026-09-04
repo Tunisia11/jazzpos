@@ -5,8 +5,27 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
-/// Creates a safe SQLite database connection with WAL mode and foreign keys enabled.
-LazyDatabase createDatabaseConnection({String? customPath, bool inMemory = false}) {
+/// Creates a resilient SQLite database connection for desktop POS environments.
+///
+/// DURABILITY & POWER LOSS REALITIES:
+/// While SQLite in WAL mode with `PRAGMA synchronous = NORMAL;` provides strong
+/// crash resilience and prevents structural database corruption in standard OS
+/// crashes, NO filesystem or database engine can guarantee 100% zero data loss
+/// under catastrophic physical power cut if:
+///   1. The storage controller (cheap SSD or USB) lies about flushing write caches.
+///   2. A power drop occurs mid-sector write (torn write).
+///
+/// To protect retail transactions in production:
+///   - Hardware POS terminals should be backed by a UPS (battery buffer).
+///   - If power instability is severe, set JAZZPOS_STRICT_SYNC=1 for synchronous = FULL.
+///   - Periodic hot backups via VACUUM INTO provide disaster recovery.
+///   - DatabaseIntegrityService verifies PRAGMA integrity_check and rebuilds
+///     cached stock balances from the immutable stock_movements ledger.
+LazyDatabase createDatabaseConnection({
+  String? customPath,
+  bool inMemory = false,
+  bool strictSynchronous = false,
+}) {
   return LazyDatabase(() async {
     if (inMemory) {
       return NativeDatabase.memory(
@@ -20,8 +39,12 @@ LazyDatabase createDatabaseConnection({String? customPath, bool inMemory = false
     if (customPath != null) {
       dbFile = File(customPath);
     } else {
-      final dbFolder = await getApplicationSupportDirectory();
-      final dir = Directory(p.join(dbFolder.path, 'database'));
+      final appDir = await getApplicationSupportDirectory();
+      final baseDir =
+          (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
+          ? Directory(p.join(appDir.path, 'JazzPOS'))
+          : appDir;
+      final dir = Directory(p.join(baseDir.path, 'database'));
       if (!await dir.exists()) {
         await dir.create(recursive: true);
       }
@@ -35,13 +58,22 @@ LazyDatabase createDatabaseConnection({String? customPath, bool inMemory = false
       } catch (_) {}
     }
 
+    // In production retail POS, synchronous = FULL is the default to guarantee physical
+    // storage synchronization (FlushFileBuffers/fsync) on every completed sale transaction.
+    // Set JAZZPOS_RELAXED_SYNC=1 only for high-speed synthetic batch benchmarks.
+    final isRelaxedSync = Platform.environment['JAZZPOS_RELAXED_SYNC'] == '1';
+
     return NativeDatabase.createInBackground(
       dbFile,
       setup: (rawDb) {
         rawDb.execute('PRAGMA journal_mode = WAL;');
         rawDb.execute('PRAGMA foreign_keys = ON;');
         rawDb.execute('PRAGMA busy_timeout = 5000;');
-        rawDb.execute('PRAGMA synchronous = NORMAL;');
+        rawDb.execute(
+          isRelaxedSync
+              ? 'PRAGMA synchronous = NORMAL;'
+              : 'PRAGMA synchronous = FULL;',
+        );
       },
     );
   });

@@ -19,8 +19,14 @@ class FakeCustomerDisplay implements CustomerDisplay {
   }
 
   @override
-  Future<void> showItem({required String productName, required Money price, required Money total}) async {
-    line1 = productName.length > 20 ? productName.substring(0, 20) : productName;
+  Future<void> showItem({
+    required String productName,
+    required Money price,
+    required Money total,
+  }) async {
+    line1 = productName.length > 20
+        ? productName.substring(0, 20)
+        : productName;
     line2 = '${price.format()} | Tot: ${total.format()}';
     PosLogger.instance.info('CustomerDisplay', 'Display: "$line1" | "$line2"');
   }

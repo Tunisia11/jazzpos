@@ -13,31 +13,43 @@ class PromotionService {
     final now = DateTime.now();
 
     // Fetch active promotions sorted by priority descending
-    final activePromos = await (db.select(db.promotions)
-          ..where((tbl) => tbl.isActive.equals(true) & tbl.startDate.isSmallerOrEqualValue(now) & tbl.endDate.isBiggerOrEqualValue(now))
-          ..orderBy([(t) => OrderingTerm.desc(t.priority)]))
-        .get();
+    final activePromos =
+        await (db.select(db.promotions)
+              ..where(
+                (tbl) =>
+                    tbl.isActive.equals(true) &
+                    tbl.startDate.isSmallerOrEqualValue(now) &
+                    tbl.endDate.isBiggerOrEqualValue(now),
+              )
+              ..orderBy([(t) => OrderingTerm.desc(t.priority)]))
+            .get();
 
     if (activePromos.isEmpty) return items;
 
     final updatedItems = List<CartItem>.from(items);
 
     for (final promo in activePromos) {
-      final rules = await (db.select(db.promotionRules)..where((tbl) => tbl.promotionId.equals(promo.id))).get();
+      final rules = await (db.select(
+        db.promotionRules,
+      )..where((tbl) => tbl.promotionId.equals(promo.id))).get();
 
       for (int i = 0; i < updatedItems.length; i++) {
         final item = updatedItems[i];
-        if (item.lineDiscount > Money.zero) continue; // Already discounted, avoid unwanted stacking
+        if (item.lineDiscount > Money.zero) {
+          continue; // Already discounted, avoid unwanted stacking
+        }
 
         bool matches = false;
         if (rules.isEmpty || rules.any((r) => r.targetType == 'ALL')) {
           matches = true;
         } else {
           for (final rule in rules) {
-            if (rule.targetType == 'PRODUCT' && rule.targetId == item.productId) {
+            if (rule.targetType == 'PRODUCT' &&
+                rule.targetId == item.productId) {
               matches = true;
               break;
-            } else if (rule.targetType == 'VARIANT' && rule.targetId == item.variantId) {
+            } else if (rule.targetType == 'VARIANT' &&
+                rule.targetId == item.variantId) {
               matches = true;
               break;
             }

@@ -19,7 +19,11 @@ class BackupService {
   /// Create an atomic local SQLite backup snapshot
   Future<BackupRecord> createLocalBackup() async {
     final appDir = await getApplicationSupportDirectory();
-    final backupDir = Directory(p.join(appDir.path, 'backups'));
+    final baseDir =
+        (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
+        ? Directory(p.join(appDir.path, 'JazzPOS'))
+        : appDir;
+    final backupDir = Directory(p.join(baseDir.path, 'backups'));
     if (!await backupDir.exists()) {
       await backupDir.create(recursive: true);
     }
@@ -49,7 +53,9 @@ class BackupService {
     final recordId = IdGenerator.uuid();
     final now = DateTime.now();
 
-    await db.into(db.backupRecords).insert(
+    await db
+        .into(db.backupRecords)
+        .insert(
           BackupRecordsCompanion.insert(
             id: recordId,
             filePath: backupFilePath,
@@ -64,15 +70,28 @@ class BackupService {
     // Enforce rotating retention: keep latest 10 backups
     await _enforceRetention(backupDir, maxBackups: 10);
 
-    PosLogger.instance.info('Backup', 'Created local backup snapshot: $backupFileName (${(size / 1024).toStringAsFixed(1)} KB)');
-    return (db.select(db.backupRecords)..where((tbl) => tbl.id.equals(recordId))).getSingle();
+    PosLogger.instance.info(
+      'Backup',
+      'Created local backup snapshot: $backupFileName (${(size / 1024).toStringAsFixed(1)} KB)',
+    );
+    return (db.select(
+      db.backupRecords,
+    )..where((tbl) => tbl.id.equals(recordId))).getSingle();
   }
 
-  Future<void> _enforceRetention(Directory backupDir, {int maxBackups = 10}) async {
+  Future<void> _enforceRetention(
+    Directory backupDir, {
+    int maxBackups = 10,
+  }) async {
     try {
-      final files = await backupDir.list().where((e) => e is File && e.path.endsWith('.sqlite')).toList();
+      final files = await backupDir
+          .list()
+          .where((e) => e is File && e.path.endsWith('.sqlite'))
+          .toList();
       if (files.length > maxBackups) {
-        files.sort((a, b) => a.statSync().modified.compareTo(b.statSync().modified));
+        files.sort(
+          (a, b) => a.statSync().modified.compareTo(b.statSync().modified),
+        );
         final toDelete = files.take(files.length - maxBackups);
         for (final f in toDelete) {
           await f.delete();
@@ -103,18 +122,29 @@ class BackupService {
 
     // Open read-only and verify critical tables exist
     try {
-      final tempDb = sqlite.sqlite3.open(filePath, mode: sqlite.OpenMode.readOnly);
+      final tempDb = sqlite.sqlite3.open(
+        filePath,
+        mode: sqlite.OpenMode.readOnly,
+      );
       try {
-        final result = tempDb.select("SELECT name FROM sqlite_master WHERE type='table';");
+        final result = tempDb.select(
+          "SELECT name FROM sqlite_master WHERE type='table';",
+        );
         final tableNames = result.map((row) => row['name'] as String).toSet();
-        if (!tableNames.contains('products') || !tableNames.contains('sales') || !tableNames.contains('users')) {
-          throw const ValidationException('Backup file is missing essential POS database tables');
+        if (!tableNames.contains('products') ||
+            !tableNames.contains('sales') ||
+            !tableNames.contains('users')) {
+          throw const ValidationException(
+            'Backup file is missing essential POS database tables',
+          );
         }
       } finally {
         tempDb.dispose();
       }
     } catch (e) {
-      throw ValidationException('Database integrity check failed on backup: $e');
+      throw ValidationException(
+        'Database integrity check failed on backup: $e',
+      );
     }
 
     return true;
@@ -125,7 +155,11 @@ class BackupService {
     await validateBackupFile(filePath);
 
     final appDir = await getApplicationSupportDirectory();
-    final targetDbPath = p.join(appDir.path, 'database', 'jazzpos.sqlite');
+    final baseDir =
+        (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
+        ? Directory(p.join(appDir.path, 'JazzPOS'))
+        : appDir;
+    final targetDbPath = p.join(baseDir.path, 'database', 'jazzpos.sqlite');
 
     // Create an emergency rollback copy of current DB
     final currentDbFile = File(targetDbPath);
@@ -147,7 +181,10 @@ class BackupService {
       if (await walFile.exists()) await walFile.delete();
       if (await shmFile.exists()) await shmFile.delete();
 
-      PosLogger.instance.info('Backup', 'Database successfully restored from $filePath by user $actorId');
+      PosLogger.instance.info(
+        'Backup',
+        'Database successfully restored from $filePath by user $actorId',
+      );
     } catch (e) {
       // Rollback on failure
       PosLogger.instance.error('Backup', 'Restore failed. Rolling back...', e);
@@ -161,6 +198,8 @@ class BackupService {
 
   /// Get backup history
   Future<List<BackupRecord>> getBackupHistory() async {
-    return (db.select(db.backupRecords)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
+    return (db.select(
+      db.backupRecords,
+    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
   }
 }

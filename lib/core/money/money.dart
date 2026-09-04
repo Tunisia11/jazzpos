@@ -16,7 +16,10 @@ class Money implements Comparable<Money> {
   /// Create Money from whole TND (int or double) and optional millimes
   factory Money.fromTnd(num tnd, [int millimes = 0]) {
     if (tnd is int) {
-      assert(millimes >= 0 && millimes < 1000, 'Millimes must be between 0 and 999');
+      assert(
+        millimes >= 0 && millimes < 1000,
+        'Millimes must be between 0 and 999',
+      );
       return Money.fromMillimes(tnd * 1000 + millimes);
     }
     return Money.fromMillimes((tnd * 1000).round() + millimes);
@@ -50,12 +53,26 @@ class Money implements Comparable<Money> {
     final absStr = isNeg ? cleaned.substring(1) : cleaned;
 
     final parts = absStr.split('.');
+    if (parts.length > 2) {
+      throw FormatException('Invalid money format: $input');
+    }
+
     final wholeStr = parts[0];
-    final whole = int.tryParse(wholeStr) ?? 0;
+    int whole = 0;
+    if (wholeStr.isNotEmpty) {
+      final parsedWhole = int.tryParse(wholeStr);
+      if (parsedWhole == null || parsedWhole < 0) {
+        throw FormatException('Invalid money format: $input');
+      }
+      whole = parsedWhole;
+    }
 
     int milli = 0;
     if (parts.length > 1) {
       var fraction = parts[1];
+      if (fraction.isNotEmpty && int.tryParse(fraction) == null) {
+        throw FormatException('Invalid money format: $input');
+      }
       if (fraction.length > 3) {
         fraction = fraction.substring(0, 3);
       } else {
@@ -78,9 +95,11 @@ class Money implements Comparable<Money> {
     }
   }
 
-  Money operator +(Money other) => Money.fromMillimes(millimes + other.millimes);
+  Money operator +(Money other) =>
+      Money.fromMillimes(millimes + other.millimes);
 
-  Money operator -(Money other) => Money.fromMillimes(millimes - other.millimes);
+  Money operator -(Money other) =>
+      Money.fromMillimes(millimes - other.millimes);
 
   Money operator -() => Money.fromMillimes(-millimes);
 
@@ -150,7 +169,9 @@ class Money implements Comparable<Money> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Money && runtimeType == other.runtimeType && millimes == other.millimes;
+      other is Money &&
+          runtimeType == other.runtimeType &&
+          millimes == other.millimes;
 
   @override
   int get hashCode => millimes.hashCode;

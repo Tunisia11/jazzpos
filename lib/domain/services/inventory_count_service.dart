@@ -39,7 +39,9 @@ class InventoryCountService {
     final now = DateTime.now();
 
     await db.transaction(() async {
-      await db.into(db.inventoryCounts).insert(
+      await db
+          .into(db.inventoryCounts)
+          .insert(
             InventoryCountsCompanion.insert(
               id: countId,
               countNumber: countNumber,
@@ -52,11 +54,18 @@ class InventoryCountService {
           );
 
       // Snapshot all matching variants and their current expected stock
-      final variants = await (db.select(db.productVariants)..where((tbl) => tbl.isActive.equals(true))).get();
+      final variants = await (db.select(
+        db.productVariants,
+      )..where((tbl) => tbl.isActive.equals(true))).get();
 
       for (final v in variants) {
-        final currentStock = await inventoryService.getStock(v.id, locationId: locationId);
-        await db.into(db.inventoryCountLines).insert(
+        final currentStock = await inventoryService.getStock(
+          v.id,
+          locationId: locationId,
+        );
+        await db
+            .into(db.inventoryCountLines)
+            .insert(
               InventoryCountLinesCompanion.insert(
                 id: IdGenerator.uuid(),
                 inventoryCountId: countId,
@@ -70,7 +79,10 @@ class InventoryCountService {
       }
     });
 
-    PosLogger.instance.info('InventoryCount', 'Initiated count #$countNumber for location $locationId');
+    PosLogger.instance.info(
+      'InventoryCount',
+      'Initiated count #$countNumber for location $locationId',
+    );
     return countId;
   }
 
@@ -82,23 +94,35 @@ class InventoryCountService {
   }) async {
     final clean = barcodeOrSku.trim();
     // Find variant
-    final variant = await (db.select(db.productVariants)
-          ..where((tbl) => tbl.barcode.equals(clean) | tbl.sku.equals(clean.toUpperCase())))
-        .getSingleOrNull();
+    final variant =
+        await (db.select(db.productVariants)..where(
+              (tbl) =>
+                  tbl.barcode.equals(clean) |
+                  tbl.sku.equals(clean.toUpperCase()),
+            ))
+            .getSingleOrNull();
 
     if (variant == null) {
-      throw ValidationException('No variant found with barcode or SKU "$clean"');
+      throw ValidationException(
+        'No variant found with barcode or SKU "$clean"',
+      );
     }
 
-    final countLine = await (db.select(db.inventoryCountLines)
-          ..where((tbl) => tbl.inventoryCountId.equals(countId) & tbl.variantId.equals(variant.id)))
-        .getSingleOrNull();
+    final countLine =
+        await (db.select(db.inventoryCountLines)..where(
+              (tbl) =>
+                  tbl.inventoryCountId.equals(countId) &
+                  tbl.variantId.equals(variant.id),
+            ))
+            .getSingleOrNull();
 
     if (countLine == null) {
       // Add line to count
       final expected = await inventoryService.getStock(variant.id);
       final newCounted = increment;
-      await db.into(db.inventoryCountLines).insert(
+      await db
+          .into(db.inventoryCountLines)
+          .insert(
             InventoryCountLinesCompanion.insert(
               id: IdGenerator.uuid(),
               inventoryCountId: countId,
@@ -112,7 +136,9 @@ class InventoryCountService {
     } else {
       final newCounted = countLine.countedQuantity + increment;
       final diff = newCounted - countLine.expectedQuantity;
-      await (db.update(db.inventoryCountLines)..where((tbl) => tbl.id.equals(countLine.id))).write(
+      await (db.update(
+        db.inventoryCountLines,
+      )..where((tbl) => tbl.id.equals(countLine.id))).write(
         InventoryCountLinesCompanion(
           countedQuantity: Value(newCounted),
           differenceQuantity: Value(diff),
@@ -122,13 +148,21 @@ class InventoryCountService {
   }
 
   /// Get all lines for an active count
-  Future<List<InventoryCountLineWithDetails>> getCountLines(String countId) async {
-    final lines = await (db.select(db.inventoryCountLines)..where((tbl) => tbl.inventoryCountId.equals(countId))).get();
+  Future<List<InventoryCountLineWithDetails>> getCountLines(
+    String countId,
+  ) async {
+    final lines = await (db.select(
+      db.inventoryCountLines,
+    )..where((tbl) => tbl.inventoryCountId.equals(countId))).get();
     final results = <InventoryCountLineWithDetails>[];
 
     for (final l in lines) {
-      final variant = await (db.select(db.productVariants)..where((tbl) => tbl.id.equals(l.variantId))).getSingle();
-      final product = await (db.select(db.products)..where((tbl) => tbl.id.equals(variant.productId))).getSingle();
+      final variant = await (db.select(
+        db.productVariants,
+      )..where((tbl) => tbl.id.equals(l.variantId))).getSingle();
+      final product = await (db.select(
+        db.products,
+      )..where((tbl) => tbl.id.equals(variant.productId))).getSingle();
       results.add(
         InventoryCountLineWithDetails(
           line: l,
@@ -146,12 +180,18 @@ class InventoryCountService {
     required String countId,
     required String managerId,
   }) async {
-    final count = await (db.select(db.inventoryCounts)..where((tbl) => tbl.id.equals(countId))).getSingle();
+    final count = await (db.select(
+      db.inventoryCounts,
+    )..where((tbl) => tbl.id.equals(countId))).getSingle();
     if (count.status == 'COMPLETED') {
-      throw const ValidationException('This inventory count is already reconciled and completed');
+      throw const ValidationException(
+        'This inventory count is already reconciled and completed',
+      );
     }
 
-    final lines = await (db.select(db.inventoryCountLines)..where((tbl) => tbl.inventoryCountId.equals(countId))).get();
+    final lines = await (db.select(
+      db.inventoryCountLines,
+    )..where((tbl) => tbl.inventoryCountId.equals(countId))).get();
     final now = DateTime.now();
 
     await db.transaction(() async {
@@ -162,23 +202,28 @@ class InventoryCountService {
             movementType: AppConstants.movementStockCount,
             quantityDelta: line.differenceQuantity,
             toLocationId: line.differenceQuantity > 0 ? count.locationId : null,
-            fromLocationId: line.differenceQuantity < 0 ? count.locationId : null,
+            fromLocationId: line.differenceQuantity < 0
+                ? count.locationId
+                : null,
             unitCostMillimes: line.unitCostMillimes,
             referenceId: countId,
             referenceType: 'STOCK_COUNT',
             actorId: managerId,
-            reason: 'Reconciled difference for Count #${count.countNumber}: ${line.differenceQuantity}',
+            reason:
+                'Reconciled difference for Count #${count.countNumber}: ${line.differenceQuantity}',
           );
         }
 
-        await (db.update(db.inventoryCountLines)..where((tbl) => tbl.id.equals(line.id))).write(
-          const InventoryCountLinesCompanion(
-            isReconciled: Value(true),
-          ),
+        await (db.update(
+          db.inventoryCountLines,
+        )..where((tbl) => tbl.id.equals(line.id))).write(
+          const InventoryCountLinesCompanion(isReconciled: Value(true)),
         );
       }
 
-      await (db.update(db.inventoryCounts)..where((tbl) => tbl.id.equals(countId))).write(
+      await (db.update(
+        db.inventoryCounts,
+      )..where((tbl) => tbl.id.equals(countId))).write(
         InventoryCountsCompanion(
           status: const Value('COMPLETED'),
           approvedById: Value(managerId),
@@ -186,7 +231,9 @@ class InventoryCountService {
         ),
       );
 
-      await db.into(db.auditEvents).insert(
+      await db
+          .into(db.auditEvents)
+          .insert(
             AuditEventsCompanion.insert(
               id: IdGenerator.uuid(),
               action: 'INVENTORY_COUNT_RECONCILED',
@@ -194,12 +241,17 @@ class InventoryCountService {
               entityId: Value(countId),
               userId: managerId,
               managerId: Value(managerId),
-              detailsJson: Value('{"countNumber":"${count.countNumber}","reconciledLines":${lines.length}}'),
+              detailsJson: Value(
+                '{"countNumber":"${count.countNumber}","reconciledLines":${lines.length}}',
+              ),
               createdAt: now,
             ),
           );
     });
 
-    PosLogger.instance.info('InventoryCount', 'Count #${count.countNumber} reconciled and closed by manager $managerId');
+    PosLogger.instance.info(
+      'InventoryCount',
+      'Count #${count.countNumber} reconciled and closed by manager $managerId',
+    );
   }
 }

@@ -11,7 +11,12 @@ class PricingService {
 
   /// Get configured max cashier discount percentage (e.g. 10%)
   Future<double> getMaxCashierDiscountPercent() async {
-    final setting = await (db.select(db.appSettings)..where((tbl) => tbl.key.equals(AppConstants.keyMaxCashierDiscountPercent))).getSingleOrNull();
+    final setting =
+        await (db.select(db.appSettings)..where(
+              (tbl) =>
+                  tbl.key.equals(AppConstants.keyMaxCashierDiscountPercent),
+            ))
+            .getSingleOrNull();
     if (setting == null) return 10.0;
     return double.tryParse(setting.value) ?? 10.0;
   }

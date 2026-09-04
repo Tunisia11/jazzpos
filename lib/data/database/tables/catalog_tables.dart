@@ -36,12 +36,17 @@ class Products extends Table {
   TextColumn get description => text().nullable()();
   TextColumn get brandId => text().nullable().references(Brands, #id)();
   TextColumn get categoryId => text().nullable().references(Categories, #id)();
-  TextColumn get collectionId => text().nullable().references(Collections, #id)();
-  IntColumn get defaultCostMillimes => integer().withDefault(const Constant(0))();
-  IntColumn get defaultPriceMillimes => integer().withDefault(const Constant(0))();
+  TextColumn get collectionId =>
+      text().nullable().references(Collections, #id)();
+  IntColumn get defaultCostMillimes =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get defaultPriceMillimes =>
+      integer().withDefault(const Constant(0))();
   IntColumn get oldPriceMillimes => integer().nullable()();
   RealColumn get taxRatePercent => real().withDefault(const Constant(0.0))();
-  TextColumn get status => text().withDefault(const Constant('ACTIVE'))(); // ACTIVE, ARCHIVED, DISCONTINUED
+  TextColumn get status => text().withDefault(
+    const Constant('ACTIVE'),
+  )(); // ACTIVE, ARCHIVED, DISCONTINUED
   IntColumn get version => integer().withDefault(const Constant(1))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();

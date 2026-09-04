@@ -22,7 +22,8 @@ class VariantMatrixEditor extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<VariantMatrixEditor> createState() => _VariantMatrixEditorState();
+  ConsumerState<VariantMatrixEditor> createState() =>
+      _VariantMatrixEditorState();
 }
 
 class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
@@ -56,25 +57,35 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
 
     if (sizeType != null) {
       _sizeTypeId = sizeType.id;
-      final sizeValues = await (db.select(db.attributeValues)
-            ..where((tbl) => tbl.attributeTypeId.equals(sizeType.id)))
-          .get();
+      final sizeValues = await (db.select(
+        db.attributeValues,
+      )..where((tbl) => tbl.attributeTypeId.equals(sizeType.id))).get();
       _availableSizes = sizeValues
-          .map((v) => MatrixAttributeValue(id: v.id, value: v.value, code: v.code.isNotEmpty ? v.code : v.value.toUpperCase()))
+          .map(
+            (v) => MatrixAttributeValue(
+              id: v.id,
+              value: v.value,
+              code: v.code.isNotEmpty ? v.code : v.value.toUpperCase(),
+            ),
+          )
           .toList();
     }
 
     if (colorType != null) {
       _colorTypeId = colorType.id;
-      final colorValues = await (db.select(db.attributeValues)
-            ..where((tbl) => tbl.attributeTypeId.equals(colorType.id)))
-          .get();
+      final colorValues = await (db.select(
+        db.attributeValues,
+      )..where((tbl) => tbl.attributeTypeId.equals(colorType.id))).get();
       _availableColors = colorValues
-          .map((v) => MatrixAttributeValue(
-                id: v.id,
-                value: v.value,
-                code: v.value.substring(0, v.value.length >= 3 ? 3 : v.value.length).toUpperCase(),
-              ))
+          .map(
+            (v) => MatrixAttributeValue(
+              id: v.id,
+              value: v.value,
+              code: v.value
+                  .substring(0, v.value.length >= 3 ? 3 : v.value.length)
+                  .toUpperCase(),
+            ),
+          )
           .toList();
     }
 
@@ -82,26 +93,36 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
   }
 
   void _regenerateMatrix() {
-    final selectedSizes = _availableSizes.where((s) => _selectedSizeIds.contains(s.id)).toList();
-    final selectedColors = _availableColors.where((c) => _selectedColorIds.contains(c.id)).toList();
+    final selectedSizes = _availableSizes
+        .where((s) => _selectedSizeIds.contains(s.id))
+        .toList();
+    final selectedColors = _availableColors
+        .where((c) => _selectedColorIds.contains(c.id))
+        .toList();
 
     final attributes = <MatrixAttribute>[];
     if (selectedColors.isNotEmpty) {
-      attributes.add(MatrixAttribute(
-        attributeTypeId: _colorTypeId,
-        attributeTypeName: 'Couleur',
-        selectedValues: selectedColors,
-      ));
+      attributes.add(
+        MatrixAttribute(
+          attributeTypeId: _colorTypeId,
+          attributeTypeName: 'Couleur',
+          selectedValues: selectedColors,
+        ),
+      );
     }
     if (selectedSizes.isNotEmpty) {
-      attributes.add(MatrixAttribute(
-        attributeTypeId: _sizeTypeId,
-        attributeTypeName: 'Taille',
-        selectedValues: selectedSizes,
-      ));
+      attributes.add(
+        MatrixAttribute(
+          attributeTypeId: _sizeTypeId,
+          attributeTypeName: 'Taille',
+          selectedValues: selectedSizes,
+        ),
+      );
     }
 
-    final code = widget.productCode.trim().isEmpty ? 'PROD' : widget.productCode.trim();
+    final code = widget.productCode.trim().isEmpty
+        ? 'PROD'
+        : widget.productCode.trim();
 
     final generated = VariantMatrixGenerator.generateMatrix(
       productCode: code,
@@ -117,7 +138,12 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
   }
 
   void _bulkApplyPrice() {
-    final ctrl = TextEditingController(text: widget.defaultPrice.format(includeCurrency: false, useGrouping: false));
+    final ctrl = TextEditingController(
+      text: widget.defaultPrice.format(
+        includeCurrency: false,
+        useGrouping: false,
+      ),
+    );
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -126,10 +152,16 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Nouveau prix de vente (TND)', suffixText: 'TND'),
+          decoration: const InputDecoration(
+            labelText: 'Nouveau prix de vente (TND)',
+            suffixText: 'TND',
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
           ElevatedButton(
             onPressed: () {
               final p = Money.fromTnd(double.tryParse(ctrl.text) ?? 0);
@@ -158,10 +190,15 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Quantité initiale par variante'),
+          decoration: const InputDecoration(
+            labelText: 'Quantité initiale par variante',
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
           ElevatedButton(
             onPressed: () {
               final qty = int.tryParse(ctrl.text) ?? 0;
@@ -206,14 +243,25 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                   SizedBox(width: 8),
                   Text(
                     'Générateur de Matrice Tailles & Couleurs (Prêt-à-Porter)',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
 
               // Sizes Selection
-              const Text('1. Sélectionnez les Tailles :', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+              const Text(
+                '1. Sélectionnez les Tailles :',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -240,7 +288,14 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
               const SizedBox(height: 16),
 
               // Colors Selection
-              const Text('2. Sélectionnez les Couleurs :', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+              const Text(
+                '2. Sélectionnez les Couleurs :',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -276,20 +331,29 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
             children: [
               Text(
                 'Variantes générées (${_variants.where((v) => v.isEnabled).length} actives / ${_variants.length})',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
               Row(
                 children: [
                   OutlinedButton.icon(
                     onPressed: _bulkApplyPrice,
                     icon: const Icon(Icons.price_change, size: 16),
-                    label: const Text('Prix en masse', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'Prix en masse',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: _bulkApplyStock,
                     icon: const Icon(Icons.inventory, size: 16),
-                    label: const Text('Stock initial en masse', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'Stock initial en masse',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
               ),
@@ -321,13 +385,78 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                     border: Border(bottom: BorderSide(color: AppTheme.border)),
                   ),
                   children: [
-                    const Padding(padding: EdgeInsets.all(10), child: Center(child: Text('Actif', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))),
-                    const Padding(padding: EdgeInsets.all(10), child: Text('Variante', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                    const Padding(padding: EdgeInsets.all(10), child: Text('SKU / Réf', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                    const Padding(padding: EdgeInsets.all(10), child: Text('Code-barres', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                    const Padding(padding: EdgeInsets.all(10), child: Text('Prix Vente', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                    const Padding(padding: EdgeInsets.all(10), child: Text('Coût Achat', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                    const Padding(padding: EdgeInsets.all(10), child: Text('Stock Init.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Center(
+                        child: Text(
+                          'Actif',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Variante',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'SKU / Réf',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Code-barres',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Prix Vente',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Coût Achat',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
+                        'Stock Init.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
 
@@ -335,8 +464,12 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                 ..._variants.map((v) {
                   return TableRow(
                     decoration: BoxDecoration(
-                      color: v.isEnabled ? Colors.transparent : Colors.black.withValues(alpha: 0.3),
-                      border: const Border(bottom: BorderSide(color: AppTheme.border, width: 0.5)),
+                      color: v.isEnabled
+                          ? Colors.transparent
+                          : Colors.black.withValues(alpha: 0.3),
+                      border: const Border(
+                        bottom: BorderSide(color: AppTheme.border, width: 0.5),
+                      ),
                     ),
                     children: [
                       Padding(
@@ -350,12 +483,17 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 8,
+                        ),
                         child: Text(
                           v.attributeDescription,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: v.isEnabled ? Colors.white : AppTheme.textSecondary,
+                            color: v.isEnabled
+                                ? Colors.white
+                                : AppTheme.textSecondary,
                           ),
                         ),
                       ),
@@ -384,11 +522,19 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                       Padding(
                         padding: const EdgeInsets.all(6),
                         child: TextFormField(
-                          initialValue: v.salePrice.format(includeCurrency: false, useGrouping: false),
+                          initialValue: v.salePrice.format(
+                            includeCurrency: false,
+                            useGrouping: false,
+                          ),
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                           onChanged: (val) {
-                            v.salePrice = Money.fromTnd(double.tryParse(val) ?? 0);
+                            v.salePrice = Money.fromTnd(
+                              double.tryParse(val) ?? 0,
+                            );
                             widget.onVariantsChanged(_variants);
                           },
                         ),
@@ -396,11 +542,16 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                       Padding(
                         padding: const EdgeInsets.all(6),
                         child: TextFormField(
-                          initialValue: v.costPrice.format(includeCurrency: false, useGrouping: false),
+                          initialValue: v.costPrice.format(
+                            includeCurrency: false,
+                            useGrouping: false,
+                          ),
                           keyboardType: TextInputType.number,
                           style: const TextStyle(fontSize: 12),
                           onChanged: (val) {
-                            v.costPrice = Money.fromTnd(double.tryParse(val) ?? 0);
+                            v.costPrice = Money.fromTnd(
+                              double.tryParse(val) ?? 0,
+                            );
                             widget.onVariantsChanged(_variants);
                           },
                         ),

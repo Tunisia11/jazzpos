@@ -62,7 +62,9 @@ class DatabaseIntegrityService {
       WHERE s.id IS NULL;
     ''').get();
     if (orphanLines.isNotEmpty) {
-      issues.add('Found ${orphanLines.length} orphan sale lines with missing parent sale');
+      issues.add(
+        'Found ${orphanLines.length} orphan sale lines with missing parent sale',
+      );
     }
 
     // 4. Check payments without sales
@@ -72,7 +74,9 @@ class DatabaseIntegrityService {
       WHERE s.id IS NULL;
     ''').get();
     if (orphanPayments.isNotEmpty) {
-      issues.add('Found ${orphanPayments.length} orphan payment records with missing parent sale');
+      issues.add(
+        'Found ${orphanPayments.length} orphan payment records with missing parent sale',
+      );
     }
 
     // 5. Check duplicate barcodes in product_variants
@@ -81,7 +85,9 @@ class DatabaseIntegrityService {
       GROUP BY barcode HAVING cnt > 1;
     ''').get();
     if (duplicateBarcodes.isNotEmpty) {
-      issues.add('Found ${duplicateBarcodes.length} duplicate barcodes in active variants');
+      issues.add(
+        'Found ${duplicateBarcodes.length} duplicate barcodes in active variants',
+      );
     }
 
     // 6. Metrics
@@ -91,7 +97,10 @@ class DatabaseIntegrityService {
     final movementsCount = (await db.select(db.stockMovements).get()).length;
 
     final healthy = issues.isEmpty;
-    PosLogger.instance.info('Integrity', 'Integrity check finished. Status: ${healthy ? "HEALTHY" : "ISSUES FOUND"}');
+    PosLogger.instance.info(
+      'Integrity',
+      'Integrity check finished. Status: ${healthy ? "HEALTHY" : "ISSUES FOUND"}',
+    );
 
     return IntegrityReport(
       isHealthy: healthy,
@@ -106,23 +115,38 @@ class DatabaseIntegrityService {
 
   /// Self-repair cached stock levels by rebuilding from the immutable stock movements ledger!
   Future<int> rebuildStockLevelsFromMovements() async {
-    PosLogger.instance.info('Integrity', 'Rebuilding cached stock levels from immutable stock movements ledger...');
+    PosLogger.instance.info(
+      'Integrity',
+      'Rebuilding cached stock levels from immutable stock movements ledger...',
+    );
 
     final variants = await db.select(db.productVariants).get();
     int repairedCount = 0;
 
     await db.transaction(() async {
       for (final v in variants) {
-        final movements = await (db.select(db.stockMovements)..where((tbl) => tbl.variantId.equals(v.id))).get();
-        final actualCalculatedStock = movements.fold<int>(0, (sum, m) => sum + m.quantityDelta);
+        final movements = await (db.select(
+          db.stockMovements,
+        )..where((tbl) => tbl.variantId.equals(v.id))).get();
+        final actualCalculatedStock = movements.fold<int>(
+          0,
+          (sum, m) => sum + m.quantityDelta,
+        );
 
-        final stockLevels = await (db.select(db.stockLevels)..where((tbl) => tbl.variantId.equals(v.id))).get();
-        final currentCachedStock = stockLevels.fold<int>(0, (sum, s) => sum + s.quantity);
+        final stockLevels = await (db.select(
+          db.stockLevels,
+        )..where((tbl) => tbl.variantId.equals(v.id))).get();
+        final currentCachedStock = stockLevels.fold<int>(
+          0,
+          (sum, s) => sum + s.quantity,
+        );
 
         if (actualCalculatedStock != currentCachedStock) {
           if (stockLevels.isNotEmpty) {
             final firstLevel = stockLevels.first;
-            await (db.update(db.stockLevels)..where((tbl) => tbl.id.equals(firstLevel.id))).write(
+            await (db.update(
+              db.stockLevels,
+            )..where((tbl) => tbl.id.equals(firstLevel.id))).write(
               StockLevelsCompanion(
                 quantity: Value(actualCalculatedStock),
                 updatedAt: Value(DateTime.now()),
@@ -134,7 +158,10 @@ class DatabaseIntegrityService {
       }
     });
 
-    PosLogger.instance.info('Integrity', 'Rebuilt stock levels: repaired $repairedCount discrepancies');
+    PosLogger.instance.info(
+      'Integrity',
+      'Rebuilt stock levels: repaired $repairedCount discrepancies',
+    );
     return repairedCount;
   }
 }

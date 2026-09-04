@@ -23,7 +23,9 @@ class _BarcodeScannerListenerState extends State<BarcodeScannerListener> {
   @override
   void initState() {
     super.initState();
-    _subscription = HardwareManager.instance.barcodeScanner.onScan.listen((barcode) {
+    _subscription = HardwareManager.instance.barcodeScanner.onScan.listen((
+      barcode,
+    ) {
       if (mounted) {
         widget.onBarcodeScanned(barcode);
       }

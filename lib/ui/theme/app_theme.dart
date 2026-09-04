@@ -4,7 +4,9 @@ class AppTheme {
   static const Color primary = Color(0xFF2563EB); // Vibrant cobalt blue
   static const Color primaryLight = Color(0xFF3B82F6);
   static const Color primaryDark = Color(0xFF1D4ED8);
-  static const Color success = Color(0xFF10B981); // Emerald green for Pay/Checkout
+  static const Color success = Color(
+    0xFF10B981,
+  ); // Emerald green for Pay/Checkout
   static const Color warning = Color(0xFFF59E0B); // Amber for Hold/Returns
   static const Color danger = Color(0xFFEF4444); // Crimson for Void/Delete
   static const Color error = danger;
@@ -31,10 +33,26 @@ class AppTheme {
       ),
       fontFamily: 'Roboto',
       textTheme: const TextTheme(
-        headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textPrimary),
-        headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimary),
-        titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textPrimary),
-        titleMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: textPrimary),
+        headlineLarge: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: textPrimary,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: textPrimary,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: textPrimary,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: textPrimary,
+        ),
         bodyLarge: TextStyle(fontSize: 14, color: textPrimary),
         bodyMedium: TextStyle(fontSize: 13, color: textSecondary),
       ),
@@ -49,7 +67,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: border),

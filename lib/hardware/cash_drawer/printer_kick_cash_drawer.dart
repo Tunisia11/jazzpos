@@ -7,7 +7,10 @@ class PrinterKickCashDrawer implements CashDrawer {
   final String name;
   final ReceiptPrinter printer;
 
-  PrinterKickCashDrawer({this.name = 'Printer-Connected Cash Drawer', required this.printer});
+  PrinterKickCashDrawer({
+    this.name = 'Printer-Connected Cash Drawer',
+    required this.printer,
+  });
 
   @override
   Future<void> openDrawer() async {

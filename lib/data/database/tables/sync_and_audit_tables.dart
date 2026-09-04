@@ -3,7 +3,8 @@ import 'user_tables.dart';
 
 class AuditEvents extends Table {
   TextColumn get id => text()();
-  TextColumn get action => text()(); // PRICE_CHANGED, SALE_VOID, RETURN, STOCK_ADJUSTMENT, DRAWER_OPEN, etc.
+  TextColumn get action =>
+      text()(); // PRICE_CHANGED, SALE_VOID, RETURN, STOCK_ADJUSTMENT, DRAWER_OPEN, etc.
   TextColumn get entityType => text()(); // SALE, VARIANT, PRODUCT, USER, SHIFT
   TextColumn get entityId => text().nullable()();
   TextColumn get userId => text().references(Users, #id)();
@@ -21,7 +22,9 @@ class SyncOutbox extends Table {
   TextColumn get operation => text()(); // INSERT, UPDATE, DELETE
   TextColumn get payloadJson => text()();
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
-  TextColumn get status => text().withDefault(const Constant('PENDING'))(); // PENDING, IN_PROGRESS, SYNCED, FAILED
+  TextColumn get status => text().withDefault(
+    const Constant('PENDING'),
+  )(); // PENDING, IN_PROGRESS, SYNCED, FAILED
   TextColumn get errorMessage => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();

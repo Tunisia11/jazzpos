@@ -76,26 +76,39 @@ class ReportService {
     required DateTime endDate,
   }) async {
     // 1. Fetch sales in date range
-    final sales = await (db.select(db.sales)
-          ..where((tbl) => tbl.createdAt.isBiggerOrEqualValue(startDate) & tbl.createdAt.isSmallerOrEqualValue(endDate) & tbl.status.equals(AppConstants.saleCompleted)))
-        .get();
+    final sales =
+        await (db.select(db.sales)..where(
+              (tbl) =>
+                  tbl.createdAt.isBiggerOrEqualValue(startDate) &
+                  tbl.createdAt.isSmallerOrEqualValue(endDate) &
+                  tbl.status.equals(AppConstants.saleCompleted),
+            ))
+            .get();
 
     final saleIds = sales.map((s) => s.id).toList();
 
     // 2. Fetch sale lines
     final lines = saleIds.isEmpty
         ? <SaleLine>[]
-        : await (db.select(db.saleLines)..where((tbl) => tbl.saleId.isIn(saleIds))).get();
+        : await (db.select(
+            db.saleLines,
+          )..where((tbl) => tbl.saleId.isIn(saleIds))).get();
 
     // 3. Fetch refunds in date range
-    final returns = await (db.select(db.returns)
-          ..where((tbl) => tbl.createdAt.isBiggerOrEqualValue(startDate) & tbl.createdAt.isSmallerOrEqualValue(endDate)))
-        .get();
+    final returns =
+        await (db.select(db.returns)..where(
+              (tbl) =>
+                  tbl.createdAt.isBiggerOrEqualValue(startDate) &
+                  tbl.createdAt.isSmallerOrEqualValue(endDate),
+            ))
+            .get();
 
     // 4. Fetch payments
     final payments = saleIds.isEmpty
         ? <SalePayment>[]
-        : await (db.select(db.salePayments)..where((tbl) => tbl.saleId.isIn(saleIds))).get();
+        : await (db.select(
+            db.salePayments,
+          )..where((tbl) => tbl.saleId.isIn(saleIds))).get();
 
     Money gross = Money.zero;
     Money discounts = Money.zero;
@@ -107,14 +120,21 @@ class ReportService {
       costs += Money.fromMillimes(l.unitCostMillimes * l.quantity);
     }
 
-    Money totalRefunds = returns.fold(Money.zero, (s, r) => s + Money.fromMillimes(r.totalRefundMillimes));
+    Money totalRefunds = returns.fold(
+      Money.zero,
+      (s, r) => s + Money.fromMillimes(r.totalRefundMillimes),
+    );
     final netSales = (gross - discounts) - totalRefunds;
     final profit = netSales - costs;
-    final marginPct = netSales > Money.zero ? (profit.millimes / netSales.millimes) * 100 : 0.0;
+    final marginPct = netSales > Money.zero
+        ? (profit.millimes / netSales.millimes) * 100
+        : 0.0;
 
     final byPayment = <String, Money>{};
     for (final p in payments) {
-      byPayment[p.paymentMethod] = (byPayment[p.paymentMethod] ?? Money.zero) + Money.fromMillimes(p.amountMillimes);
+      byPayment[p.paymentMethod] =
+          (byPayment[p.paymentMethod] ?? Money.zero) +
+          Money.fromMillimes(p.amountMillimes);
     }
 
     final byCashier = <String, int>{};
@@ -143,32 +163,46 @@ class ReportService {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    final sales = await (db.select(db.sales)
-          ..where((tbl) => tbl.createdAt.isBiggerOrEqualValue(startDate) & tbl.createdAt.isSmallerOrEqualValue(endDate) & tbl.status.equals(AppConstants.saleCompleted)))
-        .get();
+    final sales =
+        await (db.select(db.sales)..where(
+              (tbl) =>
+                  tbl.createdAt.isBiggerOrEqualValue(startDate) &
+                  tbl.createdAt.isSmallerOrEqualValue(endDate) &
+                  tbl.status.equals(AppConstants.saleCompleted),
+            ))
+            .get();
 
     final saleIds = sales.map((s) => s.id).toList();
     if (saleIds.isEmpty) return [];
 
-    final lines = await (db.select(db.saleLines)..where((tbl) => tbl.saleId.isIn(saleIds))).get();
+    final lines = await (db.select(
+      db.saleLines,
+    )..where((tbl) => tbl.saleId.isIn(saleIds))).get();
 
     final sizeMap = <String, ({int qty, int rev})>{};
 
     for (final l in lines) {
       // Extract size from variant description (e.g. "Noir / M" -> "M")
       final parts = l.variantDescription.split('/');
-      final size = parts.length > 1 ? parts.last.trim() : l.variantDescription.trim();
+      final size = parts.length > 1
+          ? parts.last.trim()
+          : l.variantDescription.trim();
 
       final current = sizeMap[size] ?? (qty: 0, rev: 0);
-      sizeMap[size] = (qty: current.qty + l.quantity, rev: current.rev + l.totalMillimes);
+      sizeMap[size] = (
+        qty: current.qty + l.quantity,
+        rev: current.rev + l.totalMillimes,
+      );
     }
 
     final result = sizeMap.entries
-        .map((e) => ClothingSizePerformance(
-              size: e.key,
-              unitsSold: e.value.qty,
-              revenue: Money.fromMillimes(e.value.rev),
-            ))
+        .map(
+          (e) => ClothingSizePerformance(
+            size: e.key,
+            unitsSold: e.value.qty,
+            revenue: Money.fromMillimes(e.value.rev),
+          ),
+        )
         .toList();
 
     result.sort((a, b) => b.unitsSold.compareTo(a.unitsSold));
@@ -177,7 +211,9 @@ class ReportService {
 
   /// Inventory Valuation & Stock Health Report
   Future<InventoryValuationReport> getInventoryValuation() async {
-    final variants = await (db.select(db.productVariants)..where((tbl) => tbl.isActive.equals(true))).get();
+    final variants = await (db.select(
+      db.productVariants,
+    )..where((tbl) => tbl.isActive.equals(true))).get();
     final stockLevels = await db.select(db.stockLevels).get();
 
     int totalUnits = 0;

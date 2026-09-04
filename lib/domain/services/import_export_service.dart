@@ -64,7 +64,10 @@ class ImportExportService {
 
   /// Parse and preview CSV product import without modifying database
   Future<ImportPreviewResult> previewCsvImport(String csvContent) async {
-    final rows = const CsvToListConverter(eol: '\n', shouldParseNumbers: false).convert(csvContent);
+    final rows = const CsvToListConverter(
+      eol: '\n',
+      shouldParseNumbers: false,
+    ).convert(csvContent);
     if (rows.length < 2) {
       throw const ValidationException('CSV file is empty or missing headers');
     }
@@ -76,7 +79,9 @@ class ImportExportService {
 
     for (int i = 1; i < rows.length; i++) {
       final row = rows[i];
-      if (row.isEmpty || row.every((c) => c.toString().trim().isEmpty)) continue;
+      if (row.isEmpty || row.every((c) => c.toString().trim().isEmpty)) {
+        continue;
+      }
 
       final name = row.isNotEmpty ? row[0].toString().trim() : '';
       final brand = row.length > 1 ? row[1].toString().trim() : null;
@@ -159,7 +164,9 @@ class ImportExportService {
 
     await db.transaction(() async {
       // 1. Record batch metadata
-      await db.into(db.importBatches).insert(
+      await db
+          .into(db.importBatches)
+          .insert(
             ImportBatchesCompanion.insert(
               id: batchId,
               fileName: fileName,
@@ -174,7 +181,9 @@ class ImportExportService {
 
       // Record errors
       for (final err in invalidRows) {
-        await db.into(db.importErrors).insert(
+        await db
+            .into(db.importErrors)
+            .insert(
               ImportErrorsCompanion.insert(
                 id: IdGenerator.uuid(),
                 importBatchId: batchId,
@@ -197,7 +206,9 @@ class ImportExportService {
         final first = items.first;
 
         final productId = IdGenerator.uuid();
-        await db.into(db.products).insert(
+        await db
+            .into(db.products)
+            .insert(
               ProductsCompanion.insert(
                 id: productId,
                 name: prodName,
@@ -210,7 +221,9 @@ class ImportExportService {
 
         for (final item in items) {
           final variantId = IdGenerator.uuid();
-          await db.into(db.productVariants).insert(
+          await db
+              .into(db.productVariants)
+              .insert(
                 ProductVariantsCompanion.insert(
                   id: variantId,
                   productId: productId,
@@ -238,7 +251,10 @@ class ImportExportService {
       }
     });
 
-    PosLogger.instance.info('Import', 'Import batch $batchId finished: ${validRows.length} imported, ${invalidRows.length} errors');
+    PosLogger.instance.info(
+      'Import',
+      'Import batch $batchId finished: ${validRows.length} imported, ${invalidRows.length} errors',
+    );
     return batchId;
   }
 
@@ -246,14 +262,28 @@ class ImportExportService {
   Future<String> exportCatalogCsv() async {
     final variants = await db.select(db.productVariants).get();
     final rows = <List<dynamic>>[
-      ['Product Name', 'SKU', 'Barcode', 'Sale Price TND', 'Cost Price TND', 'Stock', 'Status']
+      [
+        'Product Name',
+        'SKU',
+        'Barcode',
+        'Sale Price TND',
+        'Cost Price TND',
+        'Stock',
+        'Status',
+      ],
     ];
 
     for (final v in variants) {
-      final p = await (db.select(db.products)..where((tbl) => tbl.id.equals(v.productId))).getSingle();
+      final p = await (db.select(
+        db.products,
+      )..where((tbl) => tbl.id.equals(v.productId))).getSingle();
       final stock = await inventoryService.getStock(v.id);
-      final salePrice = Money.fromMillimes(v.salePriceOverrideMillimes ?? p.defaultPriceMillimes);
-      final costPrice = Money.fromMillimes(v.costPriceOverrideMillimes ?? p.defaultCostMillimes);
+      final salePrice = Money.fromMillimes(
+        v.salePriceOverrideMillimes ?? p.defaultPriceMillimes,
+      );
+      final costPrice = Money.fromMillimes(
+        v.costPriceOverrideMillimes ?? p.defaultCostMillimes,
+      );
 
       rows.add([
         p.name,

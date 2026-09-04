@@ -16,7 +16,9 @@ class AuditService {
     String? managerId,
     String detailsJson = '{}',
   }) async {
-    await db.into(db.auditEvents).insert(
+    await db
+        .into(db.auditEvents)
+        .insert(
           AuditEventsCompanion.insert(
             id: IdGenerator.uuid(),
             action: action,

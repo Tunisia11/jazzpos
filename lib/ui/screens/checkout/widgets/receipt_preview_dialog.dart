@@ -8,10 +8,7 @@ import 'package:jazzpos/ui/theme/app_theme.dart';
 class ReceiptPreviewDialog extends StatefulWidget {
   final ReceiptDocument document;
 
-  const ReceiptPreviewDialog({
-    super.key,
-    required this.document,
-  });
+  const ReceiptPreviewDialog({super.key, required this.document});
 
   static Future<void> show(
     BuildContext context, {
@@ -39,7 +36,9 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
     });
 
     try {
-      await HardwareManager.instance.receiptPrinter.printReceipt(widget.document);
+      await HardwareManager.instance.receiptPrinter.printReceipt(
+        widget.document,
+      );
       setState(() {
         _isPrinting = false;
         _statusMessage = 'Ticket envoyé à l\'imprimante avec succès';
@@ -89,10 +88,16 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.receipt_long, color: AppTheme.primary, size: 22),
+                      const Icon(
+                        Icons.receipt_long,
+                        color: AppTheme.primary,
+                        size: 22,
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        doc.isDuplicate ? 'Aperçu Ticket (Duplicata)' : 'Aperçu Ticket de Caisse',
+                        doc.isDuplicate
+                            ? 'Aperçu Ticket (Duplicata)'
+                            : 'Aperçu Ticket de Caisse',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -102,7 +107,11 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.textSecondary, size: 20),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppTheme.textSecondary,
+                      size: 20,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                     tooltip: 'Fermer',
                   ),
@@ -172,11 +181,17 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                         ],
                         if (doc.storePhone != null) ...[
                           const SizedBox(height: 2),
-                          Text('Tél: ${doc.storePhone!}', textAlign: TextAlign.center),
+                          Text(
+                            'Tél: ${doc.storePhone!}',
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                         if (doc.fiscalId != null) ...[
                           const SizedBox(height: 2),
-                          Text('MF: ${doc.fiscalId!}', textAlign: TextAlign.center),
+                          Text(
+                            'MF: ${doc.fiscalId!}',
+                            textAlign: TextAlign.center,
+                          ),
                         ],
 
                         const SizedBox(height: 10),
@@ -216,10 +231,37 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                         // Column Headers
                         const Row(
                           children: [
-                            Expanded(flex: 5, child: Text('ARTICLE', style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 1, child: Text('QTE', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 3, child: Text('P.U', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold))),
-                            Expanded(flex: 3, child: Text('TOTAL', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold))),
+                            Expanded(
+                              flex: 5,
+                              child: Text(
+                                'ARTICLE',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'QTE',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                'P.U',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                'TOTAL',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -232,61 +274,93 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                         const SizedBox(height: 4),
 
                         // Items
-                        ...doc.lines.map((line) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 3),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    line.productName,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                        ...doc.lines.map(
+                          (line) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 3),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  line.productName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  if (line.variantDescription.isNotEmpty)
-                                    Text(
-                                      '  ${line.variantDescription}',
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 11),
+                                ),
+                                if (line.variantDescription.isNotEmpty)
+                                  Text(
+                                    '  ${line.variantDescription}',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                      fontSize: 11,
                                     ),
+                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 5,
+                                      child: Text(
+                                        '  ${line.barcode.isNotEmpty ? line.barcode : line.sku}',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 1,
+                                      child: Text(
+                                        '${line.quantity}',
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        line.unitPrice.format(
+                                          includeCurrency: false,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        line.total.format(
+                                          includeCurrency: false,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (line.discount > Money.zero)
                                   Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Expanded(
-                                        flex: 5,
-                                        child: Text(
-                                          '  ${line.barcode.isNotEmpty ? line.barcode : line.sku}',
-                                          style: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+                                      const Text(
+                                        '  Remise:',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 11,
                                         ),
                                       ),
-                                      Expanded(
-                                        flex: 1,
-                                        child: Text('${line.quantity}', textAlign: TextAlign.center),
-                                      ),
-                                      Expanded(
-                                        flex: 3,
-                                        child: Text(
-                                          line.unitPrice.format(includeCurrency: false),
-                                          textAlign: TextAlign.right,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 3,
-                                        child: Text(
-                                          line.total.format(includeCurrency: false),
-                                          textAlign: TextAlign.right,
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                      Text(
+                                        '-${line.discount.format()}',
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 11,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  if (line.discount > Money.zero)
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('  Remise:', style: TextStyle(color: Colors.red, fontSize: 11)),
-                                        Text('-${line.discount.format()}', style: const TextStyle(color: Colors.red, fontSize: 11)),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            )),
+                              ],
+                            ),
+                          ),
+                        ),
 
                         const SizedBox(height: 6),
                         const Text(
@@ -310,7 +384,10 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('REMISE GLOBALE:'),
-                              Text('-${doc.discount.format()}', style: const TextStyle(color: Colors.red)),
+                              Text(
+                                '-${doc.discount.format()}',
+                                style: const TextStyle(color: Colors.red),
+                              ),
                             ],
                           ),
                         if (doc.tax > Money.zero)
@@ -327,7 +404,10 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                           decoration: const BoxDecoration(
                             border: Border(
                               top: BorderSide(color: Colors.black, width: 1.5),
-                              bottom: BorderSide(color: Colors.black, width: 1.5),
+                              bottom: BorderSide(
+                                color: Colors.black,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                           child: Row(
@@ -335,11 +415,17 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                             children: [
                               const Text(
                                 'TOTAL:',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               Text(
                                 doc.total.format(),
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -347,33 +433,43 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
 
                         // Payments Breakdown
                         const SizedBox(height: 8),
-                        ...doc.payments.map((p) => Column(
-                              children: [
+                        ...doc.payments.map(
+                          (p) => Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Mode: ${p.method.toUpperCase()}'),
+                                  Text(p.amount.format()),
+                                ],
+                              ),
+                              if (p.tendered > Money.zero)
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Mode: ${p.method.toUpperCase()}'),
-                                    Text(p.amount.format()),
+                                    const Text('  Reçu:'),
+                                    Text(p.tendered.format()),
                                   ],
                                 ),
-                                if (p.tendered > Money.zero)
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('  Reçu:'),
-                                      Text(p.tendered.format()),
-                                    ],
-                                  ),
-                                if (p.change > Money.zero)
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('  Rendu:'),
-                                      Text(p.change.format(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                              ],
-                            )),
+                              if (p.change > Money.zero)
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('  Rendu:'),
+                                    Text(
+                                      p.change.format(),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
 
                         const SizedBox(height: 16),
                         // Barcode placeholder / simulation
@@ -384,7 +480,10 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                                 height: 36,
                                 width: 200,
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.black, width: 1),
+                                  border: Border.all(
+                                    color: Colors.black,
+                                    width: 1,
+                                  ),
                                 ),
                                 child: Center(
                                   child: Text(
@@ -399,16 +498,26 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(doc.receiptNumber, style: const TextStyle(fontSize: 11, letterSpacing: 1.5)),
+                              Text(
+                                doc.receiptNumber,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
                             ],
                           ),
                         ),
 
                         const SizedBox(height: 16),
                         Text(
-                          doc.footerMessage ?? 'MERCI DE VOTRE VISITE\nA BIENTOT !',
+                          doc.footerMessage ??
+                              'MERCI DE VOTRE VISITE\nA BIENTOT !',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -425,12 +534,19 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
 
             if (_statusMessage != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: _statusMessage!.contains('Erreur') ? Colors.red.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                color: _statusMessage!.contains('Erreur')
+                    ? Colors.red.withValues(alpha: 0.2)
+                    : Colors.green.withValues(alpha: 0.2),
                 child: Text(
                   _statusMessage!,
                   style: TextStyle(
-                    color: _statusMessage!.contains('Erreur') ? Colors.redAccent : Colors.greenAccent,
+                    color: _statusMessage!.contains('Erreur')
+                        ? Colors.redAccent
+                        : Colors.greenAccent,
                     fontSize: 13,
                   ),
                   textAlign: TextAlign.center,
@@ -466,9 +582,18 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                         minimumSize: const Size(0, 48),
                       ),
                       icon: _isPrinting
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : const Icon(Icons.print, size: 20),
-                      label: Text(_isPrinting ? 'IMPRESSION...' : 'RÉIMPRIMER (F11)'),
+                      label: Text(
+                        _isPrinting ? 'IMPRESSION...' : 'RÉIMPRIMER (F11)',
+                      ),
                     ),
                   ),
                 ],

@@ -48,7 +48,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final session = await authService.login(username: username, pin: pin);
-      state = state.copyWith(session: session, isLocked: false, isLoading: false);
+      state = state.copyWith(
+        session: session,
+        isLocked: false,
+        isLoading: false,
+      );
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -85,6 +89,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
+  ref,
+) {
   return AuthNotifier(ref.watch(authServiceProvider));
 });

@@ -91,7 +91,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
   void _setPresetCash(Money amount) {
     setState(() {
       _tenderedBuffer.clear();
-      _tenderedBuffer.write(amount.format(includeCurrency: false, useGrouping: false));
+      _tenderedBuffer.write(
+        amount.format(includeCurrency: false, useGrouping: false),
+      );
     });
   }
 
@@ -139,8 +141,16 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         setState(() => _error = 'Répartition mixte invalide');
         return;
       }
-      payments.add(PaymentSplit(method: AppConstants.paymentCard, amount: cardAmt));
-      payments.add(PaymentSplit(method: AppConstants.paymentCash, amount: cashAmt, tendered: cashAmt));
+      payments.add(
+        PaymentSplit(method: AppConstants.paymentCard, amount: cardAmt),
+      );
+      payments.add(
+        PaymentSplit(
+          method: AppConstants.paymentCash,
+          amount: cashAmt,
+          tendered: cashAmt,
+        ),
+      );
     }
 
     setState(() {
@@ -159,7 +169,8 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
       );
 
       // Trigger cash drawer kick on cash sale!
-      if (_selectedMethod == AppConstants.paymentCash || _selectedMethod == AppConstants.paymentMixed) {
+      if (_selectedMethod == AppConstants.paymentCash ||
+          _selectedMethod == AppConstants.paymentMixed) {
         try {
           await HardwareManager.instance.cashDrawer.openDrawer();
         } catch (_) {}
@@ -173,27 +184,31 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         cashierName: auth.user!.displayName,
         registerCode: 'REG-01',
         lines: result.lines
-            .map((l) => ReceiptLineItem(
-                  productName: l.productName,
-                  variantDescription: l.variantDescription,
-                  sku: l.sku,
-                  barcode: l.barcode,
-                  quantity: l.quantity,
-                  unitPrice: Money.fromMillimes(l.unitPriceMillimes),
-                  total: Money.fromMillimes(l.totalMillimes),
-                ))
+            .map(
+              (l) => ReceiptLineItem(
+                productName: l.productName,
+                variantDescription: l.variantDescription,
+                sku: l.sku,
+                barcode: l.barcode,
+                quantity: l.quantity,
+                unitPrice: Money.fromMillimes(l.unitPriceMillimes),
+                total: Money.fromMillimes(l.totalMillimes),
+              ),
+            )
             .toList(),
         subtotal: Money.fromMillimes(result.sale.subtotalMillimes),
         discount: Money.fromMillimes(result.sale.discountMillimes),
         tax: Money.fromMillimes(result.sale.taxMillimes),
         total: Money.fromMillimes(result.sale.totalMillimes),
         payments: payments
-            .map((p) => ReceiptPaymentItem(
-                  method: p.method,
-                  amount: p.amount,
-                  tendered: p.tendered,
-                  change: p.change,
-                ))
+            .map(
+              (p) => ReceiptPaymentItem(
+                method: p.method,
+                amount: p.amount,
+                tendered: p.tendered,
+                change: p.change,
+              ),
+            )
             .toList(),
       );
 
@@ -232,10 +247,16 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
               children: [
                 const Text(
                   'Encaissement Vente',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 IconButton(
-                  onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close, color: AppTheme.textSecondary),
                 ),
               ],
@@ -254,28 +275,51 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                       // Method Selector
                       Row(
                         children: [
-                          _buildMethodButton(AppConstants.paymentCash, 'ESPECES', Icons.money),
+                          _buildMethodButton(
+                            AppConstants.paymentCash,
+                            'ESPECES',
+                            Icons.money,
+                          ),
                           const SizedBox(width: 8),
-                          _buildMethodButton(AppConstants.paymentCard, 'CARTE', Icons.credit_card),
+                          _buildMethodButton(
+                            AppConstants.paymentCard,
+                            'CARTE',
+                            Icons.credit_card,
+                          ),
                           const SizedBox(width: 8),
-                          _buildMethodButton(AppConstants.paymentMixed, 'MIXTE', Icons.pie_chart),
+                          _buildMethodButton(
+                            AppConstants.paymentMixed,
+                            'MIXTE',
+                            Icons.pie_chart,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),
 
                       // Presets for cash
                       if (_selectedMethod == AppConstants.paymentCash) ...[
-                        const Text('Billets rapides:', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                        const Text(
+                          'Billets rapides:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _buildPresetButton(widget.totalAmount, label: 'Montant Exact'),
+                            _buildPresetButton(
+                              widget.totalAmount,
+                              label: 'Montant Exact',
+                            ),
                             _buildPresetButton(const Money.fromMillimes(10000)),
                             _buildPresetButton(const Money.fromMillimes(20000)),
                             _buildPresetButton(const Money.fromMillimes(50000)),
-                            _buildPresetButton(const Money.fromMillimes(100000)),
+                            _buildPresetButton(
+                              const Money.fromMillimes(100000),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -294,25 +338,58 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Total à Payer:', style: TextStyle(fontSize: 15, color: AppTheme.textSecondary)),
-                                MoneyDisplay(amount: widget.totalAmount, fontSize: 20),
+                                const Text(
+                                  'Total à Payer:',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                MoneyDisplay(
+                                  amount: widget.totalAmount,
+                                  fontSize: 20,
+                                ),
                               ],
                             ),
-                            if (_selectedMethod == AppConstants.paymentCash) ...[
+                            if (_selectedMethod ==
+                                AppConstants.paymentCash) ...[
                               const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Espèces Reçus:', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-                                  MoneyDisplay(amount: _tenderedAmount, fontSize: 18, color: Colors.blueAccent),
+                                  const Text(
+                                    'Espèces Reçus:',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                  MoneyDisplay(
+                                    amount: _tenderedAmount,
+                                    fontSize: 18,
+                                    color: Colors.blueAccent,
+                                  ),
                                 ],
                               ),
                               const Divider(color: AppTheme.border, height: 16),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Monnaie à Rendre:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                                  MoneyDisplay(amount: _changeAmount, fontSize: 22, color: Colors.greenAccent),
+                                  const Text(
+                                    'Monnaie à Rendre:',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  MoneyDisplay(
+                                    amount: _changeAmount,
+                                    fontSize: 22,
+                                    color: Colors.greenAccent,
+                                  ),
                                 ],
                               ),
                             ],
@@ -331,7 +408,11 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                           ),
                           child: Text(
                             _error!,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -356,8 +437,15 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                           border: Border.all(color: AppTheme.border),
                         ),
                         child: Text(
-                          _tenderedBuffer.isEmpty ? '0.000' : _tenderedBuffer.toString(),
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'monospace'),
+                          _tenderedBuffer.isEmpty
+                              ? '0.000'
+                              : _tenderedBuffer.toString(),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -378,7 +466,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 52),
                       side: const BorderSide(color: AppTheme.border),
@@ -397,11 +487,23 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                       minimumSize: const Size(0, 52),
                     ),
                     icon: _isSubmitting
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : const Icon(Icons.check_circle_outline, size: 24),
                     label: Text(
-                      _isSubmitting ? 'VALIDATION...' : 'VALIDER PAIEMENT (Entrée)',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      _isSubmitting
+                          ? 'VALIDATION...'
+                          : 'VALIDER PAIEMENT (Entrée)',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -424,12 +526,18 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
           decoration: BoxDecoration(
             color: isSelected ? AppTheme.primary : const Color(0xFF161F2E),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: isSelected ? AppTheme.primary : AppTheme.border),
+            border: Border.all(
+              color: isSelected ? AppTheme.primary : AppTheme.border,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isSelected ? Colors.white : AppTheme.textSecondary),
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+              ),
               const SizedBox(width: 8),
               Text(
                 label,

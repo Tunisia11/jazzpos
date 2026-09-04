@@ -38,15 +38,24 @@ final inventoryServiceProvider = Provider<InventoryService>((ref) {
 });
 
 final catalogServiceProvider = Provider<CatalogService>((ref) {
-  return CatalogService(ref.watch(databaseProvider), ref.watch(inventoryServiceProvider));
+  return CatalogService(
+    ref.watch(databaseProvider),
+    ref.watch(inventoryServiceProvider),
+  );
 });
 
 final saleServiceProvider = Provider<SaleService>((ref) {
-  return SaleService(ref.watch(databaseProvider), ref.watch(inventoryServiceProvider));
+  return SaleService(
+    ref.watch(databaseProvider),
+    ref.watch(inventoryServiceProvider),
+  );
 });
 
 final returnServiceProvider = Provider<ReturnService>((ref) {
-  return ReturnService(ref.watch(databaseProvider), ref.watch(inventoryServiceProvider));
+  return ReturnService(
+    ref.watch(databaseProvider),
+    ref.watch(inventoryServiceProvider),
+  );
 });
 
 final exchangeServiceProvider = Provider<ExchangeService>((ref) {
@@ -74,11 +83,17 @@ final shiftServiceProvider = Provider<ShiftService>((ref) {
 });
 
 final purchaseServiceProvider = Provider<PurchaseService>((ref) {
-  return PurchaseService(ref.watch(databaseProvider), ref.watch(inventoryServiceProvider));
+  return PurchaseService(
+    ref.watch(databaseProvider),
+    ref.watch(inventoryServiceProvider),
+  );
 });
 
 final inventoryCountServiceProvider = Provider<InventoryCountService>((ref) {
-  return InventoryCountService(ref.watch(databaseProvider), ref.watch(inventoryServiceProvider));
+  return InventoryCountService(
+    ref.watch(databaseProvider),
+    ref.watch(inventoryServiceProvider),
+  );
 });
 
 final reportServiceProvider = Provider<ReportService>((ref) {
@@ -93,7 +108,9 @@ final backupServiceProvider = Provider<BackupService>((ref) {
   return BackupService(ref.watch(databaseProvider));
 });
 
-final databaseIntegrityServiceProvider = Provider<DatabaseIntegrityService>((ref) {
+final databaseIntegrityServiceProvider = Provider<DatabaseIntegrityService>((
+  ref,
+) {
   return DatabaseIntegrityService(ref.watch(databaseProvider));
 });
 

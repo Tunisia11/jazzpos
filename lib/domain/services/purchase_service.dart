@@ -22,7 +22,8 @@ class ReceivedLineInput {
     required this.unitCost,
   });
 
-  int get sellableQuantity => quantityReceived - quantityDamaged - quantityRejected;
+  int get sellableQuantity =>
+      quantityReceived - quantityDamaged - quantityRejected;
 }
 
 class PurchaseService {
@@ -37,16 +38,23 @@ class PurchaseService {
     required List<({String variantId, int expectedQty, Money unitCost})> items,
     String? notes,
   }) async {
-    if (items.isEmpty) throw const ValidationException('PO must have at least one line');
+    if (items.isEmpty) {
+      throw const ValidationException('PO must have at least one line');
+    }
 
     final poId = IdGenerator.uuid();
     final poNumber = IdGenerator.poNumber();
     final now = DateTime.now();
 
-    final totalCost = items.fold(Money.zero, (sum, i) => sum + (i.unitCost * i.expectedQty));
+    final totalCost = items.fold(
+      Money.zero,
+      (sum, i) => sum + (i.unitCost * i.expectedQty),
+    );
 
     await db.transaction(() async {
-      await db.into(db.purchaseOrders).insert(
+      await db
+          .into(db.purchaseOrders)
+          .insert(
             PurchaseOrdersCompanion.insert(
               id: poId,
               poNumber: poNumber,
@@ -61,7 +69,9 @@ class PurchaseService {
 
       for (final item in items) {
         final lineCost = item.unitCost * item.expectedQty;
-        await db.into(db.purchaseOrderLines).insert(
+        await db
+            .into(db.purchaseOrderLines)
+            .insert(
               PurchaseOrderLinesCompanion.insert(
                 id: IdGenerator.uuid(),
                 purchaseOrderId: poId,
@@ -74,7 +84,10 @@ class PurchaseService {
       }
     });
 
-    PosLogger.instance.info('Purchasing', 'Created PO #$poNumber with ${items.length} items. Total: ${totalCost.format()}');
+    PosLogger.instance.info(
+      'Purchasing',
+      'Created PO #$poNumber with ${items.length} items. Total: ${totalCost.format()}',
+    );
     return poId;
   }
 
@@ -88,20 +101,61 @@ class PurchaseService {
     required List<ReceivedLineInput> lines,
     String? notes,
   }) async {
-    if (lines.isEmpty) throw const ValidationException('Cannot receive empty shipment');
+    if (lines.isEmpty) {
+      throw const ValidationException('Cannot receive empty shipment');
+    }
+
+    for (final line in lines) {
+      if (line.quantityReceived <= 0) {
+        throw const ValidationException(
+          'Received quantity must be greater than zero',
+        );
+      }
+      if (line.quantityDamaged < 0 || line.quantityRejected < 0) {
+        throw const ValidationException(
+          'Damaged or rejected quantities cannot be negative',
+        );
+      }
+      if (line.quantityDamaged + line.quantityRejected >
+          line.quantityReceived) {
+        throw const ValidationException(
+          'Damaged plus rejected quantities cannot exceed total received quantity',
+        );
+      }
+    }
+
+    if (purchaseOrderId != null) {
+      final po = await (db.select(
+        db.purchaseOrders,
+      )..where((tbl) => tbl.id.equals(purchaseOrderId))).getSingleOrNull();
+      if (po == null) {
+        throw const ValidationException('Purchase order not found');
+      }
+      if (po.status == 'RECEIVED') {
+        throw const ValidationException(
+          'This purchase order has already been completely received.',
+        );
+      }
+    }
 
     final grId = IdGenerator.uuid();
     final grNumber = IdGenerator.goodsReceiptNumber();
     final now = DateTime.now();
 
     final shopFloor = await inventoryService.getDefaultLocation(storeId);
-    final damagedLocation = await (db.select(db.stockLocations)
-          ..where((tbl) => tbl.storeId.equals(storeId) & tbl.locationType.equals(AppConstants.locationDamaged)))
-        .getSingleOrNull();
+    final damagedLocation =
+        await (db.select(db.stockLocations)..where(
+              (tbl) =>
+                  tbl.storeId.equals(storeId) &
+                  tbl.locationType.equals(AppConstants.locationDamaged),
+            ))
+            .getSingleOrNull();
 
     await db.transaction(() async {
       // 1. Insert Goods Receipt
-      await db.into(db.goodsReceipts).insert(
+      await db
+          .into(db.goodsReceipts)
+          .insert(
             GoodsReceiptsCompanion.insert(
               id: grId,
               grNumber: grNumber,
@@ -116,7 +170,9 @@ class PurchaseService {
 
       // 2. Process each line
       for (final line in lines) {
-        await db.into(db.goodsReceiptLines).insert(
+        await db
+            .into(db.goodsReceiptLines)
+            .insert(
               GoodsReceiptLinesCompanion.insert(
                 id: IdGenerator.uuid(),
                 goodsReceiptId: grId,
@@ -130,7 +186,9 @@ class PurchaseService {
             );
 
         // Update purchase cost override on the variant
-        await (db.update(db.productVariants)..where((tbl) => tbl.id.equals(line.variantId))).write(
+        await (db.update(
+          db.productVariants,
+        )..where((tbl) => tbl.id.equals(line.variantId))).write(
           ProductVariantsCompanion(
             costPriceOverrideMillimes: Value(line.unitCost.millimes),
             updatedAt: Value(now),
@@ -169,12 +227,18 @@ class PurchaseService {
 
         // If linked to PO, update PO line receivedQty
         if (purchaseOrderId != null) {
-          final poLine = await (db.select(db.purchaseOrderLines)
-                ..where((tbl) => tbl.purchaseOrderId.equals(purchaseOrderId) & tbl.variantId.equals(line.variantId)))
-              .getSingleOrNull();
+          final poLine =
+              await (db.select(db.purchaseOrderLines)..where(
+                    (tbl) =>
+                        tbl.purchaseOrderId.equals(purchaseOrderId) &
+                        tbl.variantId.equals(line.variantId),
+                  ))
+                  .getSingleOrNull();
 
           if (poLine != null) {
-            await (db.update(db.purchaseOrderLines)..where((tbl) => tbl.id.equals(poLine.id))).write(
+            await (db.update(
+              db.purchaseOrderLines,
+            )..where((tbl) => tbl.id.equals(poLine.id))).write(
               PurchaseOrderLinesCompanion(
                 receivedQty: Value(poLine.receivedQty + line.quantityReceived),
               ),
@@ -185,9 +249,15 @@ class PurchaseService {
 
       // 3. Update PO status if completed
       if (purchaseOrderId != null) {
-        final poLines = await (db.select(db.purchaseOrderLines)..where((tbl) => tbl.purchaseOrderId.equals(purchaseOrderId))).get();
-        final allReceived = poLines.every((l) => l.receivedQty >= l.expectedQty);
-        await (db.update(db.purchaseOrders)..where((tbl) => tbl.id.equals(purchaseOrderId))).write(
+        final poLines = await (db.select(
+          db.purchaseOrderLines,
+        )..where((tbl) => tbl.purchaseOrderId.equals(purchaseOrderId))).get();
+        final allReceived = poLines.every(
+          (l) => l.receivedQty >= l.expectedQty,
+        );
+        await (db.update(
+          db.purchaseOrders,
+        )..where((tbl) => tbl.id.equals(purchaseOrderId))).write(
           PurchaseOrdersCompanion(
             status: Value(allReceived ? 'RECEIVED' : 'PARTIALLY_RECEIVED'),
             updatedAt: Value(now),
@@ -196,20 +266,27 @@ class PurchaseService {
       }
 
       // 4. Audit entry
-      await db.into(db.auditEvents).insert(
+      await db
+          .into(db.auditEvents)
+          .insert(
             AuditEventsCompanion.insert(
               id: IdGenerator.uuid(),
               action: 'GOODS_RECEIVED',
               entityType: 'PURCHASE',
               entityId: Value(grId),
               userId: receivedById,
-              detailsJson: Value('{"grNumber":"$grNumber","linesCount":${lines.length}}'),
+              detailsJson: Value(
+                '{"grNumber":"$grNumber","linesCount":${lines.length}}',
+              ),
               createdAt: now,
             ),
           );
     });
 
-    PosLogger.instance.info('Purchasing', 'Goods receipt #$grNumber completed for ${lines.length} lines');
+    PosLogger.instance.info(
+      'Purchasing',
+      'Goods receipt #$grNumber completed for ${lines.length} lines',
+    );
     return grId;
   }
 }

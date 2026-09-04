@@ -28,7 +28,9 @@ class CatalogState {
   }) {
     return CatalogState(
       searchQuery: searchQuery ?? this.searchQuery,
-      selectedCategoryId: clearCategory ? null : (selectedCategoryId ?? this.selectedCategoryId),
+      selectedCategoryId: clearCategory
+          ? null
+          : (selectedCategoryId ?? this.selectedCategoryId),
       variants: variants ?? this.variants,
       categories: categories ?? this.categories,
       isLoading: isLoading ?? this.isLoading,
@@ -70,9 +72,10 @@ class CatalogNotifier extends StateNotifier<CatalogState> {
   }
 }
 
-final catalogNotifierProvider = StateNotifierProvider<CatalogNotifier, CatalogState>((ref) {
-  return CatalogNotifier(
-    ref.watch(catalogServiceProvider),
-    ref.watch(databaseProvider),
-  );
-});
+final catalogNotifierProvider =
+    StateNotifierProvider<CatalogNotifier, CatalogState>((ref) {
+      return CatalogNotifier(
+        ref.watch(catalogServiceProvider),
+        ref.watch(databaseProvider),
+      );
+    });

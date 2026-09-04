@@ -21,7 +21,9 @@ class PurchaseOrders extends Table {
   TextColumn get id => text()();
   TextColumn get poNumber => text().unique()();
   TextColumn get supplierId => text().references(Suppliers, #id)();
-  TextColumn get status => text().withDefault(const Constant('DRAFT'))(); // DRAFT, ORDERED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
+  TextColumn get status => text().withDefault(
+    const Constant('DRAFT'),
+  )(); // DRAFT, ORDERED, PARTIALLY_RECEIVED, RECEIVED, CANCELLED
   IntColumn get totalCostMillimes => integer().withDefault(const Constant(0))();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
@@ -47,7 +49,8 @@ class PurchaseOrderLines extends Table {
 class GoodsReceipts extends Table {
   TextColumn get id => text()();
   TextColumn get grNumber => text().unique()();
-  TextColumn get purchaseOrderId => text().nullable().references(PurchaseOrders, #id)();
+  TextColumn get purchaseOrderId =>
+      text().nullable().references(PurchaseOrders, #id)();
   TextColumn get supplierId => text().references(Suppliers, #id)();
   TextColumn get invoiceReference => text().nullable()();
   TextColumn get receivedById => text().references(Users, #id)();
