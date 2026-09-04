@@ -1,0 +1,51 @@
+name: Windows POS Release Build & CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-windows:
+    name: Build & Test Windows Desktop POS
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Environment & Hardware SDKs
+        run: flutter doctor -v
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Generate Drift Database & Model Code
+        run: dart run build_runner build --delete-conflicting-outputs --force-jit
+
+      - name: Run Static Code Analysis
+        run: flutter analyze
+
+      - name: Run POS Automated Test Suite (Accounting, Invariants, Hardware)
+        run: flutter test
+
+      - name: Build Windows Desktop Release Binary
+        run: flutter build windows --release
+
+      - name: Package Windows POS Terminal Artifacts
+        run: |
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "JazzPOS-Windows-v1.0.0.zip"
+
+      - name: Upload Windows POS Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JazzPOS-Windows-Release
+          path: JazzPOS-Windows-v1.0.0.zip
+          retention-days: 14
