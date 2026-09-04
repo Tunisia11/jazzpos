@@ -2,11 +2,8 @@ import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
-import 'package:jazzpos/domain/services/inventory_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
@@ -105,14 +102,14 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
               Text('Variante: ${variant.variantDescription} (SKU: ${variant.sku})'),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: fromLoc,
+                initialValue: fromLoc,
                 decoration: const InputDecoration(labelText: 'Emplacement Source'),
                 items: _locations.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
                 onChanged: (v) => setDialogState(() => fromLoc = v!),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: toLoc,
+                initialValue: toLoc,
                 decoration: const InputDecoration(labelText: 'Emplacement Destination'),
                 items: _locations.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
                 onChanged: (v) => setDialogState(() => toLoc = v!),
@@ -148,7 +145,9 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                   actorId: auth.user?.id ?? 'system',
                   reason: reasonCtrl.text.trim(),
                 );
-                Navigator.of(ctx).pop(true);
+                if (ctx.mounted) {
+                  Navigator.of(ctx).pop(true);
+                }
               },
               child: const Text('Effectuer le Transfert'),
             ),

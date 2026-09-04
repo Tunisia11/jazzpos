@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/domain/services/shift_service.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
@@ -27,7 +23,6 @@ class ShiftManagementScreen extends ConsumerStatefulWidget {
 class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
   final StringBuffer _countedBuffer = StringBuffer();
   bool _isClosing = false;
-  ShiftSummary? _closedSummary;
 
   @override
   void initState() {
@@ -138,16 +133,13 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
     setState(() => _isClosing = true);
 
     try {
-      final summary = await ref.read(shiftNotifierProvider.notifier).closeShift(
+      await ref.read(shiftNotifierProvider.notifier).closeShift(
             cashierId: auth.user?.id ?? 'system',
             countedCash: countedVal,
             note: 'Clôture de caisse standard',
           );
 
-      setState(() {
-        _isClosing = false;
-        _closedSummary = summary;
-      });
+      setState(() => _isClosing = false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

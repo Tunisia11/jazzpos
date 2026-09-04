@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/money/money.dart';

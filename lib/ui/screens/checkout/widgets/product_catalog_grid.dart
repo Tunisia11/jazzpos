@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';

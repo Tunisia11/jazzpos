@@ -195,7 +195,7 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                                 Expanded(
                                   flex: 3,
                                   child: DropdownButtonFormField<String>(
-                                    value: _selectedSupplierId,
+                                    initialValue: _selectedSupplierId,
                                     decoration: const InputDecoration(labelText: 'Fournisseur *'),
                                     items: _suppliers.isEmpty
                                         ? [const DropdownMenuItem(value: null, child: Text('Aucun fournisseur (par défaut)'))]

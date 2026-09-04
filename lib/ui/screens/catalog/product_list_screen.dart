@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
@@ -21,7 +20,6 @@ class ProductListScreen extends ConsumerStatefulWidget {
 class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String? _selectedCategoryId;
-  String _statusFilter = 'ACTIVE';
 
   @override
   void dispose() {
@@ -53,13 +51,13 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     );
   }
 
-  Future<void> _archiveProduct(Product product) async {
+  Future<void> _archiveProduct(String productId, String productName) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surface,
         title: const Text('Archiver l\'article'),
-        content: Text('Voulez-vous vraiment archiver "${product.name}" ? Il ne sera plus visible sur la caisse.'),
+        content: Text('Voulez-vous vraiment archiver "$productName" ? Il ne sera plus visible sur la caisse.'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Annuler')),
           ElevatedButton(
@@ -73,7 +71,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
     if (confirm == true) {
       final db = ref.read(databaseProvider);
-      await (db.update(db.products)..where((tbl) => tbl.id.equals(product.id))).write(
+      await (db.update(db.products)..where((tbl) => tbl.id.equals(productId))).write(
         const ProductsCompanion(status: Value('ARCHIVED')),
       );
       ref.read(catalogNotifierProvider.notifier).refresh();
@@ -161,7 +159,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<String?>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       decoration: const InputDecoration(labelText: 'Catégorie'),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('Toutes les catégories')),
@@ -251,6 +249,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                                       icon: const Icon(Icons.edit_outlined, size: 20, color: AppTheme.primaryLight),
                                       onPressed: () => _openEditProduct(item.key),
                                       tooltip: 'Modifier l\'article',
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.archive_outlined, size: 20, color: AppTheme.textSecondary),
+                                      onPressed: () => _archiveProduct(item.key, firstVar.productName),
+                                      tooltip: 'Archiver l\'article',
                                     ),
                                   ],
                                 ),

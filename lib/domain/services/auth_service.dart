@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/constants/roles.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';

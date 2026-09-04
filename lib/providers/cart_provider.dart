@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';

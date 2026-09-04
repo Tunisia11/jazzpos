@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/models/cart_item.dart';
-import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
-import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
-import 'package:jazzpos/ui/widgets/numpad.dart';
 import 'payment_dialog.dart';
 import 'suspended_sales_dialog.dart';
 

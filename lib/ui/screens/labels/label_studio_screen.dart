@@ -1,7 +1,6 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 import 'package:jazzpos/hardware/label_printer/label_document.dart';
@@ -293,7 +292,7 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
 
                   const SizedBox(height: 20),
                   Text(
-                    'Format sélectionné : ${_widthMm} x ${_heightMm} mm',
+                    'Format sélectionné : $_widthMm x $_heightMm mm',
                     style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                   ),
                 ],

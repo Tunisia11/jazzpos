@@ -7,7 +7,6 @@ import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
 import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
 import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
-import 'package:jazzpos/ui/widgets/money_display.dart';
 
 class StockCountScreen extends ConsumerStatefulWidget {
   final String locationId;
@@ -27,7 +26,6 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
   bool _isLoading = true;
   final TextEditingController _barcodeInputCtrl = TextEditingController();
   final FocusNode _barcodeFocus = FocusNode();
-  String? _lastScanned;
 
   @override
   void initState() {
@@ -88,7 +86,6 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
         increment: 1,
       );
 
-      setState(() => _lastScanned = clean);
       await _loadLines();
 
       if (mounted) {

@@ -4,7 +4,6 @@ import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/models/variant_matrix.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
-import 'package:jazzpos/ui/widgets/money_display.dart';
 
 class VariantMatrixEditor extends ConsumerStatefulWidget {
   final String productCode;

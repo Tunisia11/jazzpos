@@ -5,20 +5,16 @@ import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/models/cart_item.dart';
-import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/domain/services/exchange_service.dart';
 import 'package:jazzpos/domain/services/return_service.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
 import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
-import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
-import '../checkout/widgets/receipt_preview_dialog.dart';
 
 class ReturnsExchangesScreen extends ConsumerStatefulWidget {
   final String storeId;

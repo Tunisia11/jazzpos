@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/constants/roles.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';

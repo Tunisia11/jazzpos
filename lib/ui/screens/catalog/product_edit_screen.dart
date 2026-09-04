@@ -221,7 +221,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                         Expanded(
                           flex: 2,
                           child: DropdownButtonFormField<String>(
-                            value: _selectedCategoryId,
+                            initialValue: _selectedCategoryId,
                             decoration: const InputDecoration(labelText: 'Catégorie'),
                             items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                             onChanged: (val) => setState(() => _selectedCategoryId = val),
@@ -249,7 +249,7 @@ class _ProductEditScreenState extends ConsumerState<ProductEditScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: DropdownButtonFormField<double>(
-                            value: _taxRatePercent,
+                            initialValue: _taxRatePercent,
                             decoration: const InputDecoration(labelText: 'Taux TVA'),
                             items: const [
                               DropdownMenuItem(value: 0.0, child: Text('0% (Exonéré)')),

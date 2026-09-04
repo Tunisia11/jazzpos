@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/audit_service.dart';
 import 'package:jazzpos/domain/services/auth_service.dart';
 import 'package:jazzpos/domain/services/backup_service.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';

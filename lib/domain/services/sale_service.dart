@@ -150,7 +150,6 @@ class SaleService {
 
       // 4d. Insert Payment Records
       final insertedPayments = <SalePayment>[];
-      int cashReceivedForShift = 0;
 
       for (final p in request.payments) {
         final paymentId = IdGenerator.uuid();
@@ -166,10 +165,6 @@ class SaleService {
         );
         await db.into(db.salePayments).insert(paymentCompanion);
         insertedPayments.add(await (db.select(db.salePayments)..where((tbl) => tbl.id.equals(paymentId))).getSingle());
-
-        if (p.method == AppConstants.paymentCash) {
-          cashReceivedForShift += p.amount.millimes;
-        }
       }
 
       // 4e. Update Customer spending if attached

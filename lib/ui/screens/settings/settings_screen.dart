@@ -431,7 +431,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                 onPressed: () async {
                   final service = ref.read(importExportServiceProvider);
                   final csvData = await service.exportCatalogCsv();
-                  if (context.mounted) {
+                  if (mounted) {
                     showDialog(
                       context: context,
                       builder: (ctx) => AlertDialog(

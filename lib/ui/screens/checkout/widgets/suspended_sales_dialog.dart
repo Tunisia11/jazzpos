@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
