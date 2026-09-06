@@ -68,23 +68,25 @@ pie title Répartition des 97 Tests Automatisés
 
 ## 4. Résultats de l'Intégration Continue Windows (CI)
 
-### Classification : `BLOCKED (EXTERNAL PLATFORM LIMITATION) / IMPLEMENTED_NOT_RUNTIME_VERIFIED`
+### Classification : `BLOCKED (GITHUB ACCOUNT BILLING LOCK) / IMPLEMENTED_NOT_RUNTIME_VERIFIED`
 
+* **Visibilité du Dépôt :** Passé avec succès de `private` à **`public`** (`https://github.com/Tunisia11/jazzpos`).
 * **Fichier de Workflow :** `.github/workflows/windows_release.yml` (Syntaxe 100% valide, vérifiée via `actionlint` avec 0 erreur).
-* **Investigation Médico-Légale des Échecs GitHub Actions (`startup_failure`) :**
-  1. **Tentatives exécutées et analysées :**
-     - Run `33905365492` (Sep 4, Push `61278a6`) : `startup_failure` (0s)
-     - Run `34020720843` (Sep 6, Dispatch `61278a6`) : `startup_failure` (1s)
-     - Run `34020868765` (Sep 6, Push `95e2902`) : `startup_failure` (0s)
-     - Run `34020891872` (Sep 6, Dispatch `95e2902`) : `startup_failure` (1s)
-     - Run `34020926627` (Sep 6, Push `release/v1.0.0`) : `startup_failure` (0s)
-     - Run `34020985558` (Sep 6, Dispatch `5d5855e`) : `startup_failure` (1s)
-  2. **Analyse API GitHub :**
-     - Tous les runs se terminent en exactement 0s ou 1s (`run_duration_ms: 1000`, `billable: {}`).
-     - Aucun check run n'est instancié (`latest_check_runs_count: 0`).
-     - **Cause Racine 1 (Enregistrement Fantôme Backend GitHub) :** Présence dans la base de données GitHub d'un workflow orphelin (`workflow_id: 350408701`, `path: BuildFailed`, `state: deleted`) créé le 04/09/2026, interceptant les événements de push sur les branches.
-     - **Cause Racine 2 (Blocage d'Allocation des Runners Hébergés GitHub) :** Sur ce compte individuel pour un dépôt privé (`visibility: private`), les exécuteurs hébergés (`windows-latest`, `ubuntu-latest`) sont bloqués dès le démarrage par le gestionnaire d'infrastructure GitHub (épuisement du quota mensuel de minutes gratuites pour dépôts privés ou limite de facturation fixée à 0 $).
-* **Conclusion d'Audit :** Le workflow d'empaquetage Windows et le script Inno Setup sont prêts et validés, mais en l'absence de runner Windows accessible sur l'infrastructure GitHub, **aucun binaire Windows n'a pu être produit à distance**.
+* **Investigation Médico-Légale & Découverte de la Cause Racine Finale :**
+  1. Le passage du dépôt en mode public a immédiatement permis de dépasser l'erreur générique `startup_failure` et d'instancier un vrai job d'exécution :
+     - **Run ID :** `34036645721`
+     - **Job ID :** `101495828332` (`Build & Package Windows x64 Release`)
+  2. **Message d'Erreur Officiel Retourné par l'API GitHub (`check-runs/annotations`) :**
+     > **`"The job was not started because your account is locked due to a billing issue."`**
+  3. **Diagnostic Technique :**
+     Le compte GitHub `Tunisia11` a l'exécution des runners GitHub Actions verrouillée par GitHub pour cause de litige ou facture en attente sur la page de facturation du compte (`https://github.com/settings/billing`).
+  4. **Actions pour Débloquer la CI Windows :**
+     - **Option 1 (Déblocage Compte GitHub) :** Accéder à `https://github.com/settings/billing`, régulariser le mode de paiement ou l'échéance en cours pour débloquer les runners GitHub.
+     - **Option 2 (Compilation Windows Autonome / Hors-CI) :** Cloner le dépôt public sur n'importe quel poste physique Windows 10/11 x64 et exécuter directement :
+       ```powershell
+       flutter build windows --release
+       & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "windows\installer\jazzpos_setup.iss"
+       ```
 
 ---
 
