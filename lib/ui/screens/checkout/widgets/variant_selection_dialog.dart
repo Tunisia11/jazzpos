@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/localization/app_localizations.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 
 class VariantSelectionDialog extends ConsumerWidget {
@@ -29,12 +30,16 @@ class VariantSelectionDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final loc = context.loc;
+
     return Dialog(
-      backgroundColor: AppTheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: AppDesignTokens.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
+      ),
       child: Container(
         width: 550,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDesignTokens.space24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,26 +51,32 @@ class VariantSelectionDialog extends ConsumerWidget {
                   child: Text(
                     productName,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppDesignTokens.textPrimary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                  icon: const Icon(
+                    Icons.close,
+                    color: AppDesignTokens.textSecondary,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Sélectionnez la taille et la couleur',
-              style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+            Text(
+              loc.selectVariantSubtitle,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppDesignTokens.textSecondary,
+              ),
             ),
-            const SizedBox(height: 16),
-            const Divider(color: AppTheme.border),
+            const SizedBox(height: 14),
+            const Divider(color: AppDesignTokens.border, height: 1),
             const SizedBox(height: 12),
 
             ConstrainedBox(
@@ -83,34 +94,41 @@ class VariantSelectionDialog extends ConsumerWidget {
                       ref.read(cartNotifierProvider.notifier).addItem(v);
                       Navigator.of(context).pop();
                     },
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusMd,
+                    ),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        horizontal: 14,
+                        vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF161F2E),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.border),
+                        color: AppDesignTokens.surfaceSecondary,
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusMd,
+                        ),
+                        border: Border.all(color: AppDesignTokens.border),
                       ),
                       child: Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
-                              vertical: 6,
+                              vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.2),
+                              color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: AppTheme.primary),
+                              border: Border.all(
+                                color: const Color(0xFFBFDBFE),
+                              ),
                             ),
                             child: Text(
                               v.variantDescription,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: AppDesignTokens.primary,
+                                fontSize: 13,
                               ),
                             ),
                           ),
@@ -123,24 +141,29 @@ class VariantSelectionDialog extends ConsumerWidget {
                                   'SKU: ${v.sku}',
                                   style: const TextStyle(
                                     fontSize: 12,
-                                    color: AppTheme.textSecondary,
+                                    color: AppDesignTokens.textSecondary,
                                   ),
                                 ),
-                                Text(
-                                  'Code: ${v.barcode}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.white38,
+                                if (v.barcode.isNotEmpty)
+                                  Text(
+                                    '${loc.barcode}: ${v.barcode}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppDesignTokens.textMuted,
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              MoneyDisplay(amount: v.salePrice, fontSize: 16),
-                              const SizedBox(height: 2),
+                              MoneyDisplay(
+                                amount: v.salePrice,
+                                fontSize: 15,
+                                color: AppDesignTokens.textPrimary,
+                              ),
+                              const SizedBox(height: 3),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 6,
@@ -148,20 +171,20 @@ class VariantSelectionDialog extends ConsumerWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isOutOfStock
-                                      ? Colors.red.withValues(alpha: 0.2)
-                                      : Colors.green.withValues(alpha: 0.2),
+                                      ? AppDesignTokens.dangerBg
+                                      : AppDesignTokens.successBg,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   isOutOfStock
-                                      ? 'Rupture'
-                                      : '${v.stock} en stock',
+                                      ? loc.outOfStock
+                                      : loc.unitsInStock(v.stock),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: isOutOfStock
-                                        ? Colors.redAccent
-                                        : Colors.greenAccent,
+                                        ? AppDesignTokens.dangerText
+                                        : AppDesignTokens.successText,
                                   ),
                                 ),
                               ),

@@ -27,64 +27,108 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Print Tool Versions & Doctor
+        shell: pwsh
+        run: |
+          flutter --version
+          dart --version
+          flutter doctor -v
+
       - name: Enable Windows Desktop Support
+        shell: pwsh
         run: flutter config --enable-windows-desktop
 
       - name: Install Dependencies
+        shell: pwsh
         run: flutter pub get
 
       - name: Verify Code Formatting
+        shell: pwsh
         run: dart format --output=none --set-exit-if-changed .
 
       - name: Static Code Analysis
+        shell: pwsh
         run: flutter analyze
 
       - name: Execute Automated Test Suite
+        shell: pwsh
         run: flutter test
 
       - name: Compile Windows x64 Release Executable
+        shell: pwsh
         run: flutter build windows --release
 
-      - name: Verify Release Binary Exists
+      - name: Verify Git Cleanliness
+        shell: pwsh
+        run: git diff --check
+
+      - name: Detect and Verify Release Directory
         shell: pwsh
         run: |
-          if (-not (Test-Path "build\windows\x64\runner\Release\jazzpos.exe")) {
-            throw "Release binary jazzpos.exe was not created!"
+          $expectedExe = "build\windows\x64\runner\Release\jazzpos.exe"
+          if (-not (Test-Path $expectedExe)) {
+            $foundExe = Get-ChildItem -Path "build\windows" -Filter "jazzpos.exe" -Recurse | Select-Object -First 1
+            if ($foundExe) {
+              Write-Host "Found jazzpos.exe at: $($foundExe.FullName)"
+              $targetDir = "build\windows\x64\runner\Release"
+              New-Item -ItemType Directory -Force -Path $targetDir
+              Copy-Item -Path "$($foundExe.DirectoryName)\*" -Destination $targetDir -Recurse -Force
+            } else {
+              throw "Release binary jazzpos.exe was not created in build\windows!"
+            }
           }
+          Write-Host "Release binary verified at build\windows\x64\runner\Release\jazzpos.exe"
+
+      - name: Package Release Directory into ZIP Archive
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "dist\JAZZ-POS-Windows-x64.zip" -Force
 
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --no-progress -y
 
+      - name: Download Official Microsoft Visual C++ Redistributable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "windows\installer\redist"
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "windows\installer\redist\vc_redist.x64.exe"
+          if (Test-Path "windows\installer\redist\vc_redist.x64.exe") {
+            Write-Host "Successfully downloaded official vc_redist.x64.exe for offline installation bundling."
+          }
+
       - name: Compile Inno Setup Installer
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path dist
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "windows\installer\jazzpos_setup.iss"
 
-      - name: Verify Installer Exists and Generate SHA-256 Checksum
+      - name: Verify Installer Exists and Generate SHA-256 Checksums
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist\JazzPOS_Setup_v1.0.0.exe")) {
-            throw "Expected installer dist\JazzPOS_Setup_v1.0.0.exe not found!"
+          if (-not (Test-Path "dist\JAZZ-POS-Setup-x64.exe")) {
+            throw "Expected installer dist\JAZZ-POS-Setup-x64.exe not found!"
           }
-          $hash = (Get-FileHash -Path "dist\JazzPOS_Setup_v1.0.0.exe" -Algorithm SHA256).Hash
-          "$hash  JazzPOS_Setup_v1.0.0.exe" | Out-File -FilePath "dist\SHA256SUMS.txt" -Encoding ascii
-          Write-Host "Generated SHA-256: $hash"
+          if (-not (Test-Path "dist\JAZZ-POS-Windows-x64.zip")) {
+            throw "Expected zip archive dist\JAZZ-POS-Windows-x64.zip not found!"
+          }
+          $exeHash = (Get-FileHash -Path "dist\JAZZ-POS-Setup-x64.exe" -Algorithm SHA256).Hash
+          $zipHash = (Get-FileHash -Path "dist\JAZZ-POS-Windows-x64.zip" -Algorithm SHA256).Hash
+          @(
+            "$exeHash  JAZZ-POS-Setup-x64.exe",
+            "$zipHash  JAZZ-POS-Windows-x64.zip"
+          ) | Out-File -FilePath "dist\SHA256SUMS.txt" -Encoding ascii
+          Write-Host "Generated SHA-256 Checksums:"
           Get-Content "dist\SHA256SUMS.txt"
 
-      - name: Upload Raw Windows Release Binaries
+      - name: Upload Windows Distribution Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: JazzPOS-Windows-x64-Binaries
-          path: build/windows/x64/runner/Release/
-          if-no-files-found: error
-
-      - name: Upload Windows Installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: JazzPOS-Windows-x64-Installer
+          name: JAZZ-POS-Windows-x64-Release
           path: |
-            dist/JazzPOS_Setup_v1.0.0.exe
+            dist/JAZZ-POS-Setup-x64.exe
+            dist/JAZZ-POS-Windows-x64.zip
             dist/SHA256SUMS.txt
+            release_audit/ONSITE_HARDWARE_ACCEPTANCE.md
+            release_audit/FINAL_DEPLOYMENT_EVIDENCE.md
           if-no-files-found: error

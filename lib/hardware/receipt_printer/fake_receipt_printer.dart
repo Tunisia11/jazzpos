@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
+import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'printer_profile.dart';
 import 'receipt_document.dart';
 import 'receipt_printer_interface.dart';
 
@@ -10,6 +14,12 @@ class FakeReceiptPrinter implements ReceiptPrinter {
   final String name;
   @override
   final String connectionType = 'SIMULATED';
+  @override
+  PrinterProfile get profile => PrinterProfile.genericEscPos80;
+  @override
+  HardwareStatus get status => HardwareStatus.simulated;
+  @override
+  HardwareFingerprint? get fingerprint => null;
 
   bool _connected = true;
   int drawerOpenCount = 0;
@@ -21,6 +31,11 @@ class FakeReceiptPrinter implements ReceiptPrinter {
   Stream<String> get onReceiptPrinted => _receiptStreamController.stream;
 
   FakeReceiptPrinter({this.name = 'Simulated 80mm ESC/POS Printer'});
+
+  @override
+  Future<bool> printRaw(Uint8List bytes) async {
+    return true;
+  }
 
   @override
   Future<bool> connect() async {

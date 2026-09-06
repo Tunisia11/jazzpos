@@ -1,11 +1,18 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/providers/auth_provider.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:jazzpos/ui/widgets/common/app_button.dart';
+import 'package:jazzpos/ui/widgets/common/app_card.dart';
+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
+import 'package:jazzpos/ui/widgets/common/app_page_header.dart';
+import 'package:jazzpos/ui/widgets/common/app_search_field.dart';
+import 'package:jazzpos/ui/widgets/common/app_status_badge.dart';
+import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 import '../labels/label_studio_screen.dart';
 import 'product_edit_screen.dart';
@@ -52,44 +59,73 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   }
 
   Future<void> _archiveProduct(String productId, String productName) async {
+    final loc = context.loc;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Archiver l\'article'),
+        backgroundColor: AppDesignTokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusDialog),
+        ),
+        title: Text(
+          loc.archive,
+          style: const TextStyle(
+            color: AppDesignTokens.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         content: Text(
-          'Voulez-vous vraiment archiver "$productName" ? Il ne sera plus visible sur la caisse.',
+          loc.archiveProductConfirm,
+          style: const TextStyle(color: AppDesignTokens.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.warning),
-            child: const Text('Archiver'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesignTokens.warning,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            child: Text(loc.archive),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      final db = ref.read(databaseProvider);
-      await (db.update(db.products)..where((tbl) => tbl.id.equals(productId)))
-          .write(const ProductsCompanion(status: Value('ARCHIVED')));
-      ref.read(catalogNotifierProvider.notifier).refresh();
+      try {
+        final user = ref.read(authNotifierProvider).user;
+        if (user == null) throw StateError('Utilisateur non connecté.');
+        await ref
+            .read(catalogServiceProvider)
+            .archiveProduct(productId, user.id);
+        ref.read(catalogNotifierProvider.notifier).refresh();
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${context.loc.error}: $error'),
+              backgroundColor: AppDesignTokens.danger,
+            ),
+          );
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final catalogState = ref.watch(catalogNotifierProvider);
 
-    // Filter variants based on category and status
+    // Filter variants based on category
     final filteredVariants = catalogState.variants.where((v) {
-      if (_selectedCategoryId != null) {
-        // category filter
+      if (_selectedCategoryId != null && v.categoryId != _selectedCategoryId) {
+        return false;
       }
       return true;
     }).toList();
@@ -103,325 +139,460 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     final productList = grouped.entries.toList();
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text('Catalogue & Articles Prêt-à-Porter'),
-        backgroundColor: AppTheme.surface,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(catalogNotifierProvider.notifier).refresh(),
-            tooltip: 'Actualiser',
-          ),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: ElevatedButton.icon(
-              onPressed: _openNewProduct,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-              ),
-              icon: const Icon(Icons.add, size: 20),
-              label: const Text('NOUVEL ARTICLE'),
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Filter Bar
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.border),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: TextField(
-                      controller: _searchCtrl,
-                      decoration: InputDecoration(
-                        hintText:
-                            'Rechercher par désignation, référence SKU, code-barres...',
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: AppTheme.primaryLight,
-                        ),
-                        suffixIcon: _searchCtrl.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  ref
-                                      .read(catalogNotifierProvider.notifier)
-                                      .search('');
-                                },
-                              )
-                            : null,
-                      ),
-                      onChanged: (val) => ref
-                          .read(catalogNotifierProvider.notifier)
-                          .search(val),
+      backgroundColor: AppDesignTokens.canvas,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsetsDirectional.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              AppPageHeader(
+                title: loc.productsTitle,
+                subtitle:
+                    '${productList.length} ${loc.activeProducts.toLowerCase()}',
+                actions: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: AppDesignTokens.textSecondary,
                     ),
+                    onPressed: () =>
+                        ref.read(catalogNotifierProvider.notifier).refresh(),
+                    tooltip: loc.refresh,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String?>(
-                      initialValue: _selectedCategoryId,
-                      decoration: const InputDecoration(labelText: 'Catégorie'),
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text('Toutes les catégories'),
-                        ),
-                        ...catalogState.categories.map(
-                          (c) => DropdownMenuItem(
-                            value: c.id,
-                            child: Text(c.name),
-                          ),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        setState(() => _selectedCategoryId = val);
-                        ref
-                            .read(catalogNotifierProvider.notifier)
-                            .selectCategory(val);
-                      },
-                    ),
+                  const SizedBox(width: 8),
+                  AppButton(
+                    label: loc.newProduct,
+                    icon: Icons.add,
+                    variant: AppButtonVariant.primary,
+                    onPressed: _openNewProduct,
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 16),
 
-            const SizedBox(height: 16),
-
-            // Products Table
-            Expanded(
-              child: catalogState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : productList.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.checkroom,
-                            size: 64,
-                            color: AppTheme.textSecondary,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Aucun article trouvé dans le catalogue',
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _openNewProduct,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                            ),
-                            icon: const Icon(Icons.add, color: Colors.white),
-                            label: const Text(
-                              'Créer le premier article',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: ListView.separated(
-                        itemCount: productList.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(color: AppTheme.border, height: 1),
-                        itemBuilder: (context, index) {
-                          final item = productList[index];
-                          final variants = item.value;
-                          final firstVar = variants.first;
-                          final totalStock = variants.fold(
-                            0,
-                            (sum, v) => sum + v.stock,
-                          );
-                          final minPrice = variants
-                              .map((v) => v.salePrice)
-                              .reduce((a, b) => a < b ? a : b);
-                          final maxPrice = variants
-                              .map((v) => v.salePrice)
-                              .reduce((a, b) => a > b ? a : b);
-
-                          return ExpansionTile(
-                            leading: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.checkroom,
-                                color: AppTheme.primaryLight,
-                              ),
-                            ),
-                            title: Text(
-                              firstVar.productName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: Colors.white,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${variants.length} variante(s) • Réf: ${firstVar.sku} • Stock total: $totalStock pièces',
-                              style: const TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (minPrice == maxPrice)
-                                  MoneyDisplay(amount: minPrice, fontSize: 16)
-                                else
-                                  Text(
-                                    '${minPrice.format()} - ${maxPrice.format()}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryLight,
-                                    ),
-                                  ),
-                                const SizedBox(width: 16),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 20,
-                                    color: AppTheme.primaryLight,
-                                  ),
-                                  onPressed: () => _openEditProduct(item.key),
-                                  tooltip: 'Modifier l\'article',
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.archive_outlined,
-                                    size: 20,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                  onPressed: () => _archiveProduct(
-                                    item.key,
-                                    firstVar.productName,
-                                  ),
-                                  tooltip: 'Archiver l\'article',
-                                ),
-                              ],
-                            ),
-                            children: [
-                              // Expanded list of variants for this clothing item
-                              Container(
-                                color: const Color(0xFF161F2E),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
-                                ),
-                                child: Column(
-                                  children: variants.map((v) {
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 6,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.08,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              v.variantDescription,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Text(
-                                            'SKU: ${v.sku}',
-                                            style: const TextStyle(
-                                              color: AppTheme.textSecondary,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Text(
-                                            'Code: ${v.barcode}',
-                                            style: const TextStyle(
-                                              color: AppTheme.textSecondary,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const Spacer(),
-                                          Text(
-                                            'Stock: ${v.stock}',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: v.stock > 0
-                                                  ? AppTheme.success
-                                                  : AppTheme.error,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 20),
-                                          MoneyDisplay(
-                                            amount: v.salePrice,
-                                            fontSize: 14,
-                                          ),
-                                          const SizedBox(width: 16),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.qr_code,
-                                              size: 18,
-                                              color: AppTheme.primaryLight,
-                                            ),
-                                            onPressed: () =>
-                                                _openLabelStudio(v),
-                                            tooltip:
-                                                'Imprimer Étiquette Code-barres',
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            ],
-                          );
+              // Filter Bar
+              AppCard(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: AppSearchField(
+                        controller: _searchCtrl,
+                        hintText: loc.searchProductOrBarcode,
+                        onChanged: (val) => ref
+                            .read(catalogNotifierProvider.notifier)
+                            .search(val),
+                        onClear: () {
+                          _searchCtrl.clear();
+                          ref.read(catalogNotifierProvider.notifier).search('');
                         },
                       ),
                     ),
-            ),
-          ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String?>(
+                        initialValue: _selectedCategoryId,
+                        decoration: InputDecoration(
+                          labelText: loc.category,
+                          filled: true,
+                          fillColor: AppDesignTokens.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusInput,
+                            ),
+                            borderSide: const BorderSide(
+                              color: AppDesignTokens.border,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusInput,
+                            ),
+                            borderSide: const BorderSide(
+                              color: AppDesignTokens.border,
+                            ),
+                          ),
+                        ),
+                        items: [
+                          DropdownMenuItem(
+                            value: null,
+                            child: Text(loc.allCategories),
+                          ),
+                          ...catalogState.categories.map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(loc.categoryName(c.name)),
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          setState(() => _selectedCategoryId = val);
+                          ref
+                              .read(catalogNotifierProvider.notifier)
+                              .selectCategory(val);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Products List
+              Expanded(
+                child: catalogState.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppDesignTokens.primary,
+                        ),
+                      )
+                    : productList.isEmpty
+                    ? Center(
+                        child: AppEmptyState(
+                          icon: Icons.checkroom,
+                          title: loc.noProductsFound,
+                          action: AppButton(
+                            label: loc.createFirstProduct,
+                            icon: Icons.add,
+                            variant: AppButtonVariant.primary,
+                            onPressed: _openNewProduct,
+                          ),
+                        ),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusCard,
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppDesignTokens.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusCard,
+                            ),
+                            border: Border.all(color: AppDesignTokens.border),
+                            boxShadow: AppDesignTokens.shadowSm,
+                          ),
+                          child: ListView.separated(
+                            itemCount: productList.length,
+                            separatorBuilder: (_, __) => const Divider(
+                              color: AppDesignTokens.border,
+                              height: 1,
+                              thickness: 1,
+                            ),
+                            itemBuilder: (context, index) {
+                              final item = productList[index];
+                              final variants = item.value;
+                              final firstVar = variants.first;
+                              final totalStock = variants.fold(
+                                0,
+                                (sum, v) => sum + v.stock,
+                              );
+                              final minPrice = variants
+                                  .map((v) => v.salePrice)
+                                  .reduce((a, b) => a < b ? a : b);
+                              final maxPrice = variants
+                                  .map((v) => v.salePrice)
+                                  .reduce((a, b) => a > b ? a : b);
+
+                              return Theme(
+                                data: Theme.of(
+                                  context,
+                                ).copyWith(dividerColor: Colors.transparent),
+                                child: ExpansionTile(
+                                  tilePadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  leading: ProductThumbnail(
+                                    imageUrl: firstVar.imageUrl,
+                                    size: 48,
+                                    borderRadius: AppDesignTokens.radiusSm,
+                                  ),
+                                  title: Text(
+                                    firstVar.productName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: AppDesignTokens.textPrimary,
+                                    ),
+                                  ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Wrap(
+                                      spacing: 8,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                AppDesignTokens.surfaceElevated,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                            border: Border.all(
+                                              color: AppDesignTokens.border,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${variants.length} ${loc.variantDescription}',
+                                            style: const TextStyle(
+                                              color:
+                                                  AppDesignTokens.textSecondary,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${loc.sku}: ${firstVar.sku}',
+                                          style: const TextStyle(
+                                            color: AppDesignTokens.textMuted,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        if (firstVar.categoryName != null)
+                                          Text(
+                                            '• ${loc.categoryName(firstVar.categoryName!)}',
+                                            style: const TextStyle(
+                                              color: AppDesignTokens.textMuted,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      AppStatusBadge.forStock(
+                                        stock: totalStock,
+                                        minStockAlert: 5,
+                                        loc: loc,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      if (minPrice == maxPrice)
+                                        MoneyDisplay(
+                                          amount: minPrice,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        )
+                                      else
+                                        Text(
+                                          '${minPrice.format()} - ${maxPrice.format()}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: AppDesignTokens.primary,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      const SizedBox(width: 8),
+                                      PopupMenuButton<String>(
+                                        icon: const Icon(
+                                          Icons.more_vert,
+                                          color: AppDesignTokens.textSecondary,
+                                          size: 20,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          side: const BorderSide(
+                                            color: AppDesignTokens.border,
+                                          ),
+                                        ),
+                                        color: AppDesignTokens.surface,
+                                        onSelected: (val) {
+                                          if (val == 'edit') {
+                                            _openEditProduct(item.key);
+                                          } else if (val == 'archive') {
+                                            _archiveProduct(
+                                              item.key,
+                                              firstVar.productName,
+                                            );
+                                          }
+                                        },
+                                        itemBuilder: (ctx) => [
+                                          PopupMenuItem(
+                                            value: 'edit',
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.edit_outlined,
+                                                  size: 18,
+                                                  color:
+                                                      AppDesignTokens.primary,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  loc.editProduct,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: AppDesignTokens
+                                                        .textPrimary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'archive',
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.archive_outlined,
+                                                  size: 18,
+                                                  color:
+                                                      AppDesignTokens.warning,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  loc.archive,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: AppDesignTokens
+                                                        .textPrimary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  children: [
+                                    // Expanded list of variants
+                                    Container(
+                                      decoration: const BoxDecoration(
+                                        color: AppDesignTokens.surfaceElevated,
+                                        border: Border(
+                                          top: BorderSide(
+                                            color: AppDesignTokens.border,
+                                          ),
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 10,
+                                      ),
+                                      child: Column(
+                                        children: variants.map((v) {
+                                          return Container(
+                                            margin: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppDesignTokens.surface,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: AppDesignTokens.border,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 3,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: AppDesignTokens
+                                                        .primaryLight,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    v.variantDescription,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 12,
+                                                      color: AppDesignTokens
+                                                          .primary,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Text(
+                                                  '${loc.sku}: ${v.sku}',
+                                                  style: const TextStyle(
+                                                    color: AppDesignTokens
+                                                        .textSecondary,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Text(
+                                                  '${loc.barcode}: ${v.barcode}',
+                                                  style: const TextStyle(
+                                                    color: AppDesignTokens
+                                                        .textSecondary,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                const Spacer(),
+                                                AppStatusBadge.forStock(
+                                                  stock: v.stock,
+                                                  minStockAlert:
+                                                      v.minStockAlert,
+                                                  loc: loc,
+                                                ),
+                                                const SizedBox(width: 16),
+                                                MoneyDisplay(
+                                                  amount: v.salePrice,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.qr_code,
+                                                    size: 18,
+                                                    color:
+                                                        AppDesignTokens.primary,
+                                                  ),
+                                                  onPressed: () =>
+                                                      _openLabelStudio(v),
+                                                  tooltip: loc.navLabels,
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

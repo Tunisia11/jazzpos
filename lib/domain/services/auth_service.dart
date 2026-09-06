@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/roles.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
@@ -107,6 +108,17 @@ class AuthService {
         expectedHashHex: mgr.pinHash,
       );
       if (isValid) {
+        if (requiredPermission.isNotEmpty) {
+          final storedPermissions = await (db.select(
+            db.userPermissions,
+          )..where((table) => table.userId.equals(mgr.id))).get();
+          final permissions = AppRoles.defaultPermissionsForRole(mgr.role)
+            ..addAll(storedPermissions.map((row) => row.permission));
+          if (mgr.role != AppRoles.owner &&
+              !permissions.contains(requiredPermission)) {
+            continue;
+          }
+        }
         PosLogger.instance.info(
           'Auth',
           'Manager override approved by: ${mgr.displayName} (${mgr.role})',
@@ -128,6 +140,14 @@ class AuthService {
     required String pin,
     Set<String>? customPermissions,
   }) async {
+    final existingUsers = await db.select(db.users).get();
+    if (existingUsers.isNotEmpty &&
+        (_currentSession == null ||
+            !_currentSession!.hasPermission(AppPermissions.manageUsers))) {
+      throw const AuthException(
+        'User management permission is required to create an account.',
+      );
+    }
     final salt = PasswordHasher.generateSalt();
     final hash = PasswordHasher.hashPin(pin, salt);
     final userId = IdGenerator.uuid();

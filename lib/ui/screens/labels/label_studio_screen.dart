@@ -1,11 +1,14 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/localization/app_localizations.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 import 'package:jazzpos/hardware/label_printer/label_document.dart';
+import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 
 class LabelStudioScreen extends ConsumerStatefulWidget {
@@ -24,6 +27,7 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
   int _copies = 1;
   bool _isPrinting = false;
   String? _statusMessage;
+  String _storeName = 'JAZZ POS';
 
   final TextEditingController _searchCtrl = TextEditingController();
 
@@ -31,6 +35,15 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
   void initState() {
     super.initState();
     _selectedVariant = widget.initialVariant;
+    _loadStoreName();
+  }
+
+  Future<void> _loadStoreName() async {
+    final db = ref.read(databaseProvider);
+    final company = await (db.select(db.companies)..limit(1)).getSingleOrNull();
+    if (mounted && company != null && company.name.trim().isNotEmpty) {
+      setState(() => _storeName = company.name.trim());
+    }
   }
 
   @override
@@ -42,13 +55,14 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
   Future<void> _printLabels() async {
     if (_selectedVariant == null) return;
 
+    final loc = context.loc;
     setState(() {
       _isPrinting = true;
       _statusMessage = null;
     });
 
     final doc = LabelDocument(
-      storeName: 'JAZZ FASHION',
+      storeName: _storeName,
       productName: _selectedVariant!.productName,
       size: _selectedVariant!.variantDescription,
       sku: _selectedVariant!.sku,
@@ -63,26 +77,39 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
       await HardwareManager.instance.labelPrinter.printLabel(doc);
       setState(() {
         _isPrinting = false;
-        _statusMessage =
-            '$_copies étiquette(s) envoyée(s) à l\'imprimante TSPL/ZPL';
+        _statusMessage = loc.labelsSentToPrinter(_copies);
       });
     } catch (e) {
       setState(() {
         _isPrinting = false;
-        _statusMessage = 'Erreur d\'impression: $e';
+        _statusMessage = loc.printError('$e');
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final catalogState = ref.watch(catalogNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppDesignTokens.canvas,
       appBar: AppBar(
-        title: const Text('Studio d\'Étiquettes Code-Barres'),
-        backgroundColor: AppTheme.surface,
+        title: Text(
+          loc.labelStudioTitle,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppDesignTokens.textPrimary,
+          ),
+        ),
+        backgroundColor: AppDesignTokens.surface,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppDesignTokens.textPrimary),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppDesignTokens.border),
+        ),
       ),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,18 +126,22 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.border),
+                      color: AppDesignTokens.surface,
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusCard,
+                      ),
+                      border: Border.all(color: AppDesignTokens.border),
+                      boxShadow: AppDesignTokens.shadowSm,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Format du rouleau d\'étiquettes (mm)',
-                          style: TextStyle(
+                        Text(
+                          loc.labelRollFormat,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
+                            color: AppDesignTokens.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -121,23 +152,11 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                             _buildFormatChip(
                               40,
                               25,
-                              '40 x 25 mm (Bijoux / Accessoires)',
+                              loc.formatJewelryAccessories,
                             ),
-                            _buildFormatChip(
-                              40,
-                              30,
-                              '40 x 30 mm (Standard Prêt-à-Porter)',
-                            ),
-                            _buildFormatChip(
-                              50,
-                              30,
-                              '50 x 30 mm (Grand format)',
-                            ),
-                            _buildFormatChip(
-                              60,
-                              40,
-                              '60 x 40 mm (Carton / Cartonnette)',
-                            ),
+                            _buildFormatChip(40, 30, loc.formatStandardApparel),
+                            _buildFormatChip(50, 30, loc.formatLarge),
+                            _buildFormatChip(60, 40, loc.formatCardboardTag),
                           ],
                         ),
                       ],
@@ -150,29 +169,40 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.border),
+                      color: AppDesignTokens.surface,
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusCard,
+                      ),
+                      border: Border.all(color: AppDesignTokens.border),
+                      boxShadow: AppDesignTokens.shadowSm,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Sélection de l\'article :',
-                          style: TextStyle(
+                        Text(
+                          loc.selectProductForLabel,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
+                            color: AppDesignTokens.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 12),
                         TextField(
                           controller: _searchCtrl,
                           decoration: InputDecoration(
-                            hintText: 'Rechercher un article ou scanner...',
-                            prefixIcon: const Icon(Icons.search),
+                            hintText: loc.searchProductOrBarcode,
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: AppDesignTokens.textSecondary,
+                            ),
                             suffixIcon: _searchCtrl.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 16),
+                                    icon: const Icon(
+                                      Icons.clear,
+                                      size: 16,
+                                      color: AppDesignTokens.textSecondary,
+                                    ),
                                     onPressed: () {
                                       _searchCtrl.clear();
                                       ref
@@ -196,7 +226,7 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                             shrinkWrap: true,
                             itemCount: catalogState.variants.length,
                             separatorBuilder: (_, __) => const Divider(
-                              color: AppTheme.border,
+                              color: AppDesignTokens.border,
                               height: 1,
                             ),
                             itemBuilder: (context, index) {
@@ -207,17 +237,25 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                               return ListTile(
                                 dense: true,
                                 selected: isSelected,
-                                selectedTileColor: AppTheme.primary.withValues(
-                                  alpha: 0.15,
+                                selectedTileColor: AppDesignTokens.primary
+                                    .withValues(alpha: 0.08),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppDesignTokens.radiusInput,
+                                  ),
                                 ),
                                 title: Text(
                                   v.productName,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
+                                    color: AppDesignTokens.textPrimary,
                                   ),
                                 ),
                                 subtitle: Text(
-                                  '${v.variantDescription} • SKU: ${v.sku} • Stock: ${v.stock}',
+                                  '${v.variantDescription} • ${loc.sku}: ${v.sku} • ${loc.stock}: ${v.stock}',
+                                  style: const TextStyle(
+                                    color: AppDesignTokens.textSecondary,
+                                  ),
                                 ),
                                 trailing: MoneyDisplay(
                                   amount: v.salePrice,
@@ -239,18 +277,22 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.border),
+                      color: AppDesignTokens.surface,
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusCard,
+                      ),
+                      border: Border.all(color: AppDesignTokens.border),
+                      boxShadow: AppDesignTokens.shadowSm,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Nombre d\'exemplaires :',
-                          style: TextStyle(
+                        Text(
+                          loc.printCopies,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
+                            color: AppDesignTokens.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -270,8 +312,19 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                                 onPressed: () => setState(
                                   () => _copies = _selectedVariant!.stock,
                                 ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: AppDesignTokens.border,
+                                  ),
+                                  foregroundColor: AppDesignTokens.textPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      AppDesignTokens.radiusInput,
+                                    ),
+                                  ),
+                                ),
                                 child: Text(
-                                  'Selon Stock (${_selectedVariant!.stock})',
+                                  '${loc.byStockCount} (${_selectedVariant!.stock})',
                                 ),
                               ),
                           ],
@@ -280,20 +333,27 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.remove_circle_outline),
+                              icon: const Icon(
+                                Icons.remove_circle_outline,
+                                color: AppDesignTokens.textSecondary,
+                              ),
                               onPressed: _copies > 1
                                   ? () => setState(() => _copies--)
                                   : null,
                             ),
                             Text(
-                              '$_copies étiquette(s)',
+                              loc.nLabels(_copies),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: AppDesignTokens.textPrimary,
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.add_circle_outline),
+                              icon: const Icon(
+                                Icons.add_circle_outline,
+                                color: AppDesignTokens.textSecondary,
+                              ),
                               onPressed: () => setState(() => _copies++),
                             ),
                             const Spacer(),
@@ -303,8 +363,14 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                                   ? null
                                   : _printLabels,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
+                                backgroundColor: AppDesignTokens.primary,
                                 foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppDesignTokens.radiusInput,
+                                  ),
+                                ),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 24,
                                   vertical: 14,
@@ -322,8 +388,8 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                                   : const Icon(Icons.print, size: 20),
                               label: Text(
                                 _isPrinting
-                                    ? 'IMPRESSION...'
-                                    : 'LANCER L\'IMPRESSION',
+                                    ? loc.processing.toUpperCase()
+                                    : loc.printLabelsAction.toUpperCase(),
                               ),
                             ),
                           ],
@@ -333,9 +399,12 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                           Text(
                             _statusMessage!,
                             style: TextStyle(
-                              color: _statusMessage!.contains('Erreur')
-                                  ? AppTheme.error
-                                  : AppTheme.success,
+                              color:
+                                  _statusMessage!.contains('Erreur') ||
+                                      _statusMessage!.contains('Error') ||
+                                      _statusMessage!.contains('خطأ')
+                                  ? AppDesignTokens.danger
+                                  : AppDesignTokens.success,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -348,41 +417,43 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
             ),
           ),
 
-          const VerticalDivider(color: AppTheme.border, width: 1),
+          const VerticalDivider(color: AppDesignTokens.border, width: 1),
 
           // Right: Live Visual WYSIWYG Label Preview
           Expanded(
             flex: 4,
             child: Container(
-              color: const Color(0xFF0F172A),
+              color: AppDesignTokens.canvas,
               padding: const EdgeInsets.all(32),
               alignment: Alignment.center,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Aperçu Réel de l\'Étiquette Thermique',
-                    style: TextStyle(
+                  Text(
+                    loc.realThermalLabelPreview,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.textSecondary,
+                      color: AppDesignTokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 20),
 
                   if (_selectedVariant == null)
-                    const Text(
-                      'Veuillez sélectionner un article pour visualiser l\'étiquette',
-                      style: TextStyle(color: AppTheme.textSecondary),
+                    Text(
+                      loc.selectArticleToPreview,
+                      style: const TextStyle(
+                        color: AppDesignTokens.textSecondary,
+                      ),
                     )
                   else
-                    _buildWysiwygLabel(),
+                    _buildWysiwygLabel(loc),
 
                   const SizedBox(height: 20),
                   Text(
-                    'Format sélectionné : $_widthMm x $_heightMm mm',
+                    loc.selectedFormat(_widthMm, _heightMm),
                     style: const TextStyle(
-                      color: AppTheme.textSecondary,
+                      color: AppDesignTokens.textSecondary,
                       fontSize: 13,
                     ),
                   ),
@@ -400,6 +471,16 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
+      selectedColor: AppDesignTokens.primary.withValues(alpha: 0.12),
+      side: BorderSide(
+        color: isSelected ? AppDesignTokens.primary : AppDesignTokens.border,
+      ),
+      labelStyle: TextStyle(
+        color: isSelected
+            ? AppDesignTokens.primary
+            : AppDesignTokens.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
       onSelected: (_) => setState(() {
         _widthMm = w;
         _heightMm = h;
@@ -408,20 +489,30 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
   }
 
   Widget _buildCopiesButton(int count) {
+    final isSelected = _copies == count;
     return ElevatedButton(
       onPressed: () => setState(() => _copies = count),
       style: ElevatedButton.styleFrom(
-        backgroundColor: _copies == count
-            ? AppTheme.primary
-            : const Color(0xFF161F2E),
-        foregroundColor: Colors.white,
+        backgroundColor: isSelected
+            ? AppDesignTokens.primary
+            : AppDesignTokens.surface,
+        foregroundColor: isSelected
+            ? Colors.white
+            : AppDesignTokens.textPrimary,
+        elevation: 0,
+        side: BorderSide(
+          color: isSelected ? AppDesignTokens.primary : AppDesignTokens.border,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusInput),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       ),
       child: Text('$count'),
     );
   }
 
-  Widget _buildWysiwygLabel() {
+  Widget _buildWysiwygLabel(AppLocalizations loc) {
     final v = _selectedVariant!;
     // Scale mm to pixels for preview (e.g. 1mm = 7 pixels)
     final previewWidth = _widthMm * 7.5;
@@ -433,12 +524,13 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppDesignTokens.border),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Color(0x14000000),
+            blurRadius: 20,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -446,8 +538,8 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Store Name
-          const Text(
-            'JAZZ FASHION',
+          Text(
+            _storeName,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.black,
@@ -506,7 +598,7 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'REF: ${v.sku}',
+                '${loc.reference}: ${v.sku}',
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 9,

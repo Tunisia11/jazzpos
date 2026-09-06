@@ -82,7 +82,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration {
@@ -134,6 +134,12 @@ class AppDatabase extends _$AppDatabase {
           'Database',
           'Upgrading database from $from to $to',
         );
+        if (from < 2) {
+          await m.addColumn(products, products.imageUrl);
+          await m.addColumn(products, products.deletedAt);
+          await m.addColumn(productVariants, productVariants.imageUrl);
+          await m.addColumn(productVariants, productVariants.deletedAt);
+        }
       },
       beforeOpen: (details) async {
         // Enforce foreign keys on every connection

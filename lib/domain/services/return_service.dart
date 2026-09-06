@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'inventory_service.dart';
+import 'permission_guard.dart';
 
 class ReturnLineItem {
   final String? originalSaleLineId;
@@ -59,6 +61,89 @@ class ReturnService {
 
   ReturnService(this.db, this.inventoryService);
 
+  void _validateItemsAgainstSale({
+    required ReturnRequest request,
+    required List<SaleLine> saleLines,
+    required List<ReturnLine> priorReturnLines,
+  }) {
+    final saleLineMap = {for (final line in saleLines) line.id: line};
+    final requestedQuantityByLine = <String, int>{};
+    final requestedRefundByLine = <String, int>{};
+    final requestedQuantityByVariant = <String, int>{};
+
+    for (final item in request.items) {
+      if (item.originalSaleLineId != null) {
+        final line = saleLineMap[item.originalSaleLineId];
+        if (line == null) {
+          throw ValidationException(
+            'Invalid original sale line ID: ${item.originalSaleLineId}',
+          );
+        }
+        if (line.variantId != item.variantId) {
+          throw const ValidationException(
+            'Returned variant does not match the original receipt line.',
+          );
+        }
+        requestedQuantityByLine.update(
+          line.id,
+          (quantity) => quantity + item.quantity,
+          ifAbsent: () => item.quantity,
+        );
+        requestedRefundByLine.update(
+          line.id,
+          (amount) => amount + item.totalRefund.millimes,
+          ifAbsent: () => item.totalRefund.millimes,
+        );
+      } else {
+        requestedQuantityByVariant.update(
+          item.variantId,
+          (quantity) => quantity + item.quantity,
+          ifAbsent: () => item.quantity,
+        );
+      }
+    }
+
+    for (final entry in requestedQuantityByLine.entries) {
+      final line = saleLineMap[entry.key]!;
+      final priorForLine = priorReturnLines.where(
+        (returnLine) => returnLine.originalSaleLineId == line.id,
+      );
+      final alreadyReturned = priorForLine.fold<int>(
+        0,
+        (sum, returnLine) => sum + returnLine.quantity,
+      );
+      if (alreadyReturned + entry.value > line.quantity) {
+        throw ValidationException(
+          'Return quantity exceeds the quantity purchased for "${line.productName}".',
+        );
+      }
+      final alreadyRefunded = priorForLine.fold<int>(
+        0,
+        (sum, returnLine) => sum + returnLine.totalRefundMillimes,
+      );
+      if (alreadyRefunded + requestedRefundByLine[entry.key]! >
+          line.totalMillimes) {
+        throw ValidationException(
+          'Refund amount exceeds the amount paid for "${line.productName}".',
+        );
+      }
+    }
+
+    for (final entry in requestedQuantityByVariant.entries) {
+      final sold = saleLines
+          .where((line) => line.variantId == entry.key)
+          .fold<int>(0, (sum, line) => sum + line.quantity);
+      final returned = priorReturnLines
+          .where((line) => line.variantId == entry.key)
+          .fold<int>(0, (sum, line) => sum + line.quantity);
+      if (sold == 0 || returned + entry.value > sold) {
+        throw const ValidationException(
+          'Return quantity exceeds the quantity purchased for this variant.',
+        );
+      }
+    }
+  }
+
   /// Find a sale for return by receipt ticket number or ID
   Future<Sale?> findSaleForReturn(String query) async {
     final clean = query.trim();
@@ -89,6 +174,19 @@ class ReturnService {
           'Return quantity must be greater than zero',
         );
       }
+      if (item.refundUnitPrice.isNegative) {
+        throw const ValidationException('Refund amount cannot be negative');
+      }
+      if (item.condition != AppConstants.returnConditionSellable &&
+          item.condition != AppConstants.returnConditionDamaged) {
+        throw const ValidationException('Invalid return item condition');
+      }
+    }
+    if (request.totalRefund <= Money.zero) {
+      throw const ValidationException('Refund total must be greater than zero');
+    }
+    if (request.reason.trim().isEmpty) {
+      throw const ValidationException('A return reason is required');
     }
 
     // If returning against an original sale, strictly enforce return quantity invariants
@@ -114,12 +212,15 @@ class ReturnService {
           'Cannot return items from a voided sale.',
         );
       }
+      if (sale.storeId != request.storeId) {
+        throw const ValidationException(
+          'The receipt does not belong to the selected store.',
+        );
+      }
 
       saleLines = await (db.select(
         db.saleLines,
       )..where((tbl) => tbl.saleId.equals(request.originalSaleId!))).get();
-      final saleLineMap = {for (final l in saleLines) l.id: l};
-
       final priorReturns =
           await (db.select(db.returns)..where(
                 (tbl) => tbl.originalSaleId.equals(request.originalSaleId!),
@@ -132,45 +233,11 @@ class ReturnService {
               db.returnLines,
             )..where((tbl) => tbl.returnId.isIn(priorReturnIds))).get();
 
-      for (final item in request.items) {
-        if (item.originalSaleLineId != null) {
-          final line = saleLineMap[item.originalSaleLineId];
-          if (line == null) {
-            throw ValidationException(
-              'Invalid original sale line ID: ${item.originalSaleLineId}',
-            );
-          }
-          final alreadyReturned = priorReturnLines
-              .where((prl) => prl.originalSaleLineId == item.originalSaleLineId)
-              .fold<int>(0, (s, l) => s + l.quantity);
-          if (alreadyReturned + item.quantity > line.quantity) {
-            throw ValidationException(
-              'Cannot return ${item.quantity} units for line "${line.productName}". Already returned: $alreadyReturned of ${line.quantity} originally purchased.',
-            );
-          }
-        } else {
-          final matchingLines = saleLines
-              .where((l) => l.variantId == item.variantId)
-              .toList();
-          final totalSoldForVariant = matchingLines.fold<int>(
-            0,
-            (s, l) => s + l.quantity,
-          );
-          if (totalSoldForVariant == 0) {
-            throw ValidationException(
-              'Variant ${item.variantId} was not part of original sale ${request.originalSaleId}',
-            );
-          }
-          final alreadyReturned = priorReturnLines
-              .where((prl) => prl.variantId == item.variantId)
-              .fold<int>(0, (s, l) => s + l.quantity);
-          if (alreadyReturned + item.quantity > totalSoldForVariant) {
-            throw ValidationException(
-              'Cannot return ${item.quantity} units. Already returned: $alreadyReturned of $totalSoldForVariant originally purchased.',
-            );
-          }
-        }
-      }
+      _validateItemsAgainstSale(
+        request: request,
+        saleLines: saleLines,
+        priorReturnLines: priorReturnLines,
+      );
     } else {
       // If no receipt return, verify manager authorization
       final allowNoReceipt =
@@ -199,17 +266,77 @@ class ReturnService {
     final shopFloor = await inventoryService.getDefaultLocation(
       request.storeId,
     );
-    final damagedLocation =
-        await (db.select(db.stockLocations)..where(
-              (tbl) =>
-                  tbl.storeId.equals(request.storeId) &
-                  tbl.locationType.equals(AppConstants.locationDamaged),
-            ))
-            .getSingleOrNull();
+    final hasDamagedItems = request.items.any(
+      (item) => item.condition == AppConstants.returnConditionDamaged,
+    );
+    final damagedLocation = hasDamagedItems
+        ? await inventoryService.getDamagedLocation(request.storeId)
+        : null;
 
     late Return committedReturn;
 
     await db.transaction(() async {
+      await PermissionGuard.requirePermission(
+        db,
+        request.cashierId,
+        AppPermissions.processReturn,
+      );
+      final activeShift = await (db.select(
+        db.shifts,
+      )..where((table) => table.id.equals(request.shiftId))).getSingleOrNull();
+      if (activeShift == null ||
+          activeShift.status != AppConstants.shiftOpen ||
+          activeShift.registerId != request.registerId) {
+        throw const ValidationException(
+          'Returns require an open shift on the selected register.',
+        );
+      }
+
+      if (request.originalSaleId != null) {
+        final currentSale =
+            await (db.select(db.sales)
+                  ..where((table) => table.id.equals(request.originalSaleId!)))
+                .getSingleOrNull();
+        if (currentSale == null ||
+            currentSale.status == AppConstants.saleRefunded ||
+            currentSale.status == AppConstants.saleVoided ||
+            currentSale.storeId != request.storeId) {
+          throw const ValidationException(
+            'The original sale is no longer eligible for return.',
+          );
+        }
+        saleLines =
+            await (db.select(db.saleLines)..where(
+                  (table) => table.saleId.equals(request.originalSaleId!),
+                ))
+                .get();
+        final currentReturns =
+            await (db.select(db.returns)..where(
+                  (table) =>
+                      table.originalSaleId.equals(request.originalSaleId!),
+                ))
+                .get();
+        final currentReturnIds = currentReturns
+            .map((value) => value.id)
+            .toList();
+        priorReturnLines = currentReturnIds.isEmpty
+            ? <ReturnLine>[]
+            : await (db.select(
+                db.returnLines,
+              )..where((table) => table.returnId.isIn(currentReturnIds))).get();
+        _validateItemsAgainstSale(
+          request: request,
+          saleLines: saleLines,
+          priorReturnLines: priorReturnLines,
+        );
+      } else {
+        await PermissionGuard.requirePermission(
+          db,
+          request.managerId!,
+          AppPermissions.noReceiptReturn,
+        );
+      }
+
       // 1. Insert Return record
       await db
           .into(db.returns)
@@ -234,7 +361,7 @@ class ReturnService {
       for (final item in request.items) {
         final restockLocationId =
             (item.condition == AppConstants.returnConditionDamaged)
-            ? (damagedLocation?.id ?? shopFloor.id)
+            ? damagedLocation!.id
             : shopFloor.id;
 
         await db

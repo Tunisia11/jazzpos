@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
 import 'package:jazzpos/data/database/app_database.dart';
+import 'package:jazzpos/domain/services/audit_service.dart';
 import 'package:jazzpos/domain/services/auth_service.dart';
 import 'package:jazzpos/domain/services/backup_service.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
@@ -11,6 +13,7 @@ import 'package:jazzpos/domain/services/inventory_service.dart';
 import 'package:jazzpos/domain/services/pricing_service.dart';
 import 'package:jazzpos/domain/services/promotion_service.dart';
 import 'package:jazzpos/domain/services/purchase_service.dart';
+import 'package:jazzpos/domain/services/product_image_service.dart';
 import 'package:jazzpos/domain/services/report_service.dart';
 import 'package:jazzpos/domain/services/return_service.dart';
 import 'package:jazzpos/domain/services/sale_service.dart';
@@ -23,6 +26,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
   ref.onDispose(() => db.close());
   return db;
+});
+
+final productImageServiceProvider = Provider<ProductImageService>((ref) {
+  return ProductImageService();
 });
 
 // Hardware Manager Provider
@@ -121,3 +128,14 @@ final importExportServiceProvider = Provider<ImportExportService>((ref) {
     ref.watch(inventoryServiceProvider),
   );
 });
+
+final auditServiceProvider = Provider<AuditService>((ref) {
+  return AuditService(ref.watch(databaseProvider));
+});
+
+final environmentDiagnosticsServiceProvider =
+    Provider<EnvironmentDiagnosticsService>((ref) {
+      return EnvironmentDiagnosticsService(
+        database: ref.watch(databaseProvider),
+      );
+    });

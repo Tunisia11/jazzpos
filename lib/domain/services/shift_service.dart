@@ -67,44 +67,53 @@ class ShiftService {
       throw const ValidationException('Opening float cash cannot be negative.');
     }
 
-    final existing = await getOpenShift(registerId);
-    if (existing != null) {
-      throw const ValidationException(
-        'An active shift is already open for this register.',
-      );
-    }
-
     final shiftId = IdGenerator.uuid();
     final now = DateTime.now();
-
-    await db
-        .into(db.shifts)
-        .insert(
-          ShiftsCompanion.insert(
-            id: shiftId,
-            registerId: registerId,
-            cashierId: cashierId,
-            openedAt: now,
-            openingCashMillimes: Value(openingCash.millimes),
-            note: Value(note),
-            status: const Value(AppConstants.shiftOpen),
-          ),
+    await db.transaction(() async {
+      final existing = await getOpenShift(registerId);
+      if (existing != null) {
+        throw const ValidationException(
+          'An active shift is already open for this register.',
         );
+      }
+      final cashier =
+          await (db.select(db.users)..where(
+                (table) =>
+                    table.id.equals(cashierId) & table.isActive.equals(true),
+              ))
+              .getSingleOrNull();
+      if (cashier == null) {
+        throw const AuthException('An active cashier is required.');
+      }
 
-    // Audit event
-    await db
-        .into(db.auditEvents)
-        .insert(
-          AuditEventsCompanion.insert(
-            id: IdGenerator.uuid(),
-            action: 'SHIFT_OPENED',
-            entityType: 'SHIFT',
-            entityId: Value(shiftId),
-            userId: cashierId,
-            detailsJson: Value('{"openingCash":${openingCash.millimes}}'),
-            createdAt: now,
-          ),
-        );
+      await db
+          .into(db.shifts)
+          .insert(
+            ShiftsCompanion.insert(
+              id: shiftId,
+              registerId: registerId,
+              cashierId: cashierId,
+              openedAt: now,
+              openingCashMillimes: Value(openingCash.millimes),
+              note: Value(note),
+              status: const Value(AppConstants.shiftOpen),
+            ),
+          );
+
+      await db
+          .into(db.auditEvents)
+          .insert(
+            AuditEventsCompanion.insert(
+              id: IdGenerator.uuid(),
+              action: 'SHIFT_OPENED',
+              entityType: 'SHIFT',
+              entityId: Value(shiftId),
+              userId: cashierId,
+              detailsJson: Value('{"openingCash":${openingCash.millimes}}'),
+              createdAt: now,
+            ),
+          );
+    });
 
     PosLogger.instance.info(
       'Shift',
@@ -128,38 +137,68 @@ class ShiftService {
         'Cash movement amount must be greater than zero',
       );
     }
+    if (reason.trim().isEmpty) {
+      throw const ValidationException('A cash movement reason is required');
+    }
+    if (type != AppConstants.cashPayIn &&
+        type != AppConstants.cashPayOut &&
+        type != AppConstants.cashDrop) {
+      throw const ValidationException('Invalid cash movement type');
+    }
 
     final now = DateTime.now();
-    await db
-        .into(db.cashMovements)
-        .insert(
-          CashMovementsCompanion.insert(
-            id: IdGenerator.uuid(),
-            shiftId: shiftId,
-            userId: userId,
-            movementType: type,
-            amountMillimes: amount.millimes,
-            reason: reason,
-            createdAt: now,
-          ),
+    await db.transaction(() async {
+      final shift = await (db.select(
+        db.shifts,
+      )..where((table) => table.id.equals(shiftId))).getSingleOrNull();
+      if (shift == null || shift.status != AppConstants.shiftOpen) {
+        throw const ValidationException(
+          'Cash movements require an open register shift.',
         );
+      }
+      final user =
+          await (db.select(db.users)..where(
+                (table) =>
+                    table.id.equals(userId) & table.isActive.equals(true),
+              ))
+              .getSingleOrNull();
+      if (user == null) {
+        throw const AuthException('An active user is required.');
+      }
 
-    // Audit
-    await db
-        .into(db.auditEvents)
-        .insert(
-          AuditEventsCompanion.insert(
-            id: IdGenerator.uuid(),
-            action: 'CASH_MOVEMENT_$type',
-            entityType: 'SHIFT',
-            entityId: Value(shiftId),
-            userId: userId,
-            detailsJson: Value(
-              '{"amount":${amount.millimes},"reason":"$reason"}',
+      await db
+          .into(db.cashMovements)
+          .insert(
+            CashMovementsCompanion.insert(
+              id: IdGenerator.uuid(),
+              shiftId: shiftId,
+              userId: userId,
+              movementType: type,
+              amountMillimes: amount.millimes,
+              reason: reason.trim(),
+              createdAt: now,
             ),
-            createdAt: now,
-          ),
-        );
+          );
+
+      await db
+          .into(db.auditEvents)
+          .insert(
+            AuditEventsCompanion.insert(
+              id: IdGenerator.uuid(),
+              action: 'CASH_MOVEMENT_$type',
+              entityType: 'SHIFT',
+              entityId: Value(shiftId),
+              userId: userId,
+              detailsJson: Value(
+                jsonEncode({
+                  'amount': amount.millimes,
+                  'reason': reason.trim(),
+                }),
+              ),
+              createdAt: now,
+            ),
+          );
+    });
 
     PosLogger.instance.info(
       'Shift',
@@ -280,21 +319,33 @@ class ShiftService {
     required Money countedCash,
     String? note,
   }) async {
-    final existingShift = await (db.select(
-      db.shifts,
-    )..where((tbl) => tbl.id.equals(shiftId))).getSingleOrNull();
-    if (existingShift == null) {
-      throw const ValidationException('Shift not found.');
+    if (countedCash.isNegative) {
+      throw const ValidationException('Counted cash cannot be negative.');
     }
-    if (existingShift.status == AppConstants.shiftClosed) {
-      throw const ValidationException('This register shift is already closed.');
-    }
-
-    final summary = await calculateShiftSummary(shiftId);
-    final difference = countedCash - summary.expectedCash;
-    final now = DateTime.now();
+    late ShiftSummary summary;
+    late Money difference;
+    late DateTime now;
 
     await db.transaction(() async {
+      final existingShift = await (db.select(
+        db.shifts,
+      )..where((tbl) => tbl.id.equals(shiftId))).getSingleOrNull();
+      if (existingShift == null) {
+        throw const ValidationException('Shift not found.');
+      }
+      if (existingShift.status == AppConstants.shiftClosed) {
+        throw const ValidationException(
+          'This register shift is already closed.',
+        );
+      }
+
+      // Calculate and close in the same SQLite write transaction. This keeps
+      // a sale from being committed between the expected-cash calculation and
+      // the close record.
+      summary = await calculateShiftSummary(shiftId);
+      difference = countedCash - summary.expectedCash;
+      now = DateTime.now();
+
       await (db.update(
         db.shifts,
       )..where((tbl) => tbl.id.equals(shiftId))).write(

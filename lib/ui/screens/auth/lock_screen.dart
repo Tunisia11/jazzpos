@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/localization/app_localizations.dart';
+import 'package:jazzpos/core/localization/locale_provider.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
 import 'package:jazzpos/ui/widgets/numpad.dart';
 
@@ -99,213 +101,299 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   Future<void> _submitUnlock() async {
+    final loc = context.loc;
     final pin = _pinBuffer.toString();
     if (pin.isEmpty) return;
 
     final success = await ref.read(authNotifierProvider.notifier).unlock(pin);
-    if (!success) {
+    if (!success && mounted) {
       setState(() {
         _pinBuffer.clear();
-        _errorMessage = 'Code PIN incorrect';
+        _errorMessage = loc.invalidPin;
       });
     }
   }
 
   Future<void> _managerOverrideUnlock() async {
+    final loc = context.loc;
     final manager = await ManagerOverrideDialog.show(
       context,
-      actionTitle: 'Déverrouillage d\'urgence de la caisse',
+      actionTitle: loc.managerOverrideUnlockTitle,
     );
 
     if (manager != null && mounted) {
       // Force unlock via manager
-      ref
-          .read(authNotifierProvider.notifier)
-          .unlock(manager.pinHash); // Or direct session state unlock
-      // But simpler: just unlock the session
+      ref.read(authNotifierProvider.notifier).unlock(manager.pinHash);
       await ref
           .read(authNotifierProvider.notifier)
           .unlock(_pinBuffer.toString());
-      // If cashier PIN is still unknown, log out to let manager login
       ref.read(authNotifierProvider.notifier).logout();
     }
   }
 
+  String _localizedRole(String role, AppLocalizations loc) {
+    switch (role.toLowerCase()) {
+      case 'owner':
+      case 'admin':
+        return loc.roleOwner;
+      case 'manager':
+        return loc.roleManager;
+      case 'inventory':
+        return loc.roleInventory;
+      case 'cashier':
+      default:
+        return loc.roleCashier;
+    }
+  }
+
+  Widget _buildLanguageSelector(WidgetRef ref) {
+    final currentLocale = ref.watch(localeProvider);
+    final isAr = currentLocale.languageCode == 'ar';
+    final isEn = currentLocale.languageCode == 'en';
+    final isFr = currentLocale.languageCode == 'fr';
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppDesignTokens.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppDesignTokens.border),
+        boxShadow: AppDesignTokens.shadowSm,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildLangButton(ref, 'fr', 'FR', isFr),
+          const SizedBox(width: 4),
+          _buildLangButton(ref, 'ar', 'عربي', isAr),
+          const SizedBox(width: 4),
+          _buildLangButton(ref, 'en', 'EN', isEn),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLangButton(
+    WidgetRef ref,
+    String code,
+    String label,
+    bool isSelected,
+  ) {
+    return InkWell(
+      onTap: () => ref.read(localeProvider.notifier).setLocale(Locale(code)),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected ? AppDesignTokens.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : AppDesignTokens.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final auth = ref.watch(authNotifierProvider);
     final user = auth.user;
 
+    final roleStr = user != null ? _localizedRole(user.role, loc) : '';
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0F17),
+      backgroundColor: AppDesignTokens.canvas,
       body: KeyboardListener(
         focusNode: _keyboardFocusNode,
         autofocus: true,
         onKeyEvent: _handleKeyEvent,
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Container(
-                width: 440,
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Lock Icon Badge
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.warning.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
+          child: Stack(
+            children: [
+              PositionedDirectional(
+                top: 24,
+                end: 24,
+                child: _buildLanguageSelector(ref),
+              ),
+              Center(
+                child: SingleChildScrollView(
+                  child: Container(
+                    width: 440,
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: AppDesignTokens.surface,
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusDialog,
                       ),
-                      child: const Icon(
-                        Icons.lock,
-                        color: AppTheme.warning,
-                        size: 36,
-                      ),
+                      border: Border.all(color: AppDesignTokens.border),
+                      boxShadow: AppDesignTokens.shadowLg,
                     ),
-                    const SizedBox(height: 16),
-
-                    const Text(
-                      'Caisse Verrouillée',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Session active : ${user?.displayName ?? "Caissier"} (${user?.role.toUpperCase() ?? ""})',
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // PIN indicator dots
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(4, (index) {
-                        final isFilled = index < _pinBuffer.length;
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isFilled
-                                ? AppTheme.primaryLight
-                                : Colors.transparent,
-                            border: Border.all(
-                              color: isFilled
-                                  ? AppTheme.primaryLight
-                                  : AppTheme.border,
-                              width: 2,
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(
-                          color: AppTheme.error,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // Numpad
-                    Numpad(
-                      onKeyPress: _onNumpadPress,
-                      onBackspace: _onBackspace,
-                      onClear: _onClear,
-                      showDecimal: false,
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Actions
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        onPressed: _submitUnlock,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                        ),
-                        icon: const Icon(Icons.lock_open, size: 20),
-                        label: const Text(
-                          'DÉVERROUILLER',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextButton.icon(
-                          onPressed: () =>
-                              ref.read(authNotifierProvider.notifier).logout(),
-                          icon: const Icon(
-                            Icons.logout,
-                            size: 16,
-                            color: AppTheme.textSecondary,
+                        // Lock Icon Badge
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: AppDesignTokens.warningBg,
+                            shape: BoxShape.circle,
                           ),
-                          label: const Text(
-                            'Changer de caissier',
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 12,
+                          child: const Icon(
+                            Icons.lock,
+                            color: AppDesignTokens.warningText,
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        Text(
+                          loc.screenLocked,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          user != null
+                              ? loc.activeSession(user.displayName, roleStr)
+                              : loc.screenLocked,
+                          style: const TextStyle(
+                            color: AppDesignTokens.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // PIN indicator dots
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (index) {
+                            final isFilled = index < _pinBuffer.length;
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isFilled
+                                    ? AppDesignTokens.primary
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: isFilled
+                                      ? AppDesignTokens.primary
+                                      : AppDesignTokens.border,
+                                  width: 2,
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: AppDesignTokens.danger,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 24),
+
+                        // Numpad
+                        Numpad(
+                          onKeyPress: _onNumpadPress,
+                          onBackspace: _onBackspace,
+                          onClear: _onClear,
+                          showDecimal: false,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Actions
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _submitUnlock,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppDesignTokens.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppDesignTokens.radiusInput,
+                                ),
+                              ),
+                            ),
+                            icon: const Icon(Icons.lock_open, size: 20),
+                            label: Text(
+                              loc.unlockAction.toUpperCase(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                        TextButton.icon(
-                          onPressed: _managerOverrideUnlock,
-                          icon: const Icon(
-                            Icons.admin_panel_settings,
-                            size: 16,
-                            color: AppTheme.warning,
-                          ),
-                          label: const Text(
-                            'Déblocage Manager',
-                            style: TextStyle(
-                              color: AppTheme.warning,
-                              fontSize: 12,
+
+                        const SizedBox(height: 12),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            TextButton.icon(
+                              onPressed: () => ref
+                                  .read(authNotifierProvider.notifier)
+                                  .logout(),
+                              icon: const Icon(
+                                Icons.logout,
+                                size: 16,
+                                color: AppDesignTokens.textSecondary,
+                              ),
+                              label: Text(
+                                loc.switchCashier,
+                                style: const TextStyle(
+                                  color: AppDesignTokens.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
-                          ),
+                            TextButton.icon(
+                              onPressed: _managerOverrideUnlock,
+                              icon: const Icon(
+                                Icons.admin_panel_settings,
+                                size: 16,
+                                color: AppDesignTokens.warningText,
+                              ),
+                              label: Text(
+                                loc.managerEmergencyUnlock,
+                                style: const TextStyle(
+                                  color: AppDesignTokens.warningText,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),

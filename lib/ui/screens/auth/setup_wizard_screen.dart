@@ -6,7 +6,7 @@ import 'package:jazzpos/core/constants/roles.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 
 class SetupWizardScreen extends ConsumerStatefulWidget {
   const SetupWizardScreen({super.key});
@@ -20,21 +20,21 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
   bool _isSaving = false;
 
   // Form controllers - Store & Company
-  final _companyNameCtrl = TextEditingController(text: 'JAZZ FASHION');
-  final _fiscalIdCtrl = TextEditingController(text: '1234567/A/M/000');
-  final _phoneCtrl = TextEditingController(text: '+216 71 000 000');
-  final _addressCtrl = TextEditingController(text: 'Tunis, Tunisie');
+  final _companyNameCtrl = TextEditingController();
+  final _fiscalIdCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
 
   // Register & Location
-  final _storeNameCtrl = TextEditingController(text: 'Boutique Principale');
-  final _registerCodeCtrl = TextEditingController(text: 'REG-01');
-  final _locationNameCtrl = TextEditingController(text: 'Magasin / Vente');
+  final _storeNameCtrl = TextEditingController();
+  final _registerCodeCtrl = TextEditingController();
+  final _locationNameCtrl = TextEditingController();
 
   // Owner Account
-  final _ownerUsernameCtrl = TextEditingController(text: 'admin');
-  final _ownerNameCtrl = TextEditingController(text: 'Propriétaire');
-  final _ownerPinCtrl = TextEditingController(text: '1234');
-  final _ownerPinConfirmCtrl = TextEditingController(text: '1234');
+  final _ownerUsernameCtrl = TextEditingController();
+  final _ownerNameCtrl = TextEditingController();
+  final _ownerPinCtrl = TextEditingController();
+  final _ownerPinConfirmCtrl = TextEditingController();
 
   // Hardware Preferences
   int _paperWidthMm = 80;
@@ -56,11 +56,31 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
   }
 
   Future<void> _completeSetup() async {
+    final requiredFields = [
+      _companyNameCtrl,
+      _storeNameCtrl,
+      _registerCodeCtrl,
+      _locationNameCtrl,
+      _ownerUsernameCtrl,
+      _ownerNameCtrl,
+    ];
+    if (requiredFields.any((controller) => controller.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Complétez tous les champs obligatoires avant de continuer',
+          ),
+          backgroundColor: AppDesignTokens.danger,
+        ),
+      );
+      return;
+    }
+
     if (_ownerPinCtrl.text.trim() != _ownerPinConfirmCtrl.text.trim()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Les codes PIN ne correspondent pas'),
-          backgroundColor: AppTheme.error,
+          backgroundColor: AppDesignTokens.danger,
         ),
       );
       return;
@@ -70,7 +90,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Le code PIN doit comporter au moins 4 chiffres'),
-          backgroundColor: AppTheme.error,
+          backgroundColor: AppDesignTokens.danger,
         ),
       );
       return;
@@ -85,9 +105,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
       final companyId = IdGenerator.uuid();
       final storeId = 'STORE-01';
-      final registerId = _registerCodeCtrl.text.trim().isNotEmpty
-          ? _registerCodeCtrl.text.trim()
-          : 'REG-01';
+      final registerId = _registerCodeCtrl.text.trim();
       final locationId = IdGenerator.uuid();
 
       await db.transaction(() async {
@@ -250,7 +268,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Configuration initiale terminée avec succès !'),
-            backgroundColor: AppTheme.success,
+            backgroundColor: AppDesignTokens.success,
           ),
         );
         Navigator.of(context).pop();
@@ -261,36 +279,80 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur: $e'),
-            backgroundColor: AppTheme.error,
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
     }
   }
 
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(
+        color: AppDesignTokens.textSecondary,
+        fontSize: 13,
+      ),
+      prefixIcon: Icon(icon, size: 20, color: AppDesignTokens.textSecondary),
+      filled: true,
+      fillColor: AppDesignTokens.surface,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusInput),
+        borderSide: const BorderSide(color: AppDesignTokens.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusInput),
+        borderSide: const BorderSide(color: AppDesignTokens.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusInput),
+        borderSide: const BorderSide(
+          color: AppDesignTokens.primary,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppDesignTokens.canvas,
       appBar: AppBar(
-        title: const Text('Assistant d\'Installation & Configuration JazzPOS'),
-        backgroundColor: AppTheme.surface,
+        title: const Text(
+          'Assistant d\'Installation & Configuration JazzPOS',
+          style: TextStyle(
+            color: AppDesignTokens.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        backgroundColor: AppDesignTokens.surface,
+        foregroundColor: AppDesignTokens.textPrimary,
+        elevation: 0,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppDesignTokens.border),
+        ),
       ),
       body: Center(
         child: Container(
-          width: 780,
+          width: 820,
           margin: const EdgeInsets.symmetric(vertical: 24),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.border),
+            color: AppDesignTokens.surface,
+            borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+            border: Border.all(color: AppDesignTokens.border),
+            boxShadow: AppDesignTokens.shadowSm,
           ),
           child: Theme(
             data: Theme.of(context).copyWith(
-              canvasColor: AppTheme.surface,
+              canvasColor: AppDesignTokens.surface,
               colorScheme: Theme.of(context).colorScheme.copyWith(
-                primary: AppTheme.primary,
-                secondary: AppTheme.primaryLight,
+                primary: AppDesignTokens.primary,
+                secondary: AppDesignTokens.primary,
+                onSurface: AppDesignTokens.textPrimary,
               ),
             ),
             child: Stepper(
@@ -316,6 +378,21 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                       if (_currentStep > 0)
                         OutlinedButton(
                           onPressed: _isSaving ? null : details.onStepCancel,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppDesignTokens.textSecondary,
+                            side: const BorderSide(
+                              color: AppDesignTokens.border,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppDesignTokens.radiusInput,
+                              ),
+                            ),
+                          ),
                           child: const Text('Précédent'),
                         ),
                       const Spacer(),
@@ -323,12 +400,18 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                         onPressed: _isSaving ? null : details.onStepContinue,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _currentStep == 3
-                              ? AppTheme.success
-                              : AppTheme.primary,
+                              ? AppDesignTokens.accentOrange
+                              : AppDesignTokens.primary,
                           foregroundColor: Colors.white,
+                          elevation: 0,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 24,
-                            vertical: 12,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusInput,
+                            ),
                           ),
                         ),
                         child: _isSaving
@@ -344,6 +427,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                                 _currentStep == 3
                                     ? 'TERMINER ET INITIALISER'
                                     : 'Suivant',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                       ),
                     ],
@@ -365,23 +451,24 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                         'Informations sur votre commerce de prêt-à-porter :',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 15,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _companyNameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom de la Boutique / Société *',
-                          prefixIcon: Icon(Icons.store),
+                        decoration: _buildInputDecoration(
+                          'Nom de la Boutique / Société *',
+                          Icons.store,
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _fiscalIdCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Matricule Fiscal (MF)',
-                          prefixIcon: Icon(Icons.badge),
+                        decoration: _buildInputDecoration(
+                          'Matricule Fiscal (MF)',
+                          Icons.badge,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -390,9 +477,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                           Expanded(
                             child: TextField(
                               controller: _phoneCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Téléphone',
-                                prefixIcon: Icon(Icons.phone),
+                              decoration: _buildInputDecoration(
+                                'Téléphone',
+                                Icons.phone,
                               ),
                             ),
                           ),
@@ -400,9 +487,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                           Expanded(
                             child: TextField(
                               controller: _addressCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Adresse',
-                                prefixIcon: Icon(Icons.location_on),
+                              decoration: _buildInputDecoration(
+                                'Adresse',
+                                Icons.location_on,
                               ),
                             ),
                           ),
@@ -426,31 +513,32 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                         'Identification de ce poste de caisse :',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 15,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _storeNameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom du Point de Vente',
-                          prefixIcon: Icon(Icons.domain),
+                        decoration: _buildInputDecoration(
+                          'Nom du Point de Vente',
+                          Icons.domain,
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _registerCodeCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Identifiant Caisse (ex: REG-01)',
-                          prefixIcon: Icon(Icons.computer),
+                        decoration: _buildInputDecoration(
+                          'Identifiant Caisse (ex: REG-01)',
+                          Icons.computer,
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _locationNameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Emplacement de stock boutique',
-                          prefixIcon: Icon(Icons.warehouse),
+                        decoration: _buildInputDecoration(
+                          'Emplacement de stock boutique',
+                          Icons.warehouse,
                         ),
                       ),
                     ],
@@ -471,23 +559,24 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                         'Création du compte administrateur / gérant :',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 15,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _ownerNameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom complet du gérant *',
-                          prefixIcon: Icon(Icons.person),
+                        decoration: _buildInputDecoration(
+                          'Nom complet du gérant *',
+                          Icons.person,
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _ownerUsernameCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Identifiant de connexion *',
-                          prefixIcon: Icon(Icons.account_circle),
+                        decoration: _buildInputDecoration(
+                          'Identifiant de connexion *',
+                          Icons.account_circle,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -499,9 +588,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                               keyboardType: TextInputType.number,
                               obscureText: true,
                               maxLength: 6,
-                              decoration: const InputDecoration(
-                                labelText: 'Code PIN (4 à 6 chiffres) *',
-                                prefixIcon: Icon(Icons.pin),
+                              decoration: _buildInputDecoration(
+                                'Code PIN (4 à 6 chiffres) *',
+                                Icons.pin,
                               ),
                             ),
                           ),
@@ -512,9 +601,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                               keyboardType: TextInputType.number,
                               obscureText: true,
                               maxLength: 6,
-                              decoration: const InputDecoration(
-                                labelText: 'Confirmer Code PIN *',
-                                prefixIcon: Icon(Icons.lock_clock),
+                              decoration: _buildInputDecoration(
+                                'Confirmer Code PIN *',
+                                Icons.lock_clock,
                               ),
                             ),
                           ),
@@ -536,12 +625,17 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                         'Configuration des périphériques POS (POSBANK) :',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 15,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       const Text(
                         'Largeur de papier imprimante ticket de caisse :',
+                        style: TextStyle(
+                          color: AppDesignTokens.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -549,6 +643,17 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                           ChoiceChip(
                             label: const Text('80 mm (Standard POS)'),
                             selected: _paperWidthMm == 80,
+                            selectedColor: AppDesignTokens.primary.withValues(
+                              alpha: 0.12,
+                            ),
+                            labelStyle: TextStyle(
+                              color: _paperWidthMm == 80
+                                  ? AppDesignTokens.primary
+                                  : AppDesignTokens.textSecondary,
+                              fontWeight: _paperWidthMm == 80
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
                             onSelected: (_) =>
                                 setState(() => _paperWidthMm = 80),
                           ),
@@ -556,6 +661,17 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                           ChoiceChip(
                             label: const Text('58 mm (Compact)'),
                             selected: _paperWidthMm == 58,
+                            selectedColor: AppDesignTokens.primary.withValues(
+                              alpha: 0.12,
+                            ),
+                            labelStyle: TextStyle(
+                              color: _paperWidthMm == 58
+                                  ? AppDesignTokens.primary
+                                  : AppDesignTokens.textSecondary,
+                              fontWeight: _paperWidthMm == 58
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
                             onSelected: (_) =>
                                 setState(() => _paperWidthMm = 58),
                           ),
@@ -563,11 +679,13 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                       ),
                       const SizedBox(height: 16),
                       Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF161F2E),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.border),
+                          color: AppDesignTokens.surfaceSecondary,
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusCard,
+                          ),
+                          border: Border.all(color: AppDesignTokens.border),
                         ),
                         child: const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,37 +694,43 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                               children: [
                                 Icon(
                                   Icons.check_circle,
-                                  color: AppTheme.success,
+                                  color: AppDesignTokens.success,
                                   size: 18,
                                 ),
                                 SizedBox(width: 8),
                                 Text(
                                   'Scanner code-barres USB HID : Détection automatique',
-                                  style: TextStyle(fontSize: 13),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppDesignTokens.textPrimary,
+                                  ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 6),
+                            SizedBox(height: 8),
                             Row(
                               children: [
                                 Icon(
                                   Icons.check_circle,
-                                  color: AppTheme.success,
+                                  color: AppDesignTokens.success,
                                   size: 18,
                                 ),
                                 SizedBox(width: 8),
                                 Text(
                                   'Tiroir-caisse RJ11 (Piloté via imprimante)',
-                                  style: TextStyle(fontSize: 13),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppDesignTokens.textPrimary,
+                                  ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 6),
+                            SizedBox(height: 8),
                             Row(
                               children: [
                                 Icon(
                                   Icons.check_circle,
-                                  color: AppTheme.success,
+                                  color: AppDesignTokens.success,
                                   size: 18,
                                 ),
                                 SizedBox(width: 8),
@@ -615,6 +739,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
+                                    color: AppDesignTokens.textPrimary,
                                   ),
                                 ),
                               ],

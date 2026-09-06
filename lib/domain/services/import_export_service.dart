@@ -1,6 +1,7 @@
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
@@ -8,6 +9,7 @@ import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'catalog_service.dart';
 import 'inventory_service.dart';
+import 'permission_guard.dart';
 
 class ImportRowPreview {
   final int rowNumber;
@@ -64,15 +66,62 @@ class ImportExportService {
 
   /// Parse and preview CSV product import without modifying database
   Future<ImportPreviewResult> previewCsvImport(String csvContent) async {
-    final rows = const CsvToListConverter(
+    final firstLine = csvContent.split(RegExp(r'\r?\n')).firstOrNull ?? '';
+    final delimiter = firstLine.split(';').length > firstLine.split(',').length
+        ? ';'
+        : ',';
+    final rows = CsvToListConverter(
       eol: '\n',
       shouldParseNumbers: false,
+      fieldDelimiter: delimiter,
     ).convert(csvContent);
     if (rows.length < 2) {
       throw const ValidationException('CSV file is empty or missing headers');
     }
 
-    // Expect header: Name, Brand, Category, Size, Color, SKU, Barcode, CostPrice, SalePrice, Stock
+    String normalizeHeader(Object value) => value
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+    final headers = <String, int>{};
+    for (var index = 0; index < rows.first.length; index++) {
+      headers[normalizeHeader(rows.first[index])] = index;
+    }
+    int? column(List<String> aliases) {
+      for (final alias in aliases) {
+        final index = headers[normalizeHeader(alias)];
+        if (index != null) return index;
+      }
+      return null;
+    }
+
+    final nameColumn = column(['Product Name', 'Name']);
+    final skuColumn = column(['SKU']);
+    final barcodeColumn = column(['Barcode']);
+    final salePriceColumn = column(['Sale Price TND', 'SalePrice']);
+    if (nameColumn == null ||
+        skuColumn == null ||
+        barcodeColumn == null ||
+        salePriceColumn == null) {
+      throw const ValidationException(
+        'CSV headers must include Product Name, SKU, Barcode, and Sale Price TND.',
+      );
+    }
+
+    final brandColumn = column(['Brand']);
+    final categoryColumn = column(['Category']);
+    final sizeColumn = column(['Size']);
+    final colorColumn = column(['Color']);
+    final costColumn = column(['Cost Price TND', 'CostPrice']);
+    final stockColumn = column(['Stock']);
+
+    String valueAt(List<dynamic> row, int? index) {
+      if (index == null || index >= row.length) return '';
+      return row[index].toString().trim();
+    }
+
     final previews = <ImportRowPreview>[];
     final seenSkus = <String>{};
     final seenBarcodes = <String>{};
@@ -83,39 +132,62 @@ class ImportExportService {
         continue;
       }
 
-      final name = row.isNotEmpty ? row[0].toString().trim() : '';
-      final brand = row.length > 1 ? row[1].toString().trim() : null;
-      final category = row.length > 2 ? row[2].toString().trim() : null;
-      final size = row.length > 3 ? row[3].toString().trim() : null;
-      final color = row.length > 4 ? row[4].toString().trim() : null;
-      final sku = row.length > 5 ? row[5].toString().trim() : '';
-      final barcode = row.length > 6 ? row[6].toString().trim() : '';
-      final costStr = row.length > 7 ? row[7].toString().trim() : '0';
-      final priceStr = row.length > 8 ? row[8].toString().trim() : '0';
-      final stockStr = row.length > 9 ? row[9].toString().trim() : '0';
+      final name = valueAt(row, nameColumn);
+      final brand = valueAt(row, brandColumn);
+      final category = valueAt(row, categoryColumn);
+      final size = valueAt(row, sizeColumn);
+      final color = valueAt(row, colorColumn);
+      final sku = valueAt(row, skuColumn);
+      final barcode = valueAt(row, barcodeColumn);
+      final costStr = valueAt(row, costColumn);
+      final priceStr = valueAt(row, salePriceColumn);
+      final stockStr = valueAt(row, stockColumn);
 
-      String? error;
-      if (name.isEmpty) error = 'Missing product name';
-      if (sku.isEmpty) error = 'Missing SKU';
-      if (barcode.isEmpty) error = 'Missing barcode';
-
-      if (!seenSkus.add(sku)) {
-        error = 'Duplicate SKU in import file: $sku';
+      final errors = <String>[];
+      if (name.isEmpty) errors.add('Missing product name');
+      if (sku.isEmpty) {
+        errors.add('Missing SKU');
+      } else if (!seenSkus.add(sku)) {
+        errors.add('Duplicate SKU in import file: $sku');
       }
-      if (!seenBarcodes.add(barcode)) {
-        error = 'Duplicate barcode in import file: $barcode';
-      }
-
-      if (error == null && !await catalogService.isSkuUnique(sku)) {
-        error = 'SKU already exists in database: $sku';
-      }
-      if (error == null && !await catalogService.isBarcodeUnique(barcode)) {
-        error = 'Barcode already exists in database: $barcode';
+      if (barcode.isEmpty) {
+        errors.add('Missing barcode');
+      } else if (!seenBarcodes.add(barcode)) {
+        errors.add('Duplicate barcode in import file: $barcode');
       }
 
-      final cost = Money.parse(costStr);
-      final price = Money.parse(priceStr);
-      final stock = int.tryParse(stockStr) ?? 0;
+      if (sku.isNotEmpty && !await catalogService.isSkuUnique(sku)) {
+        errors.add('SKU already exists in database: $sku');
+      }
+      if (barcode.isNotEmpty &&
+          !await catalogService.isBarcodeUnique(barcode)) {
+        errors.add('Barcode already exists in database: $barcode');
+      }
+
+      Money parseMoney(String input, String label) {
+        if (input.isEmpty) return Money.zero;
+        final normalized = input
+            .replaceAll(RegExp(r'tnd|dt|\s', caseSensitive: false), '')
+            .replaceAll(',', '.');
+        final fraction = normalized.split('.');
+        if (fraction.length == 2 && fraction.last.length > 3) {
+          errors.add('$label must use at most 3 decimal places: $input');
+          return Money.zero;
+        }
+        final parsed = Money.tryParse(input);
+        if (parsed == null || parsed.isNegative) {
+          errors.add('Invalid $label: $input');
+          return Money.zero;
+        }
+        return parsed;
+      }
+
+      final cost = parseMoney(costStr, 'cost price');
+      final price = parseMoney(priceStr, 'sale price');
+      final stock = stockStr.isEmpty ? 0 : int.tryParse(stockStr);
+      if (stock == null || stock < 0) {
+        errors.add('Stock must be a non-negative whole number: $stockStr');
+      }
 
       previews.add(
         ImportRowPreview(
@@ -129,9 +201,9 @@ class ImportExportService {
           barcode: barcode,
           costPrice: cost,
           salePrice: price,
-          stock: stock,
-          isValid: error == null,
-          errorMessage: error,
+          stock: stock ?? 0,
+          isValid: errors.isEmpty,
+          errorMessage: errors.isEmpty ? null : errors.join('; '),
         ),
       );
     }
@@ -154,6 +226,17 @@ class ImportExportService {
     required String actorId,
     required String storeId,
   }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.editProducts,
+    );
+    final store = await (db.select(
+      db.stores,
+    )..where((table) => table.id.equals(storeId))).getSingleOrNull();
+    if (store == null) {
+      throw const ValidationException('Import store does not exist.');
+    }
     final batchId = IdGenerator.uuid();
     final now = DateTime.now();
 
@@ -296,6 +379,6 @@ class ImportExportService {
       ]);
     }
 
-    return const ListToCsvConverter().convert(rows);
+    return const ListToCsvConverter(fieldDelimiter: ';').convert(rows);
   }
 }

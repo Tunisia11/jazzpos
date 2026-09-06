@@ -3,7 +3,10 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
+import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'esc_pos_commands.dart';
+import 'printer_profile.dart';
 import 'receipt_document.dart';
 import 'receipt_printer_interface.dart';
 
@@ -14,6 +17,10 @@ class EscPosReceiptPrinter implements ReceiptPrinter {
   final String connectionType; // NETWORK, USB, SERIAL
   final String address; // e.g. "192.168.1.200:9100" or "/dev/ttyUSB0"
   final int port;
+  @override
+  final PrinterProfile profile;
+  @override
+  final HardwareFingerprint? fingerprint;
 
   Socket? _socket;
   bool _connected = false;
@@ -23,7 +30,34 @@ class EscPosReceiptPrinter implements ReceiptPrinter {
     this.connectionType = 'NETWORK',
     required this.address,
     this.port = 9100,
+    this.profile = PrinterProfile.genericEscPos80,
+    this.fingerprint,
   });
+
+  @override
+  HardwareStatus get status =>
+      _connected ? HardwareStatus.ready : HardwareStatus.offline;
+
+  @override
+  Future<bool> printRaw(Uint8List bytes) async {
+    try {
+      if (!_connected || _socket == null) {
+        final ok = await connect();
+        if (!ok) return false;
+      }
+      _socket!.add(bytes);
+      await _socket!.flush();
+      return true;
+    } catch (e) {
+      PosLogger.instance.error(
+        'EscPosReceiptPrinter',
+        'Failed to send raw bytes',
+        e,
+      );
+      _connected = false;
+      return false;
+    }
+  }
 
   @override
   Future<bool> connect() async {

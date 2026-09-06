@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
@@ -321,5 +322,56 @@ void main() {
         expect(stockL, 9);
       },
     );
+
+    test('failed replacement sale rolls the entire exchange back', () async {
+      await db
+          .into(db.appSettings)
+          .insertOnConflictUpdate(
+            AppSettingsCompanion.insert(
+              key: AppConstants.keyNegativeStockPolicy,
+              value: AppConstants.negativeStockBlock,
+              updatedAt: DateTime.now(),
+            ),
+          );
+      final returned = ReturnLineItem(
+        variantId: variantM,
+        quantity: 1,
+        refundUnitPrice: const Money.fromMillimes(39900),
+      );
+      final replacement = CartItem(
+        variantId: variantL,
+        productId: 'prod-1',
+        productName: 'Polo Shirt',
+        variantDescription: 'BLACK / L',
+        sku: 'POLO-BLK-L',
+        barcode: '200222222222',
+        unitPrice: const Money.fromMillimes(49900),
+        originalPrice: const Money.fromMillimes(49900),
+        quantity: 11,
+      );
+
+      await expectLater(
+        exchangeService.processExchange(
+          ExchangeRequest(
+            storeId: storeId,
+            registerId: registerId,
+            shiftId: shiftId,
+            cashierId: cashierId,
+            returnedItems: [returned],
+            newItems: [replacement],
+            paymentMethod: AppConstants.paymentCash,
+            tendered: const Money.fromMillimes(509000),
+            reason: 'Must roll back',
+            managerOverrideId: managerId,
+          ),
+        ),
+        throwsA(isA<InsufficientStockException>()),
+      );
+      expect(await db.select(db.returns).get(), isEmpty);
+      expect(await db.select(db.exchanges).get(), isEmpty);
+      expect(await db.select(db.cashMovements).get(), isEmpty);
+      expect(await inventoryService.getStock(variantM), 10);
+      expect(await inventoryService.getStock(variantL), 10);
+    });
   });
 }

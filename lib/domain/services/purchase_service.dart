@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'inventory_service.dart';
+import 'permission_guard.dart';
 
 class ReceivedLineInput {
   final String variantId;
@@ -36,8 +38,16 @@ class PurchaseService {
   Future<String> createPurchaseOrder({
     required String supplierId,
     required List<({String variantId, int expectedQty, Money unitCost})> items,
+    String? createdById,
     String? notes,
   }) async {
+    if (createdById != null) {
+      await PermissionGuard.requirePermission(
+        db,
+        createdById,
+        AppPermissions.manageSuppliers,
+      );
+    }
     if (items.isEmpty) {
       throw const ValidationException('PO must have at least one line');
     }
@@ -105,7 +115,13 @@ class PurchaseService {
       throw const ValidationException('Cannot receive empty shipment');
     }
 
+    final receivedVariantIds = <String>{};
     for (final line in lines) {
+      if (!receivedVariantIds.add(line.variantId)) {
+        throw const ValidationException(
+          'Each variant may appear only once in a goods receipt.',
+        );
+      }
       if (line.quantityReceived <= 0) {
         throw const ValidationException(
           'Received quantity must be greater than zero',
@@ -122,19 +138,8 @@ class PurchaseService {
           'Damaged plus rejected quantities cannot exceed total received quantity',
         );
       }
-    }
-
-    if (purchaseOrderId != null) {
-      final po = await (db.select(
-        db.purchaseOrders,
-      )..where((tbl) => tbl.id.equals(purchaseOrderId))).getSingleOrNull();
-      if (po == null) {
-        throw const ValidationException('Purchase order not found');
-      }
-      if (po.status == 'RECEIVED') {
-        throw const ValidationException(
-          'This purchase order has already been completely received.',
-        );
+      if (line.unitCost.isNegative) {
+        throw const ValidationException('Purchase cost cannot be negative');
       }
     }
 
@@ -143,15 +148,69 @@ class PurchaseService {
     final now = DateTime.now();
 
     final shopFloor = await inventoryService.getDefaultLocation(storeId);
-    final damagedLocation =
-        await (db.select(db.stockLocations)..where(
-              (tbl) =>
-                  tbl.storeId.equals(storeId) &
-                  tbl.locationType.equals(AppConstants.locationDamaged),
-            ))
-            .getSingleOrNull();
+    final hasDamagedItems = lines.any((line) => line.quantityDamaged > 0);
+    final damagedLocation = hasDamagedItems
+        ? await inventoryService.getDamagedLocation(storeId)
+        : null;
 
     await db.transaction(() async {
+      await PermissionGuard.requirePermission(
+        db,
+        receivedById,
+        AppPermissions.manageSuppliers,
+      );
+      if (invoiceReference != null && invoiceReference.trim().isNotEmpty) {
+        final duplicateReceipt =
+            await (db.select(db.goodsReceipts)..where(
+                  (table) =>
+                      table.supplierId.equals(supplierId) &
+                      table.invoiceReference.equals(invoiceReference.trim()),
+                ))
+                .getSingleOrNull();
+        if (duplicateReceipt != null) {
+          throw const ValidationException(
+            'This supplier invoice has already been received.',
+          );
+        }
+      }
+      if (purchaseOrderId != null) {
+        final po = await (db.select(
+          db.purchaseOrders,
+        )..where((tbl) => tbl.id.equals(purchaseOrderId))).getSingleOrNull();
+        if (po == null) {
+          throw const ValidationException('Purchase order not found');
+        }
+        if (po.supplierId != supplierId) {
+          throw const ValidationException(
+            'The supplier does not match this purchase order.',
+          );
+        }
+        if (po.status != 'ORDERED' && po.status != 'PARTIALLY_RECEIVED') {
+          throw const ValidationException(
+            'This purchase order cannot receive additional goods.',
+          );
+        }
+        for (final line in lines) {
+          final poLine =
+              await (db.select(db.purchaseOrderLines)..where(
+                    (tbl) =>
+                        tbl.purchaseOrderId.equals(purchaseOrderId) &
+                        tbl.variantId.equals(line.variantId),
+                  ))
+                  .getSingleOrNull();
+          if (poLine == null) {
+            throw ValidationException(
+              'Variant ${line.variantId} is not part of this purchase order.',
+            );
+          }
+          if (poLine.receivedQty + line.quantityReceived > poLine.expectedQty) {
+            throw ValidationException(
+              'Receiving ${line.quantityReceived} units would exceed the remaining quantity for this purchase order.',
+            );
+          }
+        }
+      }
+
       // 1. Insert Goods Receipt
       await db
           .into(db.goodsReceipts)
@@ -211,12 +270,12 @@ class PurchaseService {
         }
 
         // Record stock movement for damaged items
-        if (line.quantityDamaged > 0 && damagedLocation != null) {
+        if (line.quantityDamaged > 0) {
           await inventoryService.recordMovement(
             variantId: line.variantId,
             movementType: AppConstants.movementDamage,
             quantityDelta: line.quantityDamaged,
-            toLocationId: damagedLocation.id,
+            toLocationId: damagedLocation!.id,
             unitCostMillimes: line.unitCost.millimes,
             referenceId: grId,
             referenceType: 'PURCHASE_DAMAGED',

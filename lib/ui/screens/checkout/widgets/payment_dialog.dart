@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/models/checkout_request.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
+import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 import 'package:jazzpos/ui/widgets/numpad.dart';
 import 'receipt_preview_dialog.dart';
@@ -51,9 +53,6 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
   final StringBuffer _tenderedBuffer = StringBuffer();
   bool _isSubmitting = false;
   String? _error;
-
-  // For mixed payments
-  final StringBuffer _cardAmountBuffer = StringBuffer();
 
   Money get _tenderedAmount {
     if (_tenderedBuffer.isEmpty) return widget.totalAmount;
@@ -100,15 +99,16 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
   Future<void> _submitCheckout() async {
     if (_isSubmitting) return; // Prevent double click!
 
+    final loc = context.loc;
     final auth = ref.read(authNotifierProvider);
     final shift = ref.read(shiftNotifierProvider).activeShift;
 
     if (auth.user == null) {
-      setState(() => _error = 'Session utilisateur invalide');
+      setState(() => _error = loc.invalidUserSession);
       return;
     }
     if (shift == null) {
-      setState(() => _error = 'Aucune session de caisse ouverte !');
+      setState(() => _error = loc.noActiveShift);
       return;
     }
 
@@ -116,7 +116,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
     if (_selectedMethod == AppConstants.paymentCash) {
       if (_tenderedAmount < widget.totalAmount) {
-        setState(() => _error = 'Montant reçu insuffisant');
+        setState(() => _error = loc.insufficientAmount);
         return;
       }
       payments.add(
@@ -135,10 +135,14 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         ),
       );
     } else if (_selectedMethod == AppConstants.paymentMixed) {
-      final cardAmt = Money.parse(_cardAmountBuffer.toString());
+      // The visible numpad buffer is the card portion for a split payment.
+      // Previously a separate, unwritten buffer made every split invalid.
+      final cardAmt = _tenderedBuffer.isEmpty
+          ? Money.zero
+          : Money.parse(_tenderedBuffer.toString());
       final cashAmt = widget.totalAmount - cardAmt;
       if (cardAmt <= Money.zero || cashAmt <= Money.zero) {
-        setState(() => _error = 'Répartition mixte invalide');
+        setState(() => _error = loc.invalidSplit);
         return;
       }
       payments.add(
@@ -168,6 +172,21 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         payments: payments,
       );
 
+      // Receipts must show the client-configured business and register rather
+      // than the development sample name or a fixed register code.
+      final db = ref.read(databaseProvider);
+      final store = await (db.select(
+        db.stores,
+      )..where((tbl) => tbl.id.equals(widget.storeId))).getSingleOrNull();
+      final register = await (db.select(
+        db.registers,
+      )..where((tbl) => tbl.id.equals(widget.registerId))).getSingleOrNull();
+      final company = store == null
+          ? null
+          : await (db.select(db.companies)
+                  ..where((tbl) => tbl.id.equals(store.companyId)))
+                .getSingleOrNull();
+
       // Trigger cash drawer kick on cash sale!
       if (_selectedMethod == AppConstants.paymentCash ||
           _selectedMethod == AppConstants.paymentMixed) {
@@ -178,11 +197,14 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
       // Build receipt document and trigger printer
       final doc = ReceiptDocument(
-        storeName: 'JAZZ FASHION',
+        storeName: company?.name ?? store?.name ?? 'JAZZ POS',
+        storeAddress: store?.address ?? company?.address,
+        storePhone: store?.phone ?? company?.phone,
+        fiscalId: company?.fiscalId,
         receiptNumber: result.sale.receiptNumber,
         dateTime: result.sale.createdAt,
         cashierName: auth.user!.displayName,
-        registerCode: 'REG-01',
+        registerCode: register?.code ?? widget.registerId,
         lines: result.lines
             .map(
               (l) => ReceiptLineItem(
@@ -212,13 +234,26 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
             .toList(),
       );
 
+      bool printSuccess = true;
+      String? printErrorMessage;
       try {
         await HardwareManager.instance.receiptPrinter.printReceipt(doc);
-      } catch (_) {}
+      } catch (e) {
+        printSuccess = false;
+        printErrorMessage = e.toString().replaceAll('Exception: ', '');
+      }
 
       if (mounted) {
         Navigator.of(context).pop();
-        ReceiptPreviewDialog.show(context, document: doc);
+        if (!printSuccess) {
+          _showHardwareFailureDialog(
+            context,
+            doc: doc,
+            errorMessage: printErrorMessage,
+          );
+        } else {
+          ReceiptPreviewDialog.show(context, document: doc);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -230,14 +265,131 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     }
   }
 
+  void _showHardwareFailureDialog(
+    BuildContext context, {
+    required ReceiptDocument doc,
+    String? errorMessage,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppDesignTokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: AppDesignTokens.success, size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'VENTE ENREGISTRÉE AVEC SUCCÈS ✓',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppDesignTokens.successText,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppDesignTokens.warningBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppDesignTokens.warning),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.print_disabled,
+                    color: AppDesignTokens.warningText,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Imprimante indisponible',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.warningText,
+                          ),
+                        ),
+                        if (errorMessage != null)
+                          Text(
+                            errorMessage,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppDesignTokens.warningText,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Ticket N° : ${doc.receiptNumber}\nMontant : ${doc.total.format()}\nLa vente, les stocks et les paiements ont été validés en base de données.',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppDesignTokens.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              try {
+                await HardwareManager.instance.receiptPrinter.printReceipt(doc);
+                if (ctx.mounted) {
+                  Navigator.of(ctx).pop();
+                  ReceiptPreviewDialog.show(context, document: doc);
+                }
+              } catch (_) {}
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Réessayer'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ReceiptPreviewDialog.show(context, document: doc);
+            },
+            icon: const Icon(Icons.remove_red_eye),
+            label: const Text('Aperçu ticket'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Continuer'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
+
     return Dialog(
-      backgroundColor: AppTheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: AppDesignTokens.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
+      ),
       child: Container(
         width: 750,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDesignTokens.space24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,19 +397,22 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Encaissement Vente',
-                  style: TextStyle(
-                    fontSize: 22,
+                Text(
+                  loc.paymentTitle,
+                  style: const TextStyle(
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppDesignTokens.textPrimary,
                   ),
                 ),
                 IconButton(
                   onPressed: _isSubmitting
                       ? null
                       : () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                  icon: const Icon(
+                    Icons.close,
+                    color: AppDesignTokens.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -277,19 +432,19 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                         children: [
                           _buildMethodButton(
                             AppConstants.paymentCash,
-                            'ESPECES',
+                            loc.paymentCash.toUpperCase(),
                             Icons.money,
                           ),
                           const SizedBox(width: 8),
                           _buildMethodButton(
                             AppConstants.paymentCard,
-                            'CARTE',
+                            loc.paymentCard.toUpperCase(),
                             Icons.credit_card,
                           ),
                           const SizedBox(width: 8),
                           _buildMethodButton(
                             AppConstants.paymentMixed,
-                            'MIXTE',
+                            loc.paymentSplit.toUpperCase(),
                             Icons.pie_chart,
                           ),
                         ],
@@ -298,11 +453,12 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
                       // Presets for cash
                       if (_selectedMethod == AppConstants.paymentCash) ...[
-                        const Text(
-                          'Billets rapides:',
-                          style: TextStyle(
+                        Text(
+                          loc.quickBills,
+                          style: const TextStyle(
                             fontSize: 13,
-                            color: AppTheme.textSecondary,
+                            color: AppDesignTokens.textSecondary,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -312,7 +468,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                           children: [
                             _buildPresetButton(
                               widget.totalAmount,
-                              label: 'Montant Exact',
+                              label: loc.exactAmount,
                             ),
                             _buildPresetButton(const Money.fromMillimes(10000)),
                             _buildPresetButton(const Money.fromMillimes(20000)),
@@ -327,27 +483,30 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
                       // Summary Card
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(AppDesignTokens.space16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF161F2E),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.border),
+                          color: AppDesignTokens.surfaceSecondary,
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusMd,
+                          ),
+                          border: Border.all(color: AppDesignTokens.border),
                         ),
                         child: Column(
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Total à Payer:',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: AppTheme.textSecondary,
+                                Text(
+                                  '${loc.total}:',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: AppDesignTokens.textSecondary,
                                   ),
                                 ),
                                 MoneyDisplay(
                                   amount: widget.totalAmount,
-                                  fontSize: 20,
+                                  fontSize: 18,
+                                  color: AppDesignTokens.textPrimary,
                                 ),
                               ],
                             ),
@@ -358,37 +517,40 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'Espèces Reçus:',
-                                    style: TextStyle(
+                                  Text(
+                                    '${loc.tenderedAmount}:',
+                                    style: const TextStyle(
                                       fontSize: 14,
-                                      color: AppTheme.textSecondary,
+                                      color: AppDesignTokens.textSecondary,
                                     ),
                                   ),
                                   MoneyDisplay(
                                     amount: _tenderedAmount,
-                                    fontSize: 18,
-                                    color: Colors.blueAccent,
+                                    fontSize: 17,
+                                    color: AppDesignTokens.primary,
                                   ),
                                 ],
                               ),
-                              const Divider(color: AppTheme.border, height: 16),
+                              const Divider(
+                                color: AppDesignTokens.border,
+                                height: 16,
+                              ),
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'Monnaie à Rendre:',
-                                    style: TextStyle(
-                                      fontSize: 16,
+                                  Text(
+                                    '${loc.changeDue}:',
+                                    style: const TextStyle(
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      color: AppDesignTokens.textPrimary,
                                     ),
                                   ),
                                   MoneyDisplay(
                                     amount: _changeAmount,
-                                    fontSize: 22,
-                                    color: Colors.greenAccent,
+                                    fontSize: 20,
+                                    color: AppDesignTokens.success,
                                   ),
                                 ],
                               ),
@@ -402,14 +564,14 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.15),
+                            color: AppDesignTokens.dangerBg,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.redAccent),
+                            border: Border.all(color: AppDesignTokens.danger),
                           ),
                           child: Text(
                             _error!,
                             style: const TextStyle(
-                              color: Colors.redAccent,
+                              color: AppDesignTokens.dangerText,
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),
@@ -432,9 +594,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         alignment: Alignment.centerRight,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF161F2E),
+                          color: AppDesignTokens.surfaceSecondary,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.border),
+                          border: Border.all(color: AppDesignTokens.border),
                         ),
                         child: Text(
                           _tenderedBuffer.isEmpty
@@ -443,7 +605,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppDesignTokens.textPrimary,
                             fontFamily: 'monospace',
                           ),
                         ),
@@ -470,10 +632,11 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                         ? null
                         : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      side: const BorderSide(color: AppTheme.border),
+                      minimumSize: const Size(0, 50),
+                      side: const BorderSide(color: AppDesignTokens.border),
+                      foregroundColor: AppDesignTokens.textPrimary,
                     ),
-                    child: const Text('ANNULER (Echap)'),
+                    child: Text('${loc.cancel.toUpperCase()} (Echap)'),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -482,9 +645,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                   child: ElevatedButton.icon(
                     onPressed: _isSubmitting ? null : _submitCheckout,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.success,
+                      backgroundColor: AppDesignTokens.success,
                       foregroundColor: Colors.white,
-                      minimumSize: const Size(0, 52),
+                      minimumSize: const Size(0, 50),
                     ),
                     icon: _isSubmitting
                         ? const SizedBox(
@@ -495,13 +658,13 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Icon(Icons.check_circle_outline, size: 24),
+                        : const Icon(Icons.check_circle_outline, size: 22),
                     label: Text(
                       _isSubmitting
-                          ? 'VALIDATION...'
-                          : 'VALIDER PAIEMENT (Entrée)',
+                          ? '${loc.loading.toUpperCase()}...'
+                          : loc.validatePayment,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -522,12 +685,16 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         onTap: () => setState(() => _selectedMethod = method),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          height: 52,
+          height: 48,
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary : const Color(0xFF161F2E),
+            color: isSelected
+                ? AppDesignTokens.primary
+                : AppDesignTokens.surfaceSecondary,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected ? AppTheme.primary : AppTheme.border,
+              color: isSelected
+                  ? AppDesignTokens.primary
+                  : AppDesignTokens.border,
             ),
           ),
           child: Row(
@@ -536,14 +703,19 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
               Icon(
                 icon,
                 size: 18,
-                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                color: isSelected
+                    ? Colors.white
+                    : AppDesignTokens.textSecondary,
               ),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : AppTheme.textSecondary,
+                  fontSize: 12,
+                  color: isSelected
+                      ? Colors.white
+                      : AppDesignTokens.textSecondary,
                 ),
               ),
             ],
@@ -557,12 +729,17 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     return ElevatedButton(
       onPressed: () => _setPresetCash(amount),
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF334155),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        minimumSize: const Size(0, 38),
+        backgroundColor: AppDesignTokens.surfaceSecondary,
+        foregroundColor: AppDesignTokens.textPrimary,
+        elevation: 0,
+        side: const BorderSide(color: AppDesignTokens.border),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(0, 36),
       ),
-      child: Text(label ?? amount.format()),
+      child: Text(
+        label ?? amount.format(),
+        style: const TextStyle(fontSize: 12),
+      ),
     );
   }
 }

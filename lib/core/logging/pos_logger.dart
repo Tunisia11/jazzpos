@@ -2,8 +2,7 @@ import 'dart:collection';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:jazzpos/core/platform/app_paths.dart';
 
 enum LogLevel { debug, info, warning, error }
 
@@ -49,17 +48,8 @@ class PosLogger {
   Future<void> initialize() async {
     if (_initialized) return;
     try {
-      final appDir = await getApplicationSupportDirectory();
-      // Ensure directory under JazzPOS
-      final baseDir =
-          (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
-          ? Directory(p.join(appDir.path, 'JazzPOS'))
-          : appDir;
-      final logDir = Directory(p.join(baseDir.path, 'logs'));
-      if (!await logDir.exists()) {
-        await logDir.create(recursive: true);
-      }
-      _logFile = File(p.join(logDir.path, 'jazzpos.log'));
+      await AppPaths.instance.initialize();
+      _logFile = File(AppPaths.instance.logFilePath);
       _rotateIfNeeded();
       _initialized = true;
       info('Logger', 'POS Logging system initialized at ${_logFile?.path}');

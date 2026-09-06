@@ -1324,6 +1324,44 @@ void main() {
         expect(newStock, equals(18));
       },
     );
+
+    test(
+      '6.3 Duplicate lines cannot over-receive one purchase order',
+      () async {
+        final poId = await purchaseService.createPurchaseOrder(
+          supplierId: supplierId,
+          items: [
+            (
+              variantId: poVariantId,
+              expectedQty: 10,
+              unitCost: Money.fromTnd(30.000),
+            ),
+          ],
+        );
+        final duplicateLine = ReceivedLineInput(
+          variantId: poVariantId,
+          quantityReceived: 6,
+          unitCost: Money.fromTnd(30.000),
+        );
+
+        await expectLater(
+          purchaseService.receiveGoods(
+            purchaseOrderId: poId,
+            supplierId: supplierId,
+            storeId: storeId,
+            receivedById: managerId,
+            lines: [duplicateLine, duplicateLine],
+          ),
+          throwsA(isA<ValidationException>()),
+        );
+        expect(await db.select(db.goodsReceipts).get(), isEmpty);
+        expect(await inventoryService.getStock(poVariantId), 0);
+        final line = await (db.select(
+          db.purchaseOrderLines,
+        )..where((table) => table.purchaseOrderId.equals(poId))).getSingle();
+        expect(line.receivedQty, 0);
+      },
+    );
   });
 
   group('7. Database Diagnostics, Integrity Checker & Self-Repair QA', () {

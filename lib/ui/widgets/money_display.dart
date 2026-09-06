@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'common/price_text.dart';
 
 class MoneyDisplay extends StatelessWidget {
   final Money amount;
@@ -11,7 +12,7 @@ class MoneyDisplay extends StatelessWidget {
   const MoneyDisplay({
     super.key,
     required this.amount,
-    this.fontSize = 16,
+    this.fontSize = 15,
     this.fontWeight = FontWeight.bold,
     this.color,
     this.showCurrency = true,
@@ -19,17 +20,12 @@ class MoneyDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor =
-        color ?? (amount.isNegative ? Colors.redAccent : Colors.white);
-    return Text(
-      amount.format(includeCurrency: showCurrency),
-      style: TextStyle(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        color: textColor,
-        fontFamily: 'monospace',
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
+    return PriceText(
+      money: amount,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      showCurrency: showCurrency,
     );
   }
 }

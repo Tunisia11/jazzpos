@@ -67,7 +67,14 @@ class ExchangeService {
   ExchangeService(this.db, this.returnService, this.saleService);
 
   /// Process an atomic exchange of clothing items
-  Future<ExchangeCompletedResult> processExchange(
+  Future<ExchangeCompletedResult> processExchange(ExchangeRequest request) {
+    // Return, replacement sale, cash difference and link record are one
+    // business operation. Nested Drift transactions participate in this outer
+    // transaction, so any failure rolls the entire exchange back.
+    return db.transaction(() => _processExchangeAtomic(request));
+  }
+
+  Future<ExchangeCompletedResult> _processExchangeAtomic(
     ExchangeRequest request,
   ) async {
     if (request.returnedItems.isEmpty) {

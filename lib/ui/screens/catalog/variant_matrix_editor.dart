@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/models/variant_matrix.dart';
 import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 
 class VariantMatrixEditor extends ConsumerStatefulWidget {
   final String productCode;
@@ -138,6 +139,7 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
   }
 
   void _bulkApplyPrice() {
+    final loc = context.loc;
     final ctrl = TextEditingController(
       text: widget.defaultPrice.format(
         includeCurrency: false,
@@ -147,24 +149,39 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Appliquer un prix à toutes les variantes'),
+        backgroundColor: AppDesignTokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusDialog),
+        ),
+        title: Text(
+          loc.bulkPrice,
+          style: const TextStyle(
+            color: AppDesignTokens.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Nouveau prix de vente (TND)',
-            suffixText: 'TND',
+          decoration: InputDecoration(
+            labelText: loc.sellingPrice,
+            suffixText: loc.currencySymbol,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesignTokens.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
             onPressed: () {
-              final p = Money.fromTnd(double.tryParse(ctrl.text) ?? 0);
+              final p = Money.tryParse(ctrl.text);
+              if (p == null || p.isNegative) return;
               setState(() {
                 for (final v in _variants) {
                   v.salePrice = p;
@@ -173,7 +190,7 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
               widget.onVariantsChanged(_variants);
               Navigator.of(ctx).pop();
             },
-            child: const Text('Appliquer'),
+            child: Text(loc.confirm),
           ),
         ],
       ),
@@ -181,25 +198,38 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
   }
 
   void _bulkApplyStock() {
+    final loc = context.loc;
     final ctrl = TextEditingController(text: '10');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Appliquer un stock initial à toutes les variantes'),
+        backgroundColor: AppDesignTokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusDialog),
+        ),
+        title: Text(
+          loc.bulkStock,
+          style: const TextStyle(
+            color: AppDesignTokens.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Quantité initiale par variante',
-          ),
+          decoration: InputDecoration(labelText: loc.initialStock),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesignTokens.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
             onPressed: () {
               final qty = int.tryParse(ctrl.text) ?? 0;
               setState(() {
@@ -210,7 +240,7 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
               widget.onVariantsChanged(_variants);
               Navigator.of(ctx).pop();
             },
-            child: const Text('Appliquer'),
+            child: Text(loc.confirm),
           ),
         ],
       ),
@@ -219,8 +249,12 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
+
     if (_isLoadingAttrs) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: AppDesignTokens.primary),
+      );
     }
 
     return Column(
@@ -230,23 +264,27 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF161F2E),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppTheme.border),
+            color: AppDesignTokens.surfaceElevated,
+            borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+            border: Border.all(color: AppDesignTokens.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.grid_on, color: AppTheme.primaryLight, size: 20),
-                  SizedBox(width: 8),
+                  const Icon(
+                    Icons.grid_on,
+                    color: AppDesignTokens.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'Générateur de Matrice Tailles & Couleurs (Prêt-à-Porter)',
-                    style: TextStyle(
+                    loc.matrixGenerator,
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
-                      color: Colors.white,
+                      color: AppDesignTokens.textPrimary,
                     ),
                   ),
                 ],
@@ -254,12 +292,12 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
               const SizedBox(height: 14),
 
               // Sizes Selection
-              const Text(
-                '1. Sélectionnez les Tailles :',
-                style: TextStyle(
+              Text(
+                loc.selectSizes,
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  color: AppTheme.textSecondary,
+                  color: AppDesignTokens.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -269,8 +307,31 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                 children: _availableSizes.map((s) {
                   final isSelected = _selectedSizeIds.contains(s.id);
                   return FilterChip(
-                    label: Text(s.value),
+                    label: Text(
+                      s.value,
+                      style: TextStyle(
+                        color: isSelected
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.textPrimary,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                    ),
                     selected: isSelected,
+                    backgroundColor: AppDesignTokens.surface,
+                    selectedColor: AppDesignTokens.primaryLight,
+                    checkmarkColor: AppDesignTokens.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusSm,
+                      ),
+                      side: BorderSide(
+                        color: isSelected
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.border,
+                      ),
+                    ),
                     onSelected: (selected) {
                       setState(() {
                         if (selected) {
@@ -288,12 +349,12 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
               const SizedBox(height: 16),
 
               // Colors Selection
-              const Text(
-                '2. Sélectionnez les Couleurs :',
-                style: TextStyle(
+              Text(
+                loc.selectColors,
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  color: AppTheme.textSecondary,
+                  color: AppDesignTokens.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -303,8 +364,31 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
                 children: _availableColors.map((c) {
                   final isSelected = _selectedColorIds.contains(c.id);
                   return FilterChip(
-                    label: Text(c.value),
+                    label: Text(
+                      c.value,
+                      style: TextStyle(
+                        color: isSelected
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.textPrimary,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                    ),
                     selected: isSelected,
+                    backgroundColor: AppDesignTokens.surface,
+                    selectedColor: AppDesignTokens.primaryLight,
+                    checkmarkColor: AppDesignTokens.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppDesignTokens.radiusSm,
+                      ),
+                      side: BorderSide(
+                        color: isSelected
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.border,
+                      ),
+                    ),
                     onSelected: (selected) {
                       setState(() {
                         if (selected) {
@@ -330,29 +414,40 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Variantes générées (${_variants.where((v) => v.isEnabled).length} actives / ${_variants.length})',
+                '${loc.variantDescription} (${_variants.where((v) => v.isEnabled).length} ${loc.active.toLowerCase()} / ${_variants.length})',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
+                  color: AppDesignTokens.textPrimary,
                 ),
               ),
               Row(
                 children: [
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppDesignTokens.primary,
+                      side: const BorderSide(color: AppDesignTokens.border),
+                      backgroundColor: AppDesignTokens.surface,
+                    ),
                     onPressed: _bulkApplyPrice,
                     icon: const Icon(Icons.price_change, size: 16),
-                    label: const Text(
-                      'Prix en masse',
-                      style: TextStyle(fontSize: 12),
+                    label: Text(
+                      loc.bulkPrice,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppDesignTokens.primary,
+                      side: const BorderSide(color: AppDesignTokens.border),
+                      backgroundColor: AppDesignTokens.surface,
+                    ),
                     onPressed: _bulkApplyStock,
                     icon: const Icon(Icons.inventory, size: 16),
-                    label: const Text(
-                      'Stock initial en masse',
-                      style: TextStyle(fontSize: 12),
+                    label: Text(
+                      loc.bulkStock,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
@@ -363,215 +458,282 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
 
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.border),
+              color: AppDesignTokens.surface,
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+              border: Border.all(color: AppDesignTokens.border),
+              boxShadow: AppDesignTokens.shadowSm,
             ),
-            child: Table(
-              columnWidths: const {
-                0: FixedColumnWidth(48),
-                1: FlexColumnWidth(2),
-                2: FlexColumnWidth(2),
-                3: FlexColumnWidth(2),
-                4: FlexColumnWidth(1.5),
-                5: FlexColumnWidth(1.5),
-                6: FlexColumnWidth(1.2),
-              },
-              children: [
-                // Header
-                TableRow(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF161F2E),
-                    border: Border(bottom: BorderSide(color: AppTheme.border)),
-                  ),
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Center(
-                        child: Text(
-                          'Actif',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Variante',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'SKU / Réf',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Code-barres',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Prix Vente',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Coût Achat',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Text(
-                        'Stock Init.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Rows
-                ..._variants.map((v) {
-                  return TableRow(
-                    decoration: BoxDecoration(
-                      color: v.isEnabled
-                          ? Colors.transparent
-                          : Colors.black.withValues(alpha: 0.3),
-                      border: const Border(
-                        bottom: BorderSide(color: AppTheme.border, width: 0.5),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+              child: Table(
+                columnWidths: const {
+                  0: FixedColumnWidth(48),
+                  1: FlexColumnWidth(2),
+                  2: FlexColumnWidth(2),
+                  3: FlexColumnWidth(2),
+                  4: FlexColumnWidth(1.5),
+                  5: FlexColumnWidth(1.5),
+                  6: FlexColumnWidth(1.2),
+                },
+                children: [
+                  // Header
+                  TableRow(
+                    decoration: const BoxDecoration(
+                      color: AppDesignTokens.surfaceElevated,
+                      border: Border(
+                        bottom: BorderSide(color: AppDesignTokens.border),
                       ),
                     ),
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Checkbox(
-                          value: v.isEnabled,
-                          onChanged: (val) {
-                            setState(() => v.isEnabled = val ?? true);
-                            widget.onVariantsChanged(_variants);
-                          },
+                        padding: const EdgeInsets.all(10),
+                        child: Center(
+                          child: Text(
+                            loc.active,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppDesignTokens.textSecondary,
+                            ),
+                          ),
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 8,
-                        ),
+                        padding: const EdgeInsets.all(10),
                         child: Text(
-                          v.attributeDescription,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: v.isEnabled
-                                ? Colors.white
-                                : AppTheme.textSecondary,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: TextFormField(
-                          initialValue: v.sku,
-                          style: const TextStyle(fontSize: 12),
-                          onChanged: (val) {
-                            v.sku = val;
-                            widget.onVariantsChanged(_variants);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: TextFormField(
-                          initialValue: v.barcode,
-                          style: const TextStyle(fontSize: 12),
-                          onChanged: (val) {
-                            v.barcode = val;
-                            widget.onVariantsChanged(_variants);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: TextFormField(
-                          initialValue: v.salePrice.format(
-                            includeCurrency: false,
-                            useGrouping: false,
-                          ),
-                          keyboardType: TextInputType.number,
+                          loc.variantDescription,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.textSecondary,
                           ),
-                          onChanged: (val) {
-                            v.salePrice = Money.fromTnd(
-                              double.tryParse(val) ?? 0,
-                            );
-                            widget.onVariantsChanged(_variants);
-                          },
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: TextFormField(
-                          initialValue: v.costPrice.format(
-                            includeCurrency: false,
-                            useGrouping: false,
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          '${loc.sku} / Réf',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.textSecondary,
                           ),
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(fontSize: 12),
-                          onChanged: (val) {
-                            v.costPrice = Money.fromTnd(
-                              double.tryParse(val) ?? 0,
-                            );
-                            widget.onVariantsChanged(_variants);
-                          },
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: TextFormField(
-                          initialValue: '${v.initialStock}',
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(fontSize: 12),
-                          onChanged: (val) {
-                            v.initialStock = int.tryParse(val) ?? 0;
-                            widget.onVariantsChanged(_variants);
-                          },
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          loc.barcode,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          loc.sellingPrice,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          loc.costPrice,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          loc.initialStock,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppDesignTokens.textSecondary,
+                          ),
                         ),
                       ),
                     ],
-                  );
-                }),
-              ],
+                  ),
+
+                  // Rows
+                  ..._variants.map((v) {
+                    return TableRow(
+                      decoration: BoxDecoration(
+                        color: v.isEnabled
+                            ? Colors.transparent
+                            : AppDesignTokens.surfaceElevated.withValues(
+                                alpha: 0.6,
+                              ),
+                        border: const Border(
+                          bottom: BorderSide(
+                            color: AppDesignTokens.border,
+                            width: 0.5,
+                          ),
+                        ),
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Checkbox(
+                            value: v.isEnabled,
+                            activeColor: AppDesignTokens.primary,
+                            onChanged: (val) {
+                              setState(() => v.isEnabled = val ?? true);
+                              widget.onVariantsChanged(_variants);
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 8,
+                          ),
+                          child: Text(
+                            v.attributeDescription,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: v.isEnabled
+                                  ? AppDesignTokens.textPrimary
+                                  : AppDesignTokens.textMuted,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: TextFormField(
+                            initialValue: v.sku,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppDesignTokens.textPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              v.sku = val;
+                              widget.onVariantsChanged(_variants);
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: TextFormField(
+                            initialValue: v.barcode,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppDesignTokens.textPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              v.barcode = val;
+                              widget.onVariantsChanged(_variants);
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: TextFormField(
+                            initialValue: v.salePrice.format(
+                              includeCurrency: false,
+                              useGrouping: false,
+                            ),
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppDesignTokens.textPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              v.salePrice = Money.fromTnd(
+                                double.tryParse(val) ?? 0,
+                              );
+                              widget.onVariantsChanged(_variants);
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: TextFormField(
+                            initialValue: v.costPrice.format(
+                              includeCurrency: false,
+                              useGrouping: false,
+                            ),
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppDesignTokens.textPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              v.costPrice = Money.fromTnd(
+                                double.tryParse(val) ?? 0,
+                              );
+                              widget.onVariantsChanged(_variants);
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: TextFormField(
+                            initialValue: '${v.initialStock}',
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppDesignTokens.textPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            onChanged: (val) {
+                              v.initialStock = int.tryParse(val) ?? 0;
+                              widget.onVariantsChanged(_variants);
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
         ] else
@@ -579,13 +741,13 @@ class _VariantMatrixEditorState extends ConsumerState<VariantMatrixEditor> {
             padding: const EdgeInsets.all(24),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppTheme.border),
+              color: AppDesignTokens.surface,
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+              border: Border.all(color: AppDesignTokens.border),
             ),
-            child: const Text(
-              'Sélectionnez au moins une taille ou une couleur pour générer automatiquement la matrice de variantes.',
-              style: TextStyle(color: AppTheme.textSecondary),
+            child: Text(
+              '${loc.selectSizes} & ${loc.selectColors}',
+              style: const TextStyle(color: AppDesignTokens.textSecondary),
             ),
           ),
       ],

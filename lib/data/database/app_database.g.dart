@@ -3164,6 +3164,28 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     requiredDuringInsert: false,
     defaultValue: const Constant('ACTIVE'),
   );
+  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
+    'imageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+    'image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _versionMeta = const VerificationMeta(
     'version',
   );
@@ -3212,6 +3234,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     oldPriceMillimes,
     taxRatePercent,
     status,
+    imageUrl,
+    deletedAt,
     version,
     createdAt,
     updatedAt,
@@ -3322,6 +3346,18 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
+    if (data.containsKey('image_url')) {
+      context.handle(
+        _imageUrlMeta,
+        imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('version')) {
       context.handle(
         _versionMeta,
@@ -3401,6 +3437,14 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      imageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_url'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       version: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}version'],
@@ -3435,6 +3479,8 @@ class Product extends DataClass implements Insertable<Product> {
   final int? oldPriceMillimes;
   final double taxRatePercent;
   final String status;
+  final String? imageUrl;
+  final DateTime? deletedAt;
   final int version;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -3451,6 +3497,8 @@ class Product extends DataClass implements Insertable<Product> {
     this.oldPriceMillimes,
     required this.taxRatePercent,
     required this.status,
+    this.imageUrl,
+    this.deletedAt,
     required this.version,
     required this.createdAt,
     required this.updatedAt,
@@ -3482,6 +3530,12 @@ class Product extends DataClass implements Insertable<Product> {
     }
     map['tax_rate_percent'] = Variable<double>(taxRatePercent);
     map['status'] = Variable<String>(status);
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     map['version'] = Variable<int>(version);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -3514,6 +3568,12 @@ class Product extends DataClass implements Insertable<Product> {
           : Value(oldPriceMillimes),
       taxRatePercent: Value(taxRatePercent),
       status: Value(status),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       version: Value(version),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -3542,6 +3602,8 @@ class Product extends DataClass implements Insertable<Product> {
       oldPriceMillimes: serializer.fromJson<int?>(json['oldPriceMillimes']),
       taxRatePercent: serializer.fromJson<double>(json['taxRatePercent']),
       status: serializer.fromJson<String>(json['status']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       version: serializer.fromJson<int>(json['version']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -3563,6 +3625,8 @@ class Product extends DataClass implements Insertable<Product> {
       'oldPriceMillimes': serializer.toJson<int?>(oldPriceMillimes),
       'taxRatePercent': serializer.toJson<double>(taxRatePercent),
       'status': serializer.toJson<String>(status),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'version': serializer.toJson<int>(version),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -3582,6 +3646,8 @@ class Product extends DataClass implements Insertable<Product> {
     Value<int?> oldPriceMillimes = const Value.absent(),
     double? taxRatePercent,
     String? status,
+    Value<String?> imageUrl = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
     int? version,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -3602,6 +3668,8 @@ class Product extends DataClass implements Insertable<Product> {
         : this.oldPriceMillimes,
     taxRatePercent: taxRatePercent ?? this.taxRatePercent,
     status: status ?? this.status,
+    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     version: version ?? this.version,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -3636,6 +3704,8 @@ class Product extends DataClass implements Insertable<Product> {
           ? data.taxRatePercent.value
           : this.taxRatePercent,
       status: data.status.present ? data.status.value : this.status,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       version: data.version.present ? data.version.value : this.version,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -3657,6 +3727,8 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('oldPriceMillimes: $oldPriceMillimes, ')
           ..write('taxRatePercent: $taxRatePercent, ')
           ..write('status: $status, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('version: $version, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -3678,6 +3750,8 @@ class Product extends DataClass implements Insertable<Product> {
     oldPriceMillimes,
     taxRatePercent,
     status,
+    imageUrl,
+    deletedAt,
     version,
     createdAt,
     updatedAt,
@@ -3698,6 +3772,8 @@ class Product extends DataClass implements Insertable<Product> {
           other.oldPriceMillimes == this.oldPriceMillimes &&
           other.taxRatePercent == this.taxRatePercent &&
           other.status == this.status &&
+          other.imageUrl == this.imageUrl &&
+          other.deletedAt == this.deletedAt &&
           other.version == this.version &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -3716,6 +3792,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<int?> oldPriceMillimes;
   final Value<double> taxRatePercent;
   final Value<String> status;
+  final Value<String?> imageUrl;
+  final Value<DateTime?> deletedAt;
   final Value<int> version;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -3733,6 +3811,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.oldPriceMillimes = const Value.absent(),
     this.taxRatePercent = const Value.absent(),
     this.status = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.version = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -3751,6 +3831,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.oldPriceMillimes = const Value.absent(),
     this.taxRatePercent = const Value.absent(),
     this.status = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.version = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -3772,6 +3854,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<int>? oldPriceMillimes,
     Expression<double>? taxRatePercent,
     Expression<String>? status,
+    Expression<String>? imageUrl,
+    Expression<DateTime>? deletedAt,
     Expression<int>? version,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -3792,6 +3876,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (oldPriceMillimes != null) 'old_price_millimes': oldPriceMillimes,
       if (taxRatePercent != null) 'tax_rate_percent': taxRatePercent,
       if (status != null) 'status': status,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (version != null) 'version': version,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -3812,6 +3898,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<int?>? oldPriceMillimes,
     Value<double>? taxRatePercent,
     Value<String>? status,
+    Value<String?>? imageUrl,
+    Value<DateTime?>? deletedAt,
     Value<int>? version,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -3830,6 +3918,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       oldPriceMillimes: oldPriceMillimes ?? this.oldPriceMillimes,
       taxRatePercent: taxRatePercent ?? this.taxRatePercent,
       status: status ?? this.status,
+      imageUrl: imageUrl ?? this.imageUrl,
+      deletedAt: deletedAt ?? this.deletedAt,
       version: version ?? this.version,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -3876,6 +3966,12 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (version.present) {
       map['version'] = Variable<int>(version.value);
     }
@@ -3906,6 +4002,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('oldPriceMillimes: $oldPriceMillimes, ')
           ..write('taxRatePercent: $taxRatePercent, ')
           ..write('status: $status, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('version: $version, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4586,6 +4684,28 @@ class $ProductVariantsTable extends ProductVariants
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
+    'imageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+    'image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _versionMeta = const VerificationMeta(
     'version',
   );
@@ -4630,6 +4750,8 @@ class $ProductVariantsTable extends ProductVariants
     salePriceOverrideMillimes,
     minStockAlert,
     isActive,
+    imageUrl,
+    deletedAt,
     version,
     createdAt,
     updatedAt,
@@ -4708,6 +4830,18 @@ class $ProductVariantsTable extends ProductVariants
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('image_url')) {
+      context.handle(
+        _imageUrlMeta,
+        imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     if (data.containsKey('version')) {
       context.handle(
         _versionMeta,
@@ -4771,6 +4905,14 @@ class $ProductVariantsTable extends ProductVariants
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      imageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_url'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
       version: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}version'],
@@ -4801,6 +4943,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
   final int? salePriceOverrideMillimes;
   final int minStockAlert;
   final bool isActive;
+  final String? imageUrl;
+  final DateTime? deletedAt;
   final int version;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -4813,6 +4957,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
     this.salePriceOverrideMillimes,
     required this.minStockAlert,
     required this.isActive,
+    this.imageUrl,
+    this.deletedAt,
     required this.version,
     required this.createdAt,
     required this.updatedAt,
@@ -4836,6 +4982,12 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
     }
     map['min_stock_alert'] = Variable<int>(minStockAlert);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
     map['version'] = Variable<int>(version);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -4858,6 +5010,12 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
           : Value(salePriceOverrideMillimes),
       minStockAlert: Value(minStockAlert),
       isActive: Value(isActive),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
       version: Value(version),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -4882,6 +5040,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
       ),
       minStockAlert: serializer.fromJson<int>(json['minStockAlert']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       version: serializer.fromJson<int>(json['version']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -4903,6 +5063,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
       ),
       'minStockAlert': serializer.toJson<int>(minStockAlert),
       'isActive': serializer.toJson<bool>(isActive),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'version': serializer.toJson<int>(version),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -4918,6 +5080,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
     Value<int?> salePriceOverrideMillimes = const Value.absent(),
     int? minStockAlert,
     bool? isActive,
+    Value<String?> imageUrl = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
     int? version,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -4934,6 +5098,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
         : this.salePriceOverrideMillimes,
     minStockAlert: minStockAlert ?? this.minStockAlert,
     isActive: isActive ?? this.isActive,
+    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     version: version ?? this.version,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4954,6 +5120,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
           ? data.minStockAlert.value
           : this.minStockAlert,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       version: data.version.present ? data.version.value : this.version,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -4971,6 +5139,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
           ..write('salePriceOverrideMillimes: $salePriceOverrideMillimes, ')
           ..write('minStockAlert: $minStockAlert, ')
           ..write('isActive: $isActive, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('version: $version, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -4988,6 +5158,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
     salePriceOverrideMillimes,
     minStockAlert,
     isActive,
+    imageUrl,
+    deletedAt,
     version,
     createdAt,
     updatedAt,
@@ -5004,6 +5176,8 @@ class ProductVariant extends DataClass implements Insertable<ProductVariant> {
           other.salePriceOverrideMillimes == this.salePriceOverrideMillimes &&
           other.minStockAlert == this.minStockAlert &&
           other.isActive == this.isActive &&
+          other.imageUrl == this.imageUrl &&
+          other.deletedAt == this.deletedAt &&
           other.version == this.version &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -5018,6 +5192,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
   final Value<int?> salePriceOverrideMillimes;
   final Value<int> minStockAlert;
   final Value<bool> isActive;
+  final Value<String?> imageUrl;
+  final Value<DateTime?> deletedAt;
   final Value<int> version;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -5031,6 +5207,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
     this.salePriceOverrideMillimes = const Value.absent(),
     this.minStockAlert = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.version = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -5045,6 +5223,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
     this.salePriceOverrideMillimes = const Value.absent(),
     this.minStockAlert = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.deletedAt = const Value.absent(),
     this.version = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -5064,6 +5244,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
     Expression<int>? salePriceOverrideMillimes,
     Expression<int>? minStockAlert,
     Expression<bool>? isActive,
+    Expression<String>? imageUrl,
+    Expression<DateTime>? deletedAt,
     Expression<int>? version,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -5080,6 +5262,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
         'sale_price_override_millimes': salePriceOverrideMillimes,
       if (minStockAlert != null) 'min_stock_alert': minStockAlert,
       if (isActive != null) 'is_active': isActive,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (deletedAt != null) 'deleted_at': deletedAt,
       if (version != null) 'version': version,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -5096,6 +5280,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
     Value<int?>? salePriceOverrideMillimes,
     Value<int>? minStockAlert,
     Value<bool>? isActive,
+    Value<String?>? imageUrl,
+    Value<DateTime?>? deletedAt,
     Value<int>? version,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -5112,6 +5298,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
           salePriceOverrideMillimes ?? this.salePriceOverrideMillimes,
       minStockAlert: minStockAlert ?? this.minStockAlert,
       isActive: isActive ?? this.isActive,
+      imageUrl: imageUrl ?? this.imageUrl,
+      deletedAt: deletedAt ?? this.deletedAt,
       version: version ?? this.version,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -5150,6 +5338,12 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
     if (version.present) {
       map['version'] = Variable<int>(version.value);
     }
@@ -5176,6 +5370,8 @@ class ProductVariantsCompanion extends UpdateCompanion<ProductVariant> {
           ..write('salePriceOverrideMillimes: $salePriceOverrideMillimes, ')
           ..write('minStockAlert: $minStockAlert, ')
           ..write('isActive: $isActive, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('deletedAt: $deletedAt, ')
           ..write('version: $version, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -29341,6 +29537,8 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<int?> oldPriceMillimes,
       Value<double> taxRatePercent,
       Value<String> status,
+      Value<String?> imageUrl,
+      Value<DateTime?> deletedAt,
       Value<int> version,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -29360,6 +29558,8 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<int?> oldPriceMillimes,
       Value<double> taxRatePercent,
       Value<String> status,
+      Value<String?> imageUrl,
+      Value<DateTime?> deletedAt,
       Value<int> version,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -29501,6 +29701,16 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -29668,6 +29878,16 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get version => $composableBuilder(
     column: $table.version,
     builder: (column) => ColumnOrderings(column),
@@ -29800,6 +30020,12 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   GeneratedColumn<int> get version =>
       $composableBuilder(column: $table.version, builder: (column) => column);
@@ -29950,6 +30176,8 @@ class $$ProductsTableTableManager
                 Value<int?> oldPriceMillimes = const Value.absent(),
                 Value<double> taxRatePercent = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> version = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -29967,6 +30195,8 @@ class $$ProductsTableTableManager
                 oldPriceMillimes: oldPriceMillimes,
                 taxRatePercent: taxRatePercent,
                 status: status,
+                imageUrl: imageUrl,
+                deletedAt: deletedAt,
                 version: version,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -29986,6 +30216,8 @@ class $$ProductsTableTableManager
                 Value<int?> oldPriceMillimes = const Value.absent(),
                 Value<double> taxRatePercent = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> version = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -30003,6 +30235,8 @@ class $$ProductsTableTableManager
                 oldPriceMillimes: oldPriceMillimes,
                 taxRatePercent: taxRatePercent,
                 status: status,
+                imageUrl: imageUrl,
+                deletedAt: deletedAt,
                 version: version,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -30850,6 +31084,8 @@ typedef $$ProductVariantsTableCreateCompanionBuilder =
       Value<int?> salePriceOverrideMillimes,
       Value<int> minStockAlert,
       Value<bool> isActive,
+      Value<String?> imageUrl,
+      Value<DateTime?> deletedAt,
       Value<int> version,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -30865,6 +31101,8 @@ typedef $$ProductVariantsTableUpdateCompanionBuilder =
       Value<int?> salePriceOverrideMillimes,
       Value<int> minStockAlert,
       Value<bool> isActive,
+      Value<String?> imageUrl,
+      Value<DateTime?> deletedAt,
       Value<int> version,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -31217,6 +31455,16 @@ class $$ProductVariantsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -31604,6 +31852,16 @@ class $$ProductVariantsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get version => $composableBuilder(
     column: $table.version,
     builder: (column) => ColumnOrderings(column),
@@ -31678,6 +31936,12 @@ class $$ProductVariantsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   GeneratedColumn<int> get version =>
       $composableBuilder(column: $table.version, builder: (column) => column);
@@ -32069,6 +32333,8 @@ class $$ProductVariantsTableTableManager
                 Value<int?> salePriceOverrideMillimes = const Value.absent(),
                 Value<int> minStockAlert = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> version = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -32082,6 +32348,8 @@ class $$ProductVariantsTableTableManager
                 salePriceOverrideMillimes: salePriceOverrideMillimes,
                 minStockAlert: minStockAlert,
                 isActive: isActive,
+                imageUrl: imageUrl,
+                deletedAt: deletedAt,
                 version: version,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -32097,6 +32365,8 @@ class $$ProductVariantsTableTableManager
                 Value<int?> salePriceOverrideMillimes = const Value.absent(),
                 Value<int> minStockAlert = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> version = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -32110,6 +32380,8 @@ class $$ProductVariantsTableTableManager
                 salePriceOverrideMillimes: salePriceOverrideMillimes,
                 minStockAlert: minStockAlert,
                 isActive: isActive,
+                imageUrl: imageUrl,
+                deletedAt: deletedAt,
                 version: version,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

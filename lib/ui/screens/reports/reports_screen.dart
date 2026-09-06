@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/localization/app_localizations.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/services/report_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -46,7 +48,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       now.month,
       now.day,
     ).subtract(Duration(days: _periodDays - 1));
-    final end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    // Drift timestamps retain sub-second precision. Ending at 23:59:59 would
+    // omit sales from the final fraction of the local day.
+    final end = DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).subtract(const Duration(microseconds: 1));
 
     final sales = await reportService.getSalesReport(
       startDate: start,
@@ -70,22 +78,50 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppDesignTokens.canvas,
       appBar: AppBar(
-        title: const Text('Rapports & Statistiques Financières'),
-        backgroundColor: AppTheme.surface,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppTheme.primary,
-          tabs: const [
-            Tab(icon: Icon(Icons.analytics), text: 'VENTES & MARGE BRUTE'),
-            Tab(icon: Icon(Icons.straighten), text: 'PERFORMANCE DES TAILLES'),
-            Tab(
-              icon: Icon(Icons.account_balance_wallet),
-              text: 'VALORISATION STOCK',
-            ),
-          ],
+        title: Text(
+          loc.reportsTitle,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppDesignTokens.textPrimary,
+          ),
+        ),
+        backgroundColor: AppDesignTokens.surface,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppDesignTokens.textPrimary),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(49),
+          child: Column(
+            children: [
+              TabBar(
+                controller: _tabController,
+                indicatorColor: AppDesignTokens.primary,
+                labelColor: AppDesignTokens.primary,
+                unselectedLabelColor: AppDesignTokens.textSecondary,
+                indicatorWeight: 3,
+                tabs: [
+                  Tab(
+                    icon: const Icon(Icons.analytics, size: 20),
+                    text: loc.salesAndMarginTab.toUpperCase(),
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.straighten, size: 20),
+                    text: loc.sizePerformanceTab.toUpperCase(),
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.account_balance_wallet, size: 20),
+                    text: loc.stockValuationTab.toUpperCase(),
+                  ),
+                ],
+              ),
+              const Divider(height: 1, color: AppDesignTokens.border),
+            ],
+          ),
         ),
       ),
       body: Column(
@@ -93,49 +129,34 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
           // Period Selector Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            color: const Color(0xFF161F2E),
+            decoration: const BoxDecoration(
+              color: AppDesignTokens.surface,
+              border: Border(bottom: BorderSide(color: AppDesignTokens.border)),
+            ),
             child: Row(
               children: [
-                const Text(
-                  'Période d\'analyse :',
-                  style: TextStyle(
+                Text(
+                  loc.analysisPeriod,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: AppTheme.textSecondary,
+                    color: AppDesignTokens.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 12),
-                ChoiceChip(
-                  label: const Text('Aujourd\'hui'),
-                  selected: _periodDays == 1,
-                  onSelected: (_) {
-                    setState(() => _periodDays = 1);
-                    _loadReports();
-                  },
-                ),
+                _buildPeriodChip(loc.periodToday, 1),
                 const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('7 Derniers Jours'),
-                  selected: _periodDays == 7,
-                  onSelected: (_) {
-                    setState(() => _periodDays = 7);
-                    _loadReports();
-                  },
-                ),
+                _buildPeriodChip(loc.periodWeek, 7),
                 const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('Ce Mois (30j)'),
-                  selected: _periodDays == 30,
-                  onSelected: (_) {
-                    setState(() => _periodDays = 30);
-                    _loadReports();
-                  },
-                ),
+                _buildPeriodChip(loc.periodMonth, 30),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: AppDesignTokens.textPrimary,
+                  ),
                   onPressed: _loadReports,
-                  tooltip: 'Actualiser',
+                  tooltip: loc.refreshTotals,
                 ),
               ],
             ),
@@ -148,13 +169,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                     controller: _tabController,
                     children: [
                       // Tab 1: Sales & Margin
-                      _buildSalesReportView(),
+                      _buildSalesReportView(loc),
 
                       // Tab 2: Size Performance
-                      _buildSizePerformanceView(),
+                      _buildSizePerformanceView(loc),
 
                       // Tab 3: Inventory Valuation
-                      _buildValuationView(),
+                      _buildValuationView(loc),
                     ],
                   ),
           ),
@@ -163,7 +184,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     );
   }
 
-  Widget _buildSalesReportView() {
+  Widget _buildPeriodChip(String label, int days) {
+    final isSelected = _periodDays == days;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AppDesignTokens.primary.withValues(alpha: 0.12),
+      side: BorderSide(
+        color: isSelected ? AppDesignTokens.primary : AppDesignTokens.border,
+      ),
+      labelStyle: TextStyle(
+        color: isSelected
+            ? AppDesignTokens.primary
+            : AppDesignTokens.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+      onSelected: (_) {
+        setState(() => _periodDays = days);
+        _loadReports();
+      },
+    );
+  }
+
+  Widget _buildSalesReportView(AppLocalizations loc) {
     if (_salesReport == null) return const SizedBox.shrink();
     final r = _salesReport!;
 
@@ -176,30 +219,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
           Row(
             children: [
               _buildMetricCard(
-                'Chiffre d\'Affaires Net',
+                loc.netSalesRevenue,
                 r.netSales,
-                AppTheme.success,
+                AppDesignTokens.success,
                 Icons.trending_up,
               ),
               const SizedBox(width: 14),
               _buildMetricCard(
-                'Marge Brute Réalisée',
+                loc.grossMargin,
                 r.grossProfit,
-                Colors.blueAccent,
+                AppDesignTokens.primary,
                 Icons.pie_chart,
               ),
               const SizedBox(width: 14),
               _buildMetricCard(
-                'Coût d\'Achat Marchandises',
+                loc.purchaseCostGoods,
                 r.totalCost,
-                AppTheme.textSecondary,
+                AppDesignTokens.textSecondary,
                 Icons.shopping_basket,
               ),
               const SizedBox(width: 14),
               _buildSimpleCard(
-                'Taux de Marge Brute',
+                loc.marginRate,
                 '${r.grossMarginPercent.toStringAsFixed(1)} %',
-                Colors.amber,
+                AppDesignTokens.warning,
                 Icons.percent,
               ),
             ],
@@ -217,56 +260,54 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
+                    color: AppDesignTokens.surface,
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusCard,
+                    ),
+                    border: Border.all(color: AppDesignTokens.border),
+                    boxShadow: AppDesignTokens.shadowSm,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Détail Financier de la Période',
-                        style: TextStyle(
+                      Text(
+                        loc.financialDetailPeriod,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       _buildDetailRow(
-                        'Nombre total de ventes clôturées',
+                        loc.totalCompletedSalesCount,
                         '${r.totalSalesCount}',
                       ),
+                      _buildDetailRowMoney(loc.totalSales, r.grossSales),
                       _buildDetailRowMoney(
-                        'Chiffre d\'affaires brut',
-                        r.grossSales,
-                      ),
-                      _buildDetailRowMoney(
-                        'Remises accordées (-)',
+                        loc.grantedDiscounts,
                         r.totalDiscounts,
-                        color: AppTheme.error,
+                        color: AppDesignTokens.danger,
                       ),
                       _buildDetailRowMoney(
-                        'Remboursements et retours (-)',
+                        loc.refundsAndReturns,
                         r.totalRefunds,
-                        color: AppTheme.error,
+                        color: AppDesignTokens.danger,
                       ),
-                      const Divider(color: AppTheme.border, height: 20),
+                      const Divider(color: AppDesignTokens.border, height: 20),
                       _buildDetailRowMoney(
-                        'Chiffre d\'Affaires Net Réel',
+                        loc.actualNetSales,
                         r.netSales,
                         isBold: true,
-                        color: AppTheme.success,
+                        color: AppDesignTokens.success,
                       ),
+                      _buildDetailRowMoney(loc.costOfGoodsSold, r.totalCost),
+                      const Divider(color: AppDesignTokens.border, height: 20),
                       _buildDetailRowMoney(
-                        'Coût des marchandises vendues (COGS)',
-                        r.totalCost,
-                      ),
-                      const Divider(color: AppTheme.border, height: 20),
-                      _buildDetailRowMoney(
-                        'Bénéfice Brut Net',
+                        loc.netGrossProfit,
                         r.grossProfit,
                         isBold: true,
-                        color: Colors.blueAccent,
+                        color: AppDesignTokens.primary,
                         fontSize: 18,
                       ),
                     ],
@@ -282,25 +323,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
+                    color: AppDesignTokens.surface,
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusCard,
+                    ),
+                    border: Border.all(color: AppDesignTokens.border),
+                    boxShadow: AppDesignTokens.shadowSm,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Répartition par Mode de Paiement',
-                        style: TextStyle(
+                      Text(
+                        loc.paymentMethodBreakdown,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
                       if (r.salesByPaymentMethod.isEmpty)
-                        const Text(
-                          'Aucun paiement sur la période',
-                          style: TextStyle(color: AppTheme.textSecondary),
+                        Text(
+                          loc.noPaymentsInPeriod,
+                          style: const TextStyle(
+                            color: AppDesignTokens.textSecondary,
+                          ),
                         )
                       else
                         ...r.salesByPaymentMethod.entries.map((entry) {
@@ -313,6 +360,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                                   entry.key.toUpperCase(),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
+                                    color: AppDesignTokens.textPrimary,
                                   ),
                                 ),
                                 MoneyDisplay(amount: entry.value, fontSize: 15),
@@ -331,12 +379,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     );
   }
 
-  Widget _buildSizePerformanceView() {
+  Widget _buildSizePerformanceView(AppLocalizations loc) {
     if (_sizeReport.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'Aucune vente enregistrée sur cette période pour analyser les tailles',
-          style: TextStyle(color: AppTheme.textSecondary),
+          loc.noSalesForSizeAnalysis,
+          style: const TextStyle(color: AppDesignTokens.textSecondary),
         ),
       );
     }
@@ -350,21 +398,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.border),
+          color: AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+          border: Border.all(color: AppDesignTokens.border),
+          boxShadow: AppDesignTokens.shadowSm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Ventes par Taille de Vêtement',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Text(
+              loc.salesByGarmentSize,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppDesignTokens.textPrimary,
+              ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Identifiez les tailles les plus demandées pour optimiser vos réassorts :',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            Text(
+              loc.sizeDemandInsight,
+              style: const TextStyle(
+                color: AppDesignTokens.textSecondary,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -382,7 +438,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: Colors.white,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                     ),
@@ -394,9 +450,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                         child: LinearProgressIndicator(
                           value: ratio,
                           minHeight: 24,
-                          backgroundColor: const Color(0xFF161F2E),
+                          backgroundColor: AppDesignTokens.surfaceElevated,
                           valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppTheme.primary,
+                            AppDesignTokens.primary,
                           ),
                         ),
                       ),
@@ -405,10 +461,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                     SizedBox(
                       width: 100,
                       child: Text(
-                        '${s.unitsSold} pièces',
+                        loc.nPieces(s.unitsSold),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                     ),
@@ -426,7 +483,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     );
   }
 
-  Widget _buildValuationView() {
+  Widget _buildValuationView(AppLocalizations loc) {
     if (_valuationReport == null) return const SizedBox.shrink();
     final v = _valuationReport!;
 
@@ -437,30 +494,30 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
           Row(
             children: [
               _buildMetricCard(
-                'Valeur au Coût d\'Achat',
+                loc.totalCostValue,
                 v.valuationAtCost,
-                AppTheme.warning,
+                AppDesignTokens.warning,
                 Icons.inventory,
               ),
               const SizedBox(width: 14),
               _buildMetricCard(
-                'Valeur Vente (Prix de détail)',
+                loc.totalRetailValue,
                 v.valuationAtRetail,
-                AppTheme.success,
+                AppDesignTokens.success,
                 Icons.store,
               ),
               const SizedBox(width: 14),
               _buildMetricCard(
-                'Bénéfice Potentiel Stock',
+                loc.potentialProfit,
                 v.potentialProfit,
-                Colors.blueAccent,
+                AppDesignTokens.primary,
                 Icons.auto_graph,
               ),
               const SizedBox(width: 14),
               _buildSimpleCard(
-                'Pièces Totales en Stock',
+                loc.totalUnitsInStock,
                 '${v.totalUnitsInStock}',
-                Colors.white,
+                AppDesignTokens.textPrimary,
                 Icons.checkroom,
               ),
             ],
@@ -469,16 +526,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
           Row(
             children: [
               _buildSimpleCard(
-                'Alertes Stock Faible (≤ 2)',
+                loc.lowStockAlertsCount,
                 '${v.lowStockCount}',
-                AppTheme.warning,
+                AppDesignTokens.warning,
                 Icons.warning_amber,
               ),
               const SizedBox(width: 14),
               _buildSimpleCard(
-                'Articles en Rupture (0)',
+                loc.outOfStockArticlesCount,
                 '${v.outOfStockCount}',
-                AppTheme.error,
+                AppDesignTokens.danger,
                 Icons.remove_shopping_cart,
               ),
             ],
@@ -498,9 +555,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.border),
+          color: AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+          border: Border.all(color: AppDesignTokens.border),
+          boxShadow: AppDesignTokens.shadowSm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -511,14 +569,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: AppDesignTokens.textSecondary,
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                Icon(icon, size: 16, color: color),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(icon, size: 16, color: color),
+                ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             MoneyDisplay(amount: amount, fontSize: 20, color: color),
           ],
         ),
@@ -536,9 +602,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.border),
+          color: AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+          border: Border.all(color: AppDesignTokens.border),
+          boxShadow: AppDesignTokens.shadowSm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,14 +616,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                 Text(
                   title,
                   style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: AppDesignTokens.textSecondary,
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                Icon(icon, size: 16, color: color),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(icon, size: 16, color: color),
+                ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               value,
               style: TextStyle(
@@ -577,8 +652,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(color: AppDesignTokens.textSecondary),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppDesignTokens.textPrimary,
+            ),
+          ),
         ],
       ),
     );
@@ -599,7 +683,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
           Text(
             label,
             style: TextStyle(
-              color: isBold ? Colors.white : AppTheme.textSecondary,
+              color: isBold
+                  ? AppDesignTokens.textPrimary
+                  : AppDesignTokens.textSecondary,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),
           ),

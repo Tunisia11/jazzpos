@@ -4,8 +4,8 @@ import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
+import 'package:jazzpos/core/platform/app_paths.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
@@ -13,37 +13,36 @@ import 'package:jazzpos/data/database/app_database.dart';
 
 class BackupService {
   final AppDatabase db;
+  final Directory? _backupDirectoryOverride;
+  final String? _databaseFilePathOverride;
 
-  BackupService(this.db);
+  BackupService(this.db, {Directory? backupDirectory, String? databaseFilePath})
+    : _backupDirectoryOverride = backupDirectory,
+      _databaseFilePathOverride = databaseFilePath;
 
   /// Create an atomic local SQLite backup snapshot
   Future<BackupRecord> createLocalBackup() async {
-    final appDir = await getApplicationSupportDirectory();
-    final baseDir =
-        (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
-        ? Directory(p.join(appDir.path, 'JazzPOS'))
-        : appDir;
-    final backupDir = Directory(p.join(baseDir.path, 'backups'));
-    if (!await backupDir.exists()) {
+    final backupDir = _backupDirectoryOverride;
+    if (backupDir == null) {
+      await AppPaths.instance.initialize();
+    } else if (!await backupDir.exists()) {
       await backupDir.create(recursive: true);
     }
+    final resolvedBackupDir = backupDir ?? AppPaths.instance.backupsDir;
 
-    final timestampStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+    final timestampStr = DateFormat(
+      'yyyyMMdd_HHmmss_SSS',
+    ).format(DateTime.now());
     final backupFileName = 'jazzpos_backup_$timestampStr.sqlite';
-    final backupFilePath = p.join(backupDir.path, backupFileName);
+    final backupFilePath = p.join(resolvedBackupDir.path, backupFileName);
 
     try {
-      // Use SQLite VACUUM INTO for online, zero-lock safe snapshot
+      // VACUUM INTO creates a consistent snapshot while the live database is
+      // in WAL mode. Never fall back to copying only the main database file:
+      // that can omit committed WAL frames.
       await db.customStatement('VACUUM INTO ?;', [backupFilePath]);
     } catch (e) {
-      // Fallback: file copy
-      final currentDbPath = p.join(appDir.path, 'database', 'jazzpos.sqlite');
-      final currentFile = File(currentDbPath);
-      if (await currentFile.exists()) {
-        await currentFile.copy(backupFilePath);
-      } else {
-        throw PosException('Failed to create backup: $e');
-      }
+      throw PosException('Failed to create atomic backup: $e');
     }
 
     final backupFile = File(backupFilePath);
@@ -68,7 +67,7 @@ class BackupService {
         );
 
     // Enforce rotating retention: keep latest 10 backups
-    await _enforceRetention(backupDir, maxBackups: 10);
+    await _enforceRetention(resolvedBackupDir, maxBackups: 10);
 
     PosLogger.instance.info(
       'Backup',
@@ -138,6 +137,25 @@ class BackupService {
             'Backup file is missing essential POS database tables',
           );
         }
+        final integrity = tempDb.select('PRAGMA integrity_check;');
+        if (integrity.length != 1 || integrity.first.values.first != 'ok') {
+          throw const ValidationException(
+            'Backup failed SQLite integrity validation',
+          );
+        }
+        final foreignKeyErrors = tempDb.select('PRAGMA foreign_key_check;');
+        if (foreignKeyErrors.isNotEmpty) {
+          throw const ValidationException(
+            'Backup contains foreign-key violations',
+          );
+        }
+        final versionRows = tempDb.select('PRAGMA user_version;');
+        final schemaVersion = versionRows.first.values.first as int;
+        if (schemaVersion < 1 || schemaVersion > db.schemaVersion) {
+          throw ValidationException(
+            'Unsupported backup schema version: $schemaVersion',
+          );
+        }
       } finally {
         tempDb.dispose();
       }
@@ -151,40 +169,62 @@ class BackupService {
   }
 
   /// Restore database from verified backup file
-  Future<void> restoreBackup(String filePath, String actorId) async {
+  Future<String> restoreBackup(
+    String filePath,
+    String actorId, {
+    required bool confirmed,
+  }) async {
+    if (!confirmed) {
+      throw const ValidationException(
+        'Explicit confirmation is required before restoring a backup.',
+      );
+    }
     await validateBackupFile(filePath);
 
-    final appDir = await getApplicationSupportDirectory();
-    final baseDir =
-        (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
-        ? Directory(p.join(appDir.path, 'JazzPOS'))
-        : appDir;
-    final targetDbPath = p.join(baseDir.path, 'database', 'jazzpos.sqlite');
+    if (_databaseFilePathOverride == null) {
+      await AppPaths.instance.initialize();
+    }
+    final targetDbPath =
+        _databaseFilePathOverride ?? AppPaths.instance.databaseFilePath;
+    if (p.canonicalize(filePath) == p.canonicalize(targetDbPath)) {
+      throw const ValidationException(
+        'The active database cannot be used as its own restore source.',
+      );
+    }
 
-    // Create an emergency rollback copy of current DB
+    // VACUUM INTO preserves all committed WAL content in a standalone rollback
+    // snapshot before the active connection is closed.
     final currentDbFile = File(targetDbPath);
-    final rollbackPath = '$targetDbPath.pre_restore';
+    final timestamp = DateFormat('yyyyMMdd_HHmmss_SSS').format(DateTime.now());
+    final rollbackPath = '$targetDbPath.pre_restore_$timestamp.sqlite';
+    final stagedPath = '$targetDbPath.restore_pending_$timestamp.sqlite';
     if (await currentDbFile.exists()) {
-      await currentDbFile.copy(rollbackPath);
+      await db.customStatement('VACUUM INTO ?;', [rollbackPath]);
+      await validateBackupFile(rollbackPath);
     }
 
     try {
+      await File(filePath).copy(stagedPath);
+      await validateBackupFile(stagedPath);
+
       // Close active database connections
       await db.close();
 
-      // Replace database file
-      await File(filePath).copy(targetDbPath);
-
-      // Remove WAL and SHM files to ensure clean state
+      // Remove sidecars only after a clean close/checkpoint, then replace the
+      // main file with the already validated staged snapshot.
       final walFile = File('$targetDbPath-wal');
       final shmFile = File('$targetDbPath-shm');
       if (await walFile.exists()) await walFile.delete();
       if (await shmFile.exists()) await shmFile.delete();
+      await File(stagedPath).copy(targetDbPath);
+      await validateBackupFile(targetDbPath);
+      if (await File(stagedPath).exists()) await File(stagedPath).delete();
 
       PosLogger.instance.info(
         'Backup',
-        'Database successfully restored from $filePath by user $actorId',
+        'Database successfully restored by user $actorId. Rollback snapshot: $rollbackPath',
       );
+      return rollbackPath;
     } catch (e) {
       // Rollback on failure
       PosLogger.instance.error('Backup', 'Restore failed. Rolling back...', e);
@@ -192,6 +232,8 @@ class BackupService {
       if (await rollbackFile.exists()) {
         await rollbackFile.copy(targetDbPath);
       }
+      final stagedFile = File(stagedPath);
+      if (await stagedFile.exists()) await stagedFile.delete();
       throw PosException('Database restore failed: $e');
     }
   }

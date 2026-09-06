@@ -74,10 +74,11 @@ class Money implements Comparable<Money> {
         throw FormatException('Invalid money format: $input');
       }
       if (fraction.length > 3) {
-        fraction = fraction.substring(0, 3);
-      } else {
-        fraction = fraction.padRight(3, '0');
+        throw FormatException(
+          'Money supports at most 3 decimal places: $input',
+        );
       }
+      fraction = fraction.padRight(3, '0');
       milli = int.tryParse(fraction) ?? 0;
     }
 

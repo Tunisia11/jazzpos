@@ -1,10 +1,12 @@
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'inventory_service.dart';
+import 'permission_guard.dart';
 
 class InventoryCountLineWithDetails {
   final InventoryCountLine line;
@@ -34,6 +36,11 @@ class InventoryCountService {
     String? categoryId,
     String? brandId,
   }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      initiatedById,
+      AppPermissions.manageInventory,
+    );
     final countId = IdGenerator.uuid();
     final countNumber = IdGenerator.stockCountNumber();
     final now = DateTime.now();
@@ -180,6 +187,11 @@ class InventoryCountService {
     required String countId,
     required String managerId,
   }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      managerId,
+      AppPermissions.manageInventory,
+    );
     final count = await (db.select(
       db.inventoryCounts,
     )..where((tbl) => tbl.id.equals(countId))).getSingle();

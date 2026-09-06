@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 import 'package:jazzpos/ui/widgets/numpad.dart';
 
@@ -31,17 +32,30 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
   }
 
   void _openShiftDialog() {
+    final loc = context.loc;
     final ctrl = TextEditingController(text: '150.000');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Ouvrir la session de caisse'),
+        backgroundColor: AppDesignTokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusDialog),
+        ),
+        title: Text(
+          loc.openRegisterShift,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppDesignTokens.textPrimary,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Saisissez le fond de caisse initial (TND) :'),
+            Text(
+              loc.enterInitialCashFloat,
+              style: const TextStyle(color: AppDesignTokens.textSecondary),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
@@ -49,8 +63,8 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                 decimal: true,
               ),
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Fond initial',
+              decoration: InputDecoration(
+                labelText: loc.initialCashFloat,
                 suffixText: 'TND',
               ),
             ),
@@ -59,7 +73,7 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -74,8 +88,17 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                   );
               if (ctx.mounted) Navigator.of(ctx).pop();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success),
-            child: const Text('Ouvrir la caisse'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesignTokens.success,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppDesignTokens.radiusInput,
+                ),
+              ),
+            ),
+            child: Text(loc.openRegisterAction),
           ),
         ],
       ),
@@ -83,6 +106,7 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
   }
 
   void _showCashMovementDialog(String type) {
+    final loc = context.loc;
     final amountCtrl = TextEditingController();
     final reasonCtrl = TextEditingController();
     final isPayIn = type == 'PAY_IN';
@@ -90,11 +114,16 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppDesignTokens.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusDialog),
+        ),
         title: Text(
-          isPayIn
-              ? 'Entrée d\'espèces (Appoint)'
-              : 'Sortie d\'espèces (Prélèvement / Dépense)',
+          isPayIn ? loc.payInCash : loc.payOutCash,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppDesignTokens.textPrimary,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -105,8 +134,8 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                 decimal: true,
               ),
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Montant (TND)',
+              decoration: InputDecoration(
+                labelText: loc.amountTnd,
                 suffixText: 'TND',
               ),
             ),
@@ -114,10 +143,10 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
             TextField(
               controller: reasonCtrl,
               decoration: InputDecoration(
-                labelText: 'Motif / Justificatif *',
+                labelText: loc.reasonOrProof,
                 hintText: isPayIn
-                    ? 'ex: Monnaie pièces'
-                    : 'ex: Dépense pressing / Prélèvement gérant',
+                    ? loc.payInReasonExample
+                    : loc.payOutReasonExample,
               ),
             ),
           ],
@@ -125,13 +154,13 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
-              final val = double.tryParse(amountCtrl.text) ?? 0;
+              final val = Money.tryParse(amountCtrl.text);
               final reason = reasonCtrl.text.trim();
-              if (val <= 0 || reason.isEmpty) return;
+              if (val == null || !val.isPositive || reason.isEmpty) return;
 
               final auth = ref.read(authNotifierProvider);
               await ref
@@ -139,15 +168,24 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                   .recordCashMovement(
                     userId: auth.user?.id ?? 'system',
                     type: type,
-                    amount: Money.fromTnd(val),
+                    amount: val,
                     reason: reason,
                   );
               if (ctx.mounted) Navigator.of(ctx).pop();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isPayIn ? AppTheme.primary : AppTheme.warning,
+              backgroundColor: isPayIn
+                  ? AppDesignTokens.primary
+                  : AppDesignTokens.warning,
+              foregroundColor: isPayIn ? Colors.white : Colors.black87,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppDesignTokens.radiusInput,
+                ),
+              ),
             ),
-            child: const Text('Valider le mouvement'),
+            child: Text(loc.validateMovement),
           ),
         ],
       ),
@@ -155,6 +193,7 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
   }
 
   Future<void> _submitCloseShift() async {
+    final loc = context.loc;
     final countedVal = Money.parse(_countedBuffer.toString());
     final auth = ref.read(authNotifierProvider);
 
@@ -166,18 +205,16 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
           .closeShift(
             cashierId: auth.user?.id ?? 'system',
             countedCash: countedVal,
-            note: 'Clôture de caisse standard',
+            note: loc.standardShiftCloseNote,
           );
 
       setState(() => _isClosing = false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Session de caisse clôturée avec succès (Z-Report généré)',
-            ),
-            backgroundColor: AppTheme.success,
+          SnackBar(
+            content: Text(loc.shiftClosedZReportSuccess),
+            backgroundColor: AppDesignTokens.success,
           ),
         );
       }
@@ -186,8 +223,8 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
         setState(() => _isClosing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: AppTheme.error,
+            content: Text('${loc.error}: $e'),
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
@@ -196,22 +233,36 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final shiftState = ref.watch(shiftNotifierProvider);
     final activeShift = shiftState.activeShift;
     final summary = shiftState.summary;
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppDesignTokens.canvas,
       appBar: AppBar(
-        title: const Text('Gestion de Caisse & Clôture (Z-Report)'),
-        backgroundColor: AppTheme.surface,
+        title: Text(
+          loc.shiftManagementTitle,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppDesignTokens.textPrimary,
+          ),
+        ),
+        backgroundColor: AppDesignTokens.surface,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppDesignTokens.textPrimary),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: AppDesignTokens.border),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: AppDesignTokens.textPrimary),
             onPressed: () => ref
                 .read(shiftNotifierProvider.notifier)
                 .checkActiveShift(widget.registerId),
-            tooltip: 'Actualiser les totaux',
+            tooltip: loc.refreshTotals,
           ),
         ],
       ),
@@ -221,30 +272,44 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                 width: 450,
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
+                  color: AppDesignTokens.surface,
+                  borderRadius: BorderRadius.circular(
+                    AppDesignTokens.radiusCard,
+                  ),
+                  border: Border.all(color: AppDesignTokens.border),
+                  boxShadow: AppDesignTokens.shadowSm,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.point_of_sale,
-                      size: 64,
-                      color: AppTheme.warning,
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppDesignTokens.warning.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.point_of_sale,
+                        size: 48,
+                        color: AppDesignTokens.warning,
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Caisse Actuellement Fermée',
-                      style: TextStyle(
+                    const SizedBox(height: 20),
+                    Text(
+                      loc.registerCurrentlyClosed,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: AppDesignTokens.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Poste: ${widget.registerId}',
-                      style: const TextStyle(color: AppTheme.textSecondary),
+                      '${loc.registerTerminal}: ${widget.registerId}',
+                      style: const TextStyle(
+                        color: AppDesignTokens.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -253,13 +318,19 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _openShiftDialog,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.success,
+                          backgroundColor: AppDesignTokens.success,
                           foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusInput,
+                            ),
+                          ),
                         ),
                         icon: const Icon(Icons.lock_open),
-                        label: const Text(
-                          'OUVRIR LA SESSION DE CAISSE',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        label: Text(
+                          loc.openRegisterSessionAction,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -282,9 +353,12 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.border),
+                            color: AppDesignTokens.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusCard,
+                            ),
+                            border: Border.all(color: AppDesignTokens.border),
+                            boxShadow: AppDesignTokens.shadowSm,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -293,16 +367,22 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Session ouverte à ${DateFormat('HH:mm le dd/MM/yyyy').format(activeShift.openedAt)}',
+                                    loc.shiftOpenedAt(
+                                      DateFormat(
+                                        'HH:mm le dd/MM/yyyy',
+                                      ).format(activeShift.openedAt),
+                                    ),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
+                                      color: AppDesignTokens.textPrimary,
                                     ),
                                   ),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Poste: ${widget.registerId} • Shift ID: ${activeShift.id.substring(0, 8)}...',
+                                    '${loc.registerTerminal}: ${widget.registerId} • Shift ID: ${activeShift.id.substring(0, 8)}...',
                                     style: const TextStyle(
-                                      color: AppTheme.textSecondary,
+                                      color: AppDesignTokens.textSecondary,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -313,28 +393,58 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                                   OutlinedButton.icon(
                                     onPressed: () =>
                                         _showCashMovementDialog('PAY_IN'),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(
+                                        color: AppDesignTokens.border,
+                                      ),
+                                      foregroundColor:
+                                          AppDesignTokens.textPrimary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppDesignTokens.radiusInput,
+                                        ),
+                                      ),
+                                    ),
                                     icon: const Icon(
                                       Icons.arrow_downward,
                                       size: 16,
-                                      color: AppTheme.success,
+                                      color: AppDesignTokens.success,
                                     ),
-                                    label: const Text(
-                                      'Entrée (+)',
-                                      style: TextStyle(fontSize: 12),
+                                    label: Text(
+                                      '${loc.payInAction} (+)',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   OutlinedButton.icon(
                                     onPressed: () =>
                                         _showCashMovementDialog('PAY_OUT'),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(
+                                        color: AppDesignTokens.border,
+                                      ),
+                                      foregroundColor:
+                                          AppDesignTokens.textPrimary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppDesignTokens.radiusInput,
+                                        ),
+                                      ),
+                                    ),
                                     icon: const Icon(
                                       Icons.arrow_upward,
                                       size: 16,
-                                      color: AppTheme.warning,
+                                      color: AppDesignTokens.warning,
                                     ),
-                                    label: const Text(
-                                      'Sortie (-)',
-                                      style: TextStyle(fontSize: 12),
+                                    label: Text(
+                                      '${loc.payOutAction} (-)',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -349,51 +459,60 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.border),
+                            color: AppDesignTokens.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusCard,
+                            ),
+                            border: Border.all(color: AppDesignTokens.border),
+                            boxShadow: AppDesignTokens.shadowSm,
                           ),
                           child: Column(
                             children: [
                               _buildRow(
-                                'Fond de caisse initial :',
+                                '${loc.initialCashFloat} :',
                                 summary?.openingCash ?? Money.zero,
                               ),
-                              const Divider(color: AppTheme.border, height: 20),
-                              _buildRow(
-                                'Ventes en Espèces (+):',
-                                summary?.cashSales ?? Money.zero,
-                                color: Colors.blueAccent,
+                              const Divider(
+                                color: AppDesignTokens.border,
+                                height: 20,
                               ),
-                              const SizedBox(height: 8),
                               _buildRow(
-                                'Ventes par Carte Bancaire:',
+                                loc.cashSales,
+                                summary?.cashSales ?? Money.zero,
+                                color: AppDesignTokens.primary,
+                              ),
+                              const SizedBox(height: 10),
+                              _buildRow(
+                                loc.cardSales,
                                 summary?.cardSales ?? Money.zero,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 10),
                               _buildRow(
-                                'Remboursements Espèces (-):',
+                                loc.cashRefunds,
                                 summary?.cashRefunds ?? Money.zero,
-                                color: AppTheme.error,
+                                color: AppDesignTokens.danger,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 10),
                               _buildRow(
-                                'Entrées manuelles espèces (+):',
+                                loc.manualCashIn,
                                 summary?.cashIn ?? Money.zero,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 10),
                               _buildRow(
-                                'Sorties manuelles / Dépôt (-):',
+                                loc.manualCashOut,
                                 summary?.cashOut ?? Money.zero,
-                                color: AppTheme.warning,
+                                color: AppDesignTokens.warning,
                               ),
-                              const Divider(color: AppTheme.border, height: 24),
+                              const Divider(
+                                color: AppDesignTokens.border,
+                                height: 24,
+                              ),
                               _buildRow(
-                                'SOLDE ESPÈCES ATTENDU EN CAISSE :',
+                                loc.expectedCashBalance,
                                 summary?.expectedCash ?? Money.zero,
-                                fontSize: 20,
+                                fontSize: 18,
                                 isBold: true,
-                                color: AppTheme.success,
+                                color: AppDesignTokens.success,
                               ),
                             ],
                           ),
@@ -410,25 +529,29 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.border),
+                        color: AppDesignTokens.surface,
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusCard,
+                        ),
+                        border: Border.all(color: AppDesignTokens.border),
+                        boxShadow: AppDesignTokens.shadowSm,
                       ),
                       child: Column(
                         children: [
-                          const Text(
-                            'Comptage Réel & Clôture (Z-Report)',
-                            style: TextStyle(
+                          Text(
+                            loc.blindCountTitle,
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
+                              color: AppDesignTokens.textPrimary,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Saisissez le montant total d\'espèces compté physiquement dans le tiroir :',
+                          const SizedBox(height: 6),
+                          Text(
+                            loc.enterCountedCashPrompt,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
+                            style: const TextStyle(
+                              color: AppDesignTokens.textSecondary,
                               fontSize: 12,
                             ),
                           ),
@@ -439,9 +562,11 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             alignment: Alignment.centerRight,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF161F2E),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTheme.border),
+                              color: AppDesignTokens.surfaceElevated,
+                              borderRadius: BorderRadius.circular(
+                                AppDesignTokens.radiusInput,
+                              ),
+                              border: Border.all(color: AppDesignTokens.border),
                             ),
                             child: Text(
                               _countedBuffer.isEmpty
@@ -451,6 +576,7 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 fontFamily: 'monospace',
+                                color: AppDesignTokens.textPrimary,
                               ),
                             ),
                           ),
@@ -480,12 +606,18 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
 
                           SizedBox(
                             width: double.infinity,
-                            height: 50,
+                            height: 48,
                             child: ElevatedButton.icon(
                               onPressed: _isClosing ? null : _submitCloseShift,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.error,
+                                backgroundColor: AppDesignTokens.danger,
                                 foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppDesignTokens.radiusInput,
+                                  ),
+                                ),
                               ),
                               icon: _isClosing
                                   ? const SizedBox(
@@ -497,9 +629,13 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                                       ),
                                     )
                                   : const Icon(Icons.lock, size: 20),
-                              label: const Text(
-                                'CLÔTURER LA CAISSE (Z-REPORT)',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              label: Text(
+                                _isClosing
+                                    ? loc.processing.toUpperCase()
+                                    : loc.closeRegisterZReportAction,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -528,6 +664,9 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
           style: TextStyle(
             fontSize: fontSize,
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: isBold
+                ? AppDesignTokens.textPrimary
+                : AppDesignTokens.textSecondary,
           ),
         ),
         MoneyDisplay(amount: amount, fontSize: fontSize, color: color),

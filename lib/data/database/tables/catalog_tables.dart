@@ -47,6 +47,8 @@ class Products extends Table {
   TextColumn get status => text().withDefault(
     const Constant('ACTIVE'),
   )(); // ACTIVE, ARCHIVED, DISCONTINUED
+  TextColumn get imageUrl => text().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   IntColumn get version => integer().withDefault(const Constant(1))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -83,6 +85,8 @@ class ProductVariants extends Table {
   IntColumn get salePriceOverrideMillimes => integer().nullable()();
   IntColumn get minStockAlert => integer().withDefault(const Constant(2))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  TextColumn get imageUrl => text().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   IntColumn get version => integer().withDefault(const Constant(1))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();

@@ -44,6 +44,7 @@ void main() {
       expect(Money.parse('0.5').millimes, 500);
       expect(Money.parse('-10.250').millimes, -10250);
       expect(Money.parse('').millimes, 0);
+      expect(() => Money.parse('1.2345'), throwsFormatException);
     });
 
     test('Arithmetic operations preserve exact integer millimes', () {

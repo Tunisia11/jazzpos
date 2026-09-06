@@ -1,11 +1,17 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:jazzpos/core/localization/app_localizations.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
+import 'package:jazzpos/providers/app_providers.dart';
+import 'package:jazzpos/providers/auth_provider.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
 
-class ReceiptPreviewDialog extends StatefulWidget {
+class ReceiptPreviewDialog extends ConsumerStatefulWidget {
   final ReceiptDocument document;
 
   const ReceiptPreviewDialog({super.key, required this.document});
@@ -22,37 +28,83 @@ class ReceiptPreviewDialog extends StatefulWidget {
   }
 
   @override
-  State<ReceiptPreviewDialog> createState() => _ReceiptPreviewDialogState();
+  ConsumerState<ReceiptPreviewDialog> createState() =>
+      _ReceiptPreviewDialogState();
 }
 
-class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
+class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
   bool _isPrinting = false;
   String? _statusMessage;
 
   Future<void> _reprint() async {
+    final loc = context.loc;
     setState(() {
       _isPrinting = true;
       _statusMessage = null;
     });
 
     try {
-      await HardwareManager.instance.receiptPrinter.printReceipt(
-        widget.document,
-      );
-      setState(() {
-        _isPrinting = false;
-        _statusMessage = 'Ticket envoyé à l\'imprimante avec succès';
-      });
+      final reprintDoc = widget.document.isDuplicate
+          ? widget.document
+          : ReceiptDocument(
+              storeName: widget.document.storeName,
+              storeAddress: widget.document.storeAddress,
+              storePhone: widget.document.storePhone,
+              fiscalId: widget.document.fiscalId,
+              receiptNumber: widget.document.receiptNumber,
+              dateTime: widget.document.dateTime,
+              cashierName: widget.document.cashierName,
+              registerCode: widget.document.registerCode,
+              lines: widget.document.lines,
+              subtotal: widget.document.subtotal,
+              discount: widget.document.discount,
+              tax: widget.document.tax,
+              total: widget.document.total,
+              payments: widget.document.payments,
+              footerMessage: widget.document.footerMessage,
+              paperWidthMm: widget.document.paperWidthMm,
+              isDuplicate: true,
+            );
+
+      await HardwareManager.instance.receiptPrinter.printReceipt(reprintDoc);
+
+      // Log audit event for duplicate reprint without creating financial movements
+      try {
+        final auth = ref.read(authNotifierProvider);
+        await ref
+            .read(auditServiceProvider)
+            .logEvent(
+              action: 'receipt_reprinted',
+              entityType: 'sale',
+              entityId: widget.document.receiptNumber,
+              userId: auth.user?.id ?? 'system',
+              detailsJson: jsonEncode({
+                'receiptNumber': widget.document.receiptNumber,
+                'isDuplicate': true,
+                'reprintedAt': DateTime.now().toIso8601String(),
+              }),
+            );
+      } catch (_) {}
+
+      if (mounted) {
+        setState(() {
+          _isPrinting = false;
+          _statusMessage = loc.receiptPrintSuccess;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isPrinting = false;
-        _statusMessage = 'Erreur d\'impression: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _isPrinting = false;
+          _statusMessage = loc.receiptPrintError(e.toString());
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final doc = widget.document;
     final dateStr = DateFormat('dd/MM/yyyy HH:mm:ss').format(doc.dateTime);
 
@@ -65,15 +117,9 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          color: AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
+          boxShadow: AppDesignTokens.shadowLg,
         ),
         child: Column(
           children: [
@@ -81,7 +127,9 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppTheme.border)),
+                border: Border(
+                  bottom: BorderSide(color: AppDesignTokens.border),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -90,18 +138,18 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                     children: [
                       const Icon(
                         Icons.receipt_long,
-                        color: AppTheme.primary,
+                        color: AppDesignTokens.primary,
                         size: 22,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         doc.isDuplicate
-                            ? 'Aperçu Ticket (Duplicata)'
-                            : 'Aperçu Ticket de Caisse',
+                            ? loc.receiptPreviewDuplicate
+                            : loc.receiptPreviewTitle,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                     ],
@@ -109,11 +157,11 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                   IconButton(
                     icon: const Icon(
                       Icons.close,
-                      color: AppTheme.textSecondary,
+                      color: AppDesignTokens.textSecondary,
                       size: 20,
                     ),
                     onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Fermer',
+                    tooltip: loc.close,
                   ),
                 ],
               ),
@@ -568,7 +616,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                         minimumSize: const Size(0, 48),
                         side: const BorderSide(color: AppTheme.border),
                       ),
-                      child: const Text('FERMER'),
+                      child: Text(loc.close.toUpperCase()),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -592,7 +640,9 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
                             )
                           : const Icon(Icons.print, size: 20),
                       label: Text(
-                        _isPrinting ? 'IMPRESSION...' : 'RÉIMPRIMER (F11)',
+                        _isPrinting
+                            ? loc.printingInProgress
+                            : '${loc.reprintAction.toUpperCase()} (F11)',
                       ),
                     ),
                   ),

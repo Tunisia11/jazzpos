@@ -1,97 +1,154 @@
 import 'package:flutter/material.dart';
+import 'app_design_tokens.dart';
 
 class AppTheme {
-  static const Color primary = Color(0xFF2563EB); // Vibrant cobalt blue
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryDark = Color(0xFF1D4ED8);
-  static const Color success = Color(
-    0xFF10B981,
-  ); // Emerald green for Pay/Checkout
-  static const Color warning = Color(0xFFF59E0B); // Amber for Hold/Returns
-  static const Color danger = Color(0xFFEF4444); // Crimson for Void/Delete
-  static const Color error = danger;
-  static const Color background = Color(0xFF0F172A); // Slate dark
-  static const Color surface = Color(0xFF1E293B); // Elevated card
-  static const Color surfaceElevated = Color(0xFF334155);
-  static const Color textPrimary = Color(0xFFF8FAFC);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color border = Color(0xFF334155);
+  // Aliases referencing AppDesignTokens for backward compatibility & direct access
+  static const Color primary = AppDesignTokens.primary;
+  static const Color primaryLight = AppDesignTokens.primaryLight;
+  static const Color primaryDark = AppDesignTokens.primaryDark;
+  static const Color accentOrange = AppDesignTokens.accentOrange;
+  static const Color success = AppDesignTokens.success;
+  static const Color warning = AppDesignTokens.warning;
+  static const Color danger = AppDesignTokens.danger;
+  static const Color error = AppDesignTokens.error;
+  static const Color background = AppDesignTokens.background;
+  static const Color surface = AppDesignTokens.surface;
+  static const Color surfaceElevated = AppDesignTokens.surfaceElevated;
+  static const Color surfaceInput = AppDesignTokens.surfaceInput;
+  static const Color textPrimary = AppDesignTokens.textPrimary;
+  static const Color textSecondary = AppDesignTokens.textSecondary;
+  static const Color textMuted = AppDesignTokens.textMuted;
+  static const Color border = AppDesignTokens.border;
+  static const Color borderSubtle = AppDesignTokens.borderSubtle;
 
-  static ThemeData get darkTheme {
+  /// Modern Light Theme for Desktop Retail POS / ERP
+  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: background,
       primaryColor: primary,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: primary,
-        secondary: success,
+        secondary: accentOrange,
         surface: surface,
         error: danger,
         onPrimary: Colors.white,
+        onSecondary: Colors.white,
         onSurface: textPrimary,
       ),
       fontFamily: 'Roboto',
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
-          fontSize: 28,
+          fontSize: 24,
           fontWeight: FontWeight.bold,
           color: textPrimary,
+          letterSpacing: -0.5,
         ),
         headlineMedium: TextStyle(
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
           color: textPrimary,
+          letterSpacing: -0.3,
         ),
         titleLarge: TextStyle(
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
         titleMedium: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
-        bodyLarge: TextStyle(fontSize: 14, color: textPrimary),
-        bodyMedium: TextStyle(fontSize: 13, color: textSecondary),
+        bodyLarge: TextStyle(
+          fontSize: 13,
+          color: textPrimary,
+          fontWeight: FontWeight.normal,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 12,
+          color: textSecondary,
+          fontWeight: FontWeight.normal,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: textPrimary,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: textMuted,
+        ),
       ),
       cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusLg),
           side: const BorderSide(color: border, width: 1),
         ),
       ),
+      dividerTheme: const DividerThemeData(
+        color: border,
+        thickness: 1,
+        space: 1,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
+        fillColor: surfaceInput,
+        isDense: true,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 14,
+          vertical: 11,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
           borderSide: const BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
           borderSide: const BorderSide(color: border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
+          borderSide: const BorderSide(color: primary, width: 1.5),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
+          borderSide: const BorderSide(color: danger),
+        ),
+        hintStyle: const TextStyle(color: textMuted, fontSize: 13),
+        labelStyle: const TextStyle(color: textSecondary, fontSize: 13),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          minimumSize: const Size(88, 48), // Big touch target
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          minimumSize: const Size(88, AppDesignTokens.buttonHeightMd),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
+          ),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          elevation: 0,
         ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
+          side: const BorderSide(color: border, width: 1),
+        ),
+      ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.all(border),
+        radius: const Radius.circular(4),
+        thickness: WidgetStateProperty.all(6),
       ),
     );
   }
+
+  /// Backward-compatibility alias
+  static ThemeData get darkTheme => lightTheme;
 }

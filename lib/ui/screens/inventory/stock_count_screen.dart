@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/services/inventory_count_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
+import 'package:jazzpos/ui/widgets/common/app_button.dart';
 import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
 
 class StockCountScreen extends ConsumerStatefulWidget {
@@ -54,8 +57,8 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: AppTheme.error,
+            content: Text('${context.loc.error}: $e'),
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
@@ -91,9 +94,9 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Compté +1 : $clean'),
+            content: Text('+1 : $clean'),
             duration: const Duration(milliseconds: 700),
-            backgroundColor: AppTheme.success,
+            backgroundColor: AppDesignTokens.success,
           ),
         );
       }
@@ -101,9 +104,9 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text('${context.loc.error}: $e'),
             duration: const Duration(seconds: 2),
-            backgroundColor: AppTheme.error,
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
@@ -121,9 +124,11 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
 
     // If cashier is not manager/owner, prompt manager override
     if (auth.user?.role != 'OWNER' && auth.user?.role != 'MANAGER') {
+      final loc = context.loc;
       final manager = await ManagerOverrideDialog.show(
         context,
-        actionTitle: 'Clôture et réconciliation d\'inventaire',
+        actionTitle: loc.validateAndApplyAudit,
+        requiredPermission: AppPermissions.manageInventory,
       );
       if (manager == null) return;
       managerId = manager.id;
@@ -137,12 +142,11 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       );
 
       if (mounted) {
+        final loc = context.loc;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Inventaire réconcilié et stocks ajustés avec succès !',
-            ),
-            backgroundColor: AppTheme.success,
+          SnackBar(
+            content: Text(loc.countCompletedSuccess),
+            backgroundColor: AppDesignTokens.success,
           ),
         );
         Navigator.of(context).pop();
@@ -151,8 +155,8 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: AppTheme.error,
+            content: Text('${context.loc.error}: $e'),
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
@@ -174,32 +178,48 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       }
     }
 
+    final loc = context.loc;
     return BarcodeScannerListener(
       onBarcodeScanned: _handleBarcode,
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppDesignTokens.canvas,
         appBar: AppBar(
-          title: const Text('Session d\'Inventaire & Audit de Stock'),
-          backgroundColor: AppTheme.surface,
+          title: Text(
+            loc.stockCountTitle,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              color: AppDesignTokens.textPrimary,
+            ),
+          ),
+          backgroundColor: AppDesignTokens.surface,
+          foregroundColor: AppDesignTokens.textPrimary,
+          elevation: 0,
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, color: AppDesignTokens.border),
+          ),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: ElevatedButton.icon(
+              padding: const EdgeInsetsDirectional.only(end: 16),
+              child: AppButton(
+                label: loc.validateAndApplyAudit,
+                icon: Icons.check_circle_outline,
+                variant: AppButtonVariant.success,
+                isLoading: _isLoading,
                 onPressed: _isLoading ? null : _reconcileAndFinish,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.success,
-                  foregroundColor: Colors.white,
-                ),
-                icon: const Icon(Icons.check_circle_outline, size: 20),
-                label: const Text('RÉCONCILIER & CLÔTURER'),
               ),
             ),
           ],
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppDesignTokens.primary,
+                ),
+              )
             : Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsetsDirectional.all(20),
                 child: Column(
                   children: [
                     // Top Bar: Barcode Input + Stats Cards
@@ -209,18 +229,24 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                         Expanded(
                           flex: 5,
                           child: Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppTheme.surface,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
+                              color: AppDesignTokens.surface,
+                              borderRadius: BorderRadius.circular(
+                                AppDesignTokens.radiusCard,
+                              ),
+                              border: Border.all(color: AppDesignTokens.border),
+                              boxShadow: AppDesignTokens.shadowSm,
                             ),
                             child: Row(
                               children: [
                                 const Icon(
                                   Icons.qr_code_scanner,
-                                  color: AppTheme.primaryLight,
-                                  size: 28,
+                                  color: AppDesignTokens.primary,
+                                  size: 26,
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -228,9 +254,15 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                                     controller: _barcodeInputCtrl,
                                     focusNode: _barcodeFocus,
                                     autofocus: true,
-                                    decoration: const InputDecoration(
-                                      hintText:
-                                          'Scannez le code-barres de l\'article ou tapez le SKU...',
+                                    style: const TextStyle(
+                                      color: AppDesignTokens.textPrimary,
+                                      fontSize: 14,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: loc.scanOrTypeBarcode,
+                                      hintStyle: const TextStyle(
+                                        color: AppDesignTokens.textMuted,
+                                      ),
                                       border: InputBorder.none,
                                     ),
                                     onSubmitted: _handleBarcode,
@@ -239,7 +271,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                                 IconButton(
                                   icon: const Icon(
                                     Icons.send,
-                                    color: AppTheme.primary,
+                                    color: AppDesignTokens.primary,
                                   ),
                                   onPressed: () =>
                                       _handleBarcode(_barcodeInputCtrl.text),
@@ -253,9 +285,12 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
 
                         // Stats Card 1: Total Scanned
                         _buildStatCard(
-                          title: 'Total Pièces Comptées',
+                          title: loc.totalPiecesCounted,
                           value: '$totalCounted',
-                          color: AppTheme.primaryLight,
+                          color: AppDesignTokens.primary,
+                          bgColor: AppDesignTokens.primaryLight.withValues(
+                            alpha: 0.1,
+                          ),
                           icon: Icons.checkroom,
                         ),
 
@@ -263,11 +298,14 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
 
                         // Stats Card 2: Discrepancies
                         _buildStatCard(
-                          title: 'Articles en Écart',
+                          title: loc.itemsWithVariance,
                           value: '$totalDiscrepancies',
                           color: totalDiscrepancies > 0
-                              ? AppTheme.warning
-                              : AppTheme.success,
+                              ? AppDesignTokens.warningText
+                              : AppDesignTokens.successText,
+                          bgColor: totalDiscrepancies > 0
+                              ? AppDesignTokens.warningBg
+                              : AppDesignTokens.successBg,
                           icon: Icons.difference,
                         ),
 
@@ -275,13 +313,16 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
 
                         // Stats Card 3: Value Variance
                         _buildStatCard(
-                          title: 'Valeur de l\'Écart',
+                          title: loc.varianceValue,
                           value: Money.fromMillimes(
                             varianceCostMillimes,
                           ).format(),
                           color: varianceCostMillimes < 0
-                              ? AppTheme.error
-                              : AppTheme.success,
+                              ? AppDesignTokens.dangerText
+                              : AppDesignTokens.successText,
+                          bgColor: varianceCostMillimes < 0
+                              ? AppDesignTokens.dangerBg
+                              : AppDesignTokens.successBg,
                           icon: Icons.attach_money,
                         ),
                       ],
@@ -293,170 +334,220 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppTheme.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.border),
+                          color: AppDesignTokens.surface,
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusCard,
+                          ),
+                          border: Border.all(color: AppDesignTokens.border),
+                          boxShadow: AppDesignTokens.shadowSm,
                         ),
-                        child: ListView.separated(
-                          itemCount: _lines.length,
-                          separatorBuilder: (_, __) =>
-                              const Divider(color: AppTheme.border, height: 1),
-                          itemBuilder: (context, index) {
-                            final item = _lines[index];
-                            final diff = item.line.differenceQuantity;
-                            final isDifferent = diff != 0;
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusCard,
+                          ),
+                          child: ListView.separated(
+                            itemCount: _lines.length,
+                            separatorBuilder: (_, __) => const Divider(
+                              color: AppDesignTokens.border,
+                              height: 1,
+                              thickness: 1,
+                            ),
+                            itemBuilder: (context, index) {
+                              final item = _lines[index];
+                              final diff = item.line.differenceQuantity;
+                              final isDifferent = diff != 0;
 
-                            return Container(
-                              color: isDifferent
-                                  ? AppTheme.warning.withValues(alpha: 0.05)
-                                  : Colors.transparent,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Product & Variant
-                                  Expanded(
-                                    flex: 4,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.product.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${item.attributeDesc} • Code: ${item.variant.barcode}',
-                                          style: const TextStyle(
-                                            color: AppTheme.textSecondary,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Expected Stock
-                                  Expanded(
-                                    flex: 2,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        const Text(
-                                          'Théorique',
-                                          style: TextStyle(
-                                            color: AppTheme.textSecondary,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${item.line.expectedQuantity}',
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Counted Stock with Quick Adjusters
-                                  Expanded(
-                                    flex: 3,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.remove,
-                                            size: 16,
-                                          ),
-                                          onPressed:
-                                              item.line.countedQuantity > 0
-                                              ? () =>
-                                                    _handleBarcodeManualAdjust(
-                                                      item,
-                                                      -1,
-                                                    )
-                                              : null,
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primary.withValues(
-                                              alpha: 0.15,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            border: Border.all(
-                                              color: AppTheme.primaryLight,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            '${item.line.countedQuantity}',
+                              return Container(
+                                color: isDifferent
+                                    ? AppDesignTokens.warningBg.withValues(
+                                        alpha: 0.35,
+                                      )
+                                    : Colors.transparent,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    // Product & Variant
+                                    Expanded(
+                                      flex: 4,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.product.name,
                                             style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                              color:
+                                                  AppDesignTokens.textPrimary,
                                             ),
                                           ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.add, size: 16),
-                                          onPressed: () =>
-                                              _handleBarcodeManualAdjust(
-                                                item,
-                                                1,
-                                              ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${item.attributeDesc} • ${loc.barcode}: ${item.variant.barcode}',
+                                            style: const TextStyle(
+                                              color:
+                                                  AppDesignTokens.textSecondary,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
 
-                                  // Discrepancy / Variance
-                                  Expanded(
-                                    flex: 2,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        const Text(
-                                          'Écart',
-                                          style: TextStyle(
-                                            color: AppTheme.textSecondary,
-                                            fontSize: 11,
+                                    // Expected Stock
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            loc.expectedQty,
+                                            style: const TextStyle(
+                                              color: AppDesignTokens.textMuted,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
-                                        ),
-                                        Text(
-                                          diff > 0 ? '+$diff' : '$diff',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: diff == 0
-                                                ? Colors.white54
-                                                : diff > 0
-                                                ? AppTheme.success
-                                                : AppTheme.error,
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${item.line.expectedQuantity}',
+                                            style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              color:
+                                                  AppDesignTokens.textPrimary,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+
+                                    // Counted Stock with Quick Adjusters
+                                    Expanded(
+                                      flex: 3,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.remove_circle_outline,
+                                              size: 20,
+                                              color:
+                                                  AppDesignTokens.textSecondary,
+                                            ),
+                                            onPressed:
+                                                item.line.countedQuantity > 0
+                                                ? () =>
+                                                      _handleBarcodeManualAdjust(
+                                                        item,
+                                                        -1,
+                                                      )
+                                                : null,
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppDesignTokens
+                                                  .primaryLight
+                                                  .withValues(alpha: 0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: AppDesignTokens
+                                                    .primaryLight
+                                                    .withValues(alpha: 0.4),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '${item.line.countedQuantity}',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppDesignTokens.primary,
+                                              ),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.add_circle_outline,
+                                              size: 20,
+                                              color: AppDesignTokens.primary,
+                                            ),
+                                            onPressed: () =>
+                                                _handleBarcodeManualAdjust(
+                                                  item,
+                                                  1,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    // Discrepancy / Variance
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            loc.varianceQty,
+                                            style: const TextStyle(
+                                              color: AppDesignTokens.textMuted,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: diff == 0
+                                                  ? Colors.transparent
+                                                  : (diff > 0
+                                                        ? AppDesignTokens
+                                                              .successBg
+                                                        : AppDesignTokens
+                                                              .dangerBg),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              diff > 0 ? '+$diff' : '$diff',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: diff == 0
+                                                    ? AppDesignTokens
+                                                          .textSecondary
+                                                    : (diff > 0
+                                                          ? AppDesignTokens
+                                                                .successText
+                                                          : AppDesignTokens
+                                                                .dangerText),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -485,15 +576,17 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
     required String title,
     required String value,
     required Color color,
+    required Color bgColor,
     required IconData icon,
   }) {
     return Container(
       width: 180,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.border),
+        color: AppDesignTokens.surface,
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+        border: Border.all(color: AppDesignTokens.border),
+        boxShadow: AppDesignTokens.shadowSm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,21 +594,33 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 11,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppDesignTokens.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              Icon(icon, size: 14, color: color),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.bold,
               color: color,
             ),

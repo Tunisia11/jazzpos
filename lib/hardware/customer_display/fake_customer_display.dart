@@ -1,10 +1,15 @@
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'customer_display_interface.dart';
 
 class FakeCustomerDisplay implements CustomerDisplay {
   @override
   final String name;
+  @override
+  final CustomerDisplayMode mode = CustomerDisplayMode.secondMonitor;
+  @override
+  final HardwareStatus status = HardwareStatus.simulated;
 
   String line1 = 'WELCOME TO JAZZ';
   String line2 = 'READY';

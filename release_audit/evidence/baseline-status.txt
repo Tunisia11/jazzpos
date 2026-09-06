@@ -1,0 +1,49 @@
+ M lib/core/platform/app_paths.dart
+ M lib/data/database/app_database.dart
+ M lib/data/database/app_database.g.dart
+ M lib/data/database/tables/catalog_tables.dart
+ M lib/domain/services/catalog_service.dart
+ M lib/main.dart
+ M lib/providers/app_providers.dart
+ M lib/ui/navigation/app_router.dart
+ M lib/ui/screens/auth/lock_screen.dart
+ M lib/ui/screens/auth/login_screen.dart
+ M lib/ui/screens/auth/setup_wizard_screen.dart
+ M lib/ui/screens/catalog/product_edit_screen.dart
+ M lib/ui/screens/catalog/product_list_screen.dart
+ M lib/ui/screens/catalog/variant_matrix_editor.dart
+ M lib/ui/screens/checkout/checkout_screen.dart
+ M lib/ui/screens/checkout/widgets/cart_view.dart
+ M lib/ui/screens/checkout/widgets/payment_dialog.dart
+ M lib/ui/screens/checkout/widgets/product_catalog_grid.dart
+ M lib/ui/screens/checkout/widgets/receipt_preview_dialog.dart
+ M lib/ui/screens/checkout/widgets/suspended_sales_dialog.dart
+ M lib/ui/screens/checkout/widgets/variant_selection_dialog.dart
+ M lib/ui/screens/inventory/inventory_screen.dart
+ M lib/ui/screens/inventory/stock_count_screen.dart
+ M lib/ui/screens/labels/label_studio_screen.dart
+ M lib/ui/screens/purchasing/goods_receiving_screen.dart
+ M lib/ui/screens/purchasing/purchase_orders_screen.dart
+ M lib/ui/screens/reports/reports_screen.dart
+ M lib/ui/screens/returns/returns_exchanges_screen.dart
+ M lib/ui/screens/settings/settings_screen.dart
+ M lib/ui/screens/shifts/shift_management_screen.dart
+ M lib/ui/theme/app_theme.dart
+ M lib/ui/widgets/manager_override_dialog.dart
+ M lib/ui/widgets/money_display.dart
+ M lib/ui/widgets/numpad.dart
+ M linux/flutter/generated_plugin_registrant.cc
+ M linux/flutter/generated_plugins.cmake
+ M macos/Flutter/GeneratedPluginRegistrant.swift
+ M macos/Podfile.lock
+ M pubspec.lock
+ M pubspec.yaml
+ M windows/flutter/generated_plugin_registrant.cc
+ M windows/flutter/generated_plugins.cmake
+?? lib/core/localization/
+?? lib/domain/services/product_image_service.dart
+?? lib/ui/theme/app_design_tokens.dart
+?? lib/ui/widgets/common/
+?? release_audit/
+?? test/localization/
+?? test/services/product_management_and_audit_test.dart

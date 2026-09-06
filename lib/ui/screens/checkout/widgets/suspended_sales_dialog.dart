@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 
 class SuspendedSalesDialog extends ConsumerStatefulWidget {
@@ -51,27 +54,36 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
   }
 
   Future<void> _resumeCart(SuspendedCart cart) async {
+    final loc = context.loc;
     final cartState = ref.read(cartNotifierProvider);
     if (cartState.items.isNotEmpty) {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: AppTheme.surface,
-          title: const Text('Panier actuel non vide'),
-          content: const Text(
-            'Le panier actuel contient des articles. Si vous reprenez cette vente en attente, le panier en cours sera remplacé. Voulez-vous continuer ?',
+          backgroundColor: AppDesignTokens.surface,
+          title: Text(
+            loc.cartNotEmptyTitle,
+            style: const TextStyle(
+              color: AppDesignTokens.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            loc.cartNotEmptyBody,
+            style: const TextStyle(color: AppDesignTokens.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Annuler'),
+              child: Text(loc.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.warning,
+                backgroundColor: AppDesignTokens.warning,
+                foregroundColor: Colors.white,
               ),
-              child: const Text('Remplacer le panier'),
+              child: Text(loc.replaceCart),
             ),
           ],
         ),
@@ -88,33 +100,50 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
 
     if (mounted) {
       Navigator.of(context).pop();
+      final name = cart.referenceName.isEmpty
+          ? loc.unnamedSale
+          : cart.referenceName;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Vente "${cart.referenceName}" reprise avec succès'),
-          backgroundColor: AppTheme.success,
+          content: Text('$name: ${loc.holdSaleSuccess}'),
+          backgroundColor: AppDesignTokens.success,
         ),
       );
     }
   }
 
   Future<void> _deleteCart(SuspendedCart cart) async {
+    final loc = context.loc;
+    final name = cart.referenceName.isEmpty
+        ? loc.unnamedSale
+        : cart.referenceName;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Supprimer la vente en attente'),
+        backgroundColor: AppDesignTokens.surface,
+        title: Text(
+          loc.deleteSuspendedSaleTitle,
+          style: const TextStyle(
+            color: AppDesignTokens.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Text(
-          'Êtes-vous sûr de vouloir supprimer définitivement "${cart.referenceName}" ?',
+          loc.deleteSuspendedSaleBody(name),
+          style: const TextStyle(color: AppDesignTokens.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(loc.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('Supprimer'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesignTokens.danger,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(loc.delete),
           ),
         ],
       ),
@@ -129,17 +158,20 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final selectedCart = _carts
         .where((c) => c.id == _selectedCartId)
         .firstOrNull;
 
     return Dialog(
-      backgroundColor: AppTheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: AppDesignTokens.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
+      ),
       child: Container(
         width: 800,
         height: 520,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppDesignTokens.space24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -150,16 +182,16 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
                   children: [
                     const Icon(
                       Icons.pause_circle_outline,
-                      color: AppTheme.warning,
-                      size: 28,
+                      color: AppDesignTokens.warning,
+                      size: 26,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Ventes en Attente (Mise en attente)',
-                      style: TextStyle(
-                        fontSize: 20,
+                    const SizedBox(width: 10),
+                    Text(
+                      loc.suspendedSales,
+                      style: const TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppDesignTokens.textPrimary,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -169,53 +201,44 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.warning.withValues(alpha: 0.2),
+                        color: AppDesignTokens.warningBg,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.warning),
+                        border: Border.all(
+                          color: AppDesignTokens.warning.withValues(alpha: 0.5),
+                        ),
                       ),
                       child: Text(
                         '${_carts.length}',
                         style: const TextStyle(
-                          color: AppTheme.warning,
+                          color: AppDesignTokens.warningText,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 12,
                         ),
                       ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                  icon: const Icon(
+                    Icons.close,
+                    color: AppDesignTokens.textSecondary,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            const Divider(color: AppTheme.border, height: 1),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+            const Divider(color: AppDesignTokens.border, height: 1),
+            const SizedBox(height: 14),
 
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _carts.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.inbox_outlined,
-                            size: 64,
-                            color: AppTheme.textSecondary,
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            'Aucune vente en attente',
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+                  ? Center(
+                      child: AppEmptyState(
+                        icon: Icons.inbox_outlined,
+                        title: loc.noSuspendedSales,
                       ),
                     )
                   : Row(
@@ -226,14 +249,16 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
                           flex: 5,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF161F2E),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTheme.border),
+                              color: AppDesignTokens.surfaceSecondary,
+                              borderRadius: BorderRadius.circular(
+                                AppDesignTokens.radiusMd,
+                              ),
+                              border: Border.all(color: AppDesignTokens.border),
                             ),
                             child: ListView.separated(
                               itemCount: _carts.length,
                               separatorBuilder: (_, __) => const Divider(
-                                color: AppTheme.border,
+                                color: AppDesignTokens.border,
                                 height: 1,
                               ),
                               itemBuilder: (context, index) {
@@ -248,29 +273,31 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
 
                                 return ListTile(
                                   selected: isSelected,
-                                  selectedTileColor: AppTheme.primary
-                                      .withValues(alpha: 0.15),
+                                  selectedTileColor: const Color(0xFFEFF6FF),
                                   title: Text(
                                     cart.referenceName.isEmpty
-                                        ? 'Sans nom'
+                                        ? loc.unnamedSale
                                         : cart.referenceName,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: isSelected
-                                          ? AppTheme.primaryLight
-                                          : Colors.white,
+                                          ? AppDesignTokens.primary
+                                          : AppDesignTokens.textPrimary,
                                     ),
                                   ),
                                   subtitle: Text(
-                                    '$timeStr • $itemCount article(s)',
+                                    '$timeStr • ${loc.nArticles(itemCount)}',
                                     style: const TextStyle(
-                                      color: AppTheme.textSecondary,
+                                      color: AppDesignTokens.textSecondary,
                                       fontSize: 12,
                                     ),
                                   ),
                                   trailing: MoneyDisplay(
                                     amount: total,
-                                    fontSize: 15,
+                                    fontSize: 14,
+                                    color: isSelected
+                                        ? AppDesignTokens.primary
+                                        : AppDesignTokens.textPrimary,
                                   ),
                                   onTap: () {
                                     setState(() => _selectedCartId = cart.id);
@@ -289,11 +316,17 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
                           child: selectedCart == null
                               ? const SizedBox.shrink()
                               : Container(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(
+                                    AppDesignTokens.space16,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF161F2E),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: AppTheme.border),
+                                    color: AppDesignTokens.surfaceSecondary,
+                                    borderRadius: BorderRadius.circular(
+                                      AppDesignTokens.radiusMd,
+                                    ),
+                                    border: Border.all(
+                                      color: AppDesignTokens.border,
+                                    ),
                                   ),
                                   child: _buildDetailsPane(selectedCart),
                                 ),
@@ -308,6 +341,7 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
   }
 
   Widget _buildDetailsPane(SuspendedCart cart) {
+    final loc = context.loc;
     final cartData = _parseCartData(cart.cartJson);
     final items = cartData['items'] as List;
     final total = cartData['total'] as Money;
@@ -321,31 +355,38 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
             Expanded(
               child: Text(
                 cart.referenceName.isEmpty
-                    ? 'Vente sans nom'
+                    ? loc.unnamedSale
                     : cart.referenceName,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppDesignTokens.textPrimary,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            MoneyDisplay(amount: total, fontSize: 20),
+            MoneyDisplay(
+              amount: total,
+              fontSize: 18,
+              color: AppDesignTokens.textPrimary,
+            ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
-          'Créée le ${DateFormat('dd/MM/yyyy à HH:mm:ss').format(cart.createdAt)}',
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          '${loc.date}: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(cart.createdAt)}',
+          style: const TextStyle(
+            color: AppDesignTokens.textSecondary,
+            fontSize: 12,
+          ),
         ),
-        const Divider(color: AppTheme.border, height: 16),
+        const Divider(color: AppDesignTokens.border, height: 16),
 
-        const Text(
-          'Articles dans le panier :',
-          style: TextStyle(
+        Text(
+          '${loc.cart}:',
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppTheme.textSecondary,
+            color: AppDesignTokens.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -354,7 +395,7 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
           child: ListView.separated(
             itemCount: items.length,
             separatorBuilder: (_, __) =>
-                const Divider(color: AppTheme.border, height: 1),
+                const Divider(color: AppDesignTokens.border, height: 1),
             itemBuilder: (context, index) {
               final item = items[index] as Map<String, dynamic>;
               final qty = item['quantity'] as int;
@@ -371,12 +412,16 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         '${qty}x',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppDesignTokens.primary,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -386,19 +431,30 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
                         children: [
                           Text(
                             item['productName'] as String,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            item['variantDescription'] as String,
                             style: const TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppDesignTokens.textPrimary,
+                              fontSize: 13,
                             ),
                           ),
+                          if ((item['variantDescription'] as String?)
+                                  ?.isNotEmpty ==
+                              true)
+                            Text(
+                              item['variantDescription'] as String,
+                              style: const TextStyle(
+                                color: AppDesignTokens.textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                    MoneyDisplay(amount: lineTotal, fontSize: 14),
+                    MoneyDisplay(
+                      amount: lineTotal,
+                      fontSize: 13,
+                      color: AppDesignTokens.textPrimary,
+                    ),
                   ],
                 ),
               );
@@ -412,26 +468,29 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
             OutlinedButton.icon(
               onPressed: () => _deleteCart(cart),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.error,
-                side: const BorderSide(color: AppTheme.error),
-                minimumSize: const Size(0, 48),
+                foregroundColor: AppDesignTokens.danger,
+                side: const BorderSide(color: AppDesignTokens.danger),
+                minimumSize: const Size(0, 44),
               ),
               icon: const Icon(Icons.delete_outline, size: 18),
-              label: const Text('Supprimer'),
+              label: Text(loc.delete),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _resumeCart(cart),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
+                  backgroundColor: AppDesignTokens.primary,
                   foregroundColor: Colors.white,
-                  minimumSize: const Size(0, 48),
+                  minimumSize: const Size(0, 44),
                 ),
                 icon: const Icon(Icons.play_arrow, size: 20),
-                label: const Text(
-                  'Reprendre cette vente',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                label: Text(
+                  loc.resumeThisSale,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ),

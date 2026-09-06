@@ -20,6 +20,7 @@ void main() {
   late String registerId;
   late String shiftId;
   late String cashierId;
+  late String productId;
   late String variantId;
 
   setUp(() async {
@@ -101,7 +102,7 @@ void main() {
         );
 
     // 2. Seed Product & Variant with 10 initial stock
-    final productId = IdGenerator.uuid();
+    productId = IdGenerator.uuid();
     variantId = IdGenerator.uuid();
 
     await db
@@ -320,5 +321,77 @@ void main() {
         expect(stock, 10);
       },
     );
+
+    test('Rejects over-applied payments without writing a sale', () async {
+      final item = CartItem(
+        variantId: variantId,
+        productId: productId,
+        productName: 'Nike Basic Tee',
+        variantDescription: 'BLACK / M',
+        sku: 'TSH-BLK-M',
+        barcode: '200111222333',
+        unitPrice: const Money.fromMillimes(39900),
+        originalPrice: const Money.fromMillimes(39900),
+      );
+      final request = CheckoutRequest(
+        storeId: storeId,
+        registerId: registerId,
+        shiftId: shiftId,
+        cashierId: cashierId,
+        items: [item],
+        payments: const [
+          PaymentSplit(
+            method: AppConstants.paymentCash,
+            amount: Money.fromMillimes(40000),
+          ),
+        ],
+        idempotencyKey: 'OVERPAYMENT',
+      );
+
+      await expectLater(
+        saleService.checkout(request),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(await db.select(db.sales).get(), isEmpty);
+      expect(await inventoryService.getStock(variantId), 10);
+    });
+
+    test('Rejects an archived product still present in a cart', () async {
+      await (db.update(db.products)
+            ..where((table) => table.id.equals(productId)))
+          .write(const ProductsCompanion(status: Value('ARCHIVED')));
+      final item = CartItem(
+        variantId: variantId,
+        productId: productId,
+        productName: 'Nike Basic Tee',
+        variantDescription: 'BLACK / M',
+        sku: 'TSH-BLK-M',
+        barcode: '200111222333',
+        unitPrice: const Money.fromMillimes(39900),
+        originalPrice: const Money.fromMillimes(39900),
+      );
+
+      await expectLater(
+        saleService.checkout(
+          CheckoutRequest(
+            storeId: storeId,
+            registerId: registerId,
+            shiftId: shiftId,
+            cashierId: cashierId,
+            items: [item],
+            payments: [
+              PaymentSplit(
+                method: AppConstants.paymentCard,
+                amount: item.total,
+              ),
+            ],
+            idempotencyKey: 'ARCHIVED-CART',
+          ),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(await db.select(db.sales).get(), isEmpty);
+      expect(await inventoryService.getStock(variantId), 10);
+    });
   });
 }

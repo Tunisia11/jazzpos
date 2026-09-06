@@ -40,6 +40,34 @@ class SaleService {
         'At least one payment method is required',
       );
     }
+    final seenVariants = <String>{};
+    for (final item in request.items) {
+      if (!seenVariants.add(item.variantId)) {
+        throw const ValidationException(
+          'Duplicate variants must be combined into one cart line.',
+        );
+      }
+      if (item.quantity <= 0) {
+        throw const ValidationException(
+          'Sale quantity must be greater than zero',
+        );
+      }
+      if (item.unitPrice.isNegative || item.originalPrice.isNegative) {
+        throw const ValidationException('Sale prices cannot be negative');
+      }
+      if (item.lineDiscount.isNegative || item.lineDiscount > item.subtotal) {
+        throw const ValidationException('Invalid sale line discount');
+      }
+      if (!item.taxRatePercent.isFinite ||
+          item.taxRatePercent < 0 ||
+          item.taxRatePercent > 100) {
+        throw const ValidationException('Invalid tax rate');
+      }
+    }
+    if (request.cartDiscount.isNegative ||
+        request.cartDiscount > request.subtotal) {
+      throw const ValidationException('Invalid cart discount');
+    }
 
     // 1. Check idempotency: if already processed, return existing sale
     final existingSale =
@@ -95,11 +123,35 @@ class SaleService {
         request.items.fold(Money.zero, (s, i) => s + i.lineDiscount);
     final totalAmount = request.total;
 
-    // Validate payment sufficiency
-    if (request.totalPaid < totalAmount) {
+    // Payment records represent the amount applied to the receipt; cash
+    // tendered and change are tracked separately. Over-recording payment would
+    // inflate cash and payment-method reports just as surely as underpayment.
+    if (request.totalPaid != totalAmount) {
       throw ValidationException(
-        'Tendered payment (${request.totalPaid}) is less than total amount ($totalAmount)',
+        'Applied payments (${request.totalPaid}) must equal the sale total ($totalAmount)',
       );
+    }
+    const supportedPayments = {
+      AppConstants.paymentCash,
+      AppConstants.paymentCard,
+      AppConstants.paymentMixed,
+      AppConstants.paymentStoreCredit,
+      AppConstants.paymentOther,
+    };
+    for (final payment in request.payments) {
+      if (!supportedPayments.contains(payment.method) ||
+          payment.amount.isNegative ||
+          payment.tendered.isNegative ||
+          payment.change.isNegative) {
+        throw const ValidationException('Invalid payment details');
+      }
+      if (payment.method == AppConstants.paymentCash &&
+          payment.tendered > Money.zero &&
+          payment.tendered - payment.change != payment.amount) {
+        throw const ValidationException(
+          'Cash tendered, change, and applied amount do not agree.',
+        );
+      }
     }
 
     final saleId = IdGenerator.uuid();
@@ -110,9 +162,99 @@ class SaleService {
     late Sale committedSale;
     late List<SaleLine> committedLines;
     late List<SalePayment> committedPayments;
+    SaleCompletedResult? duplicateResult;
 
     // 4. ATOMIC SQLITE TRANSACTION
     await db.transaction(() async {
+      final duplicate =
+          await (db.select(db.sales)..where(
+                (table) => table.idempotencyKey.equals(request.idempotencyKey),
+              ))
+              .getSingleOrNull();
+      if (duplicate != null) {
+        duplicateResult = SaleCompletedResult(
+          sale: duplicate,
+          lines: await (db.select(
+            db.saleLines,
+          )..where((table) => table.saleId.equals(duplicate.id))).get(),
+          payments: await (db.select(
+            db.salePayments,
+          )..where((table) => table.saleId.equals(duplicate.id))).get(),
+          printJobId: '',
+        );
+        return;
+      }
+
+      // A checkout may have been initiated just as another operator closes the
+      // register. Re-check the actual shift inside the write transaction so a
+      // completed sale can never be attached to a closed or different register.
+      final activeShift = await (db.select(
+        db.shifts,
+      )..where((tbl) => tbl.id.equals(request.shiftId))).getSingleOrNull();
+      if (activeShift == null ||
+          activeShift.status != AppConstants.shiftOpen ||
+          activeShift.registerId != request.registerId) {
+        throw const ValidationException(
+          'The selected cash register shift is no longer open.',
+        );
+      }
+      final register =
+          await (db.select(db.registers)
+                ..where((table) => table.id.equals(request.registerId)))
+              .getSingleOrNull();
+      if (register == null || register.storeId != request.storeId) {
+        throw const ValidationException(
+          'The selected register does not belong to this store.',
+        );
+      }
+      final cashier =
+          await (db.select(db.users)..where(
+                (table) =>
+                    table.id.equals(request.cashierId) &
+                    table.isActive.equals(true),
+              ))
+              .getSingleOrNull();
+      if (cashier == null) {
+        throw const AuthException('An active cashier session is required.');
+      }
+
+      final currentPolicySetting =
+          await (db.select(db.appSettings)..where(
+                (table) =>
+                    table.key.equals(AppConstants.keyNegativeStockPolicy),
+              ))
+              .getSingleOrNull();
+      final currentPolicy =
+          currentPolicySetting?.value ?? AppConstants.negativeStockWarn;
+      for (final item in request.items) {
+        final variant = await (db.select(
+          db.productVariants,
+        )..where((table) => table.id.equals(item.variantId))).getSingleOrNull();
+        if (variant == null || !variant.isActive || variant.deletedAt != null) {
+          throw const ValidationException(
+            'A product variant in this cart is no longer available.',
+          );
+        }
+        final product =
+            await (db.select(db.products)
+                  ..where((table) => table.id.equals(variant.productId)))
+                .getSingleOrNull();
+        if (product == null ||
+            product.status != 'ACTIVE' ||
+            product.deletedAt != null) {
+          throw const ValidationException(
+            'A product in this cart is archived or unavailable.',
+          );
+        }
+        await inventoryService.validateStockAvailability(
+          variantId: item.variantId,
+          requestedQuantity: item.quantity,
+          policy: currentPolicy,
+          managerOverrideId: request.managerOverrideId,
+          locationId: defaultLocation.id,
+        );
+      }
+
       // 4a. Insert Sale
       final saleCompanion = SalesCompanion.insert(
         id: saleId,
@@ -284,6 +426,8 @@ class SaleService {
       committedLines = insertedLines;
       committedPayments = insertedPayments;
     });
+
+    if (duplicateResult != null) return duplicateResult!;
 
     PosLogger.instance.info(
       'Sales',

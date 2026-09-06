@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^2.6.1
@@ -47,6 +49,7 @@ dependencies:
   qr_flutter: ^4.1.0
   image: ^4.3.0
   window_manager: ^0.4.3
+  file_selector: ^1.1.0
 
 dev_dependencies:
   flutter_test:

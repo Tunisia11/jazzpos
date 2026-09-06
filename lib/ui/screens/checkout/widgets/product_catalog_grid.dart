@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
-import 'package:jazzpos/ui/widgets/money_display.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
+import 'package:jazzpos/ui/widgets/common/app_status_badge.dart';
+import 'package:jazzpos/ui/widgets/common/price_text.dart';
+import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
 import 'variant_selection_dialog.dart';
 
 class ProductCatalogGrid extends ConsumerStatefulWidget {
@@ -35,9 +39,11 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
       ref.read(cartNotifierProvider.notifier).addItem(variants.first);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Ajouté : ${variants.first.productName}'),
+          content: Text(
+            '${context.loc.barcodeScannedSuccess} : ${variants.first.productName}',
+          ),
           duration: const Duration(milliseconds: 900),
-          backgroundColor: AppTheme.success,
+          backgroundColor: AppDesignTokens.success,
         ),
       );
     } else {
@@ -67,30 +73,34 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
       children: [
         // Search and Category Bar
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppDesignTokens.space12),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.border),
+            color: AppDesignTokens.surface,
+            borderRadius: BorderRadius.circular(AppDesignTokens.radiusLg),
+            border: Border.all(color: AppDesignTokens.border),
+            boxShadow: AppDesignTokens.shadowSm,
           ),
           child: Column(
             children: [
               // Search Input
               TextField(
                 controller: _searchController,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(
+                  color: AppDesignTokens.textPrimary,
+                  fontSize: 14,
+                ),
                 decoration: InputDecoration(
-                  hintText:
-                      'Rechercher article, code-barres, référence (F3)...',
+                  hintText: context.loc.searchProductOrBarcode,
+                  hintStyle: const TextStyle(color: AppDesignTokens.textMuted),
                   prefixIcon: const Icon(
                     Icons.search,
-                    color: AppTheme.primaryLight,
+                    color: AppDesignTokens.primary,
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(
                             Icons.clear,
-                            color: AppTheme.textSecondary,
+                            color: AppDesignTokens.textSecondary,
                             size: 18,
                           ),
                           onPressed: () {
@@ -100,7 +110,7 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
                         )
                       : const Icon(
                           Icons.qr_code_scanner,
-                          color: AppTheme.textSecondary,
+                          color: AppDesignTokens.textSecondary,
                         ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -114,17 +124,33 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
               if (catalogState.categories.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 SizedBox(
-                  height: 38,
+                  height: 36,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ChoiceChip(
-                          label: const Text('Tous'),
+                          label: Text(context.loc.allCategories),
                           selected: catalogState.selectedCategoryId == null,
                           onSelected: (_) =>
                               catalogNotifier.selectCategory(null),
+                          selectedColor: AppDesignTokens.primary,
+                          labelStyle: TextStyle(
+                            color: catalogState.selectedCategoryId == null
+                                ? Colors.white
+                                : AppDesignTokens.textPrimary,
+                            fontWeight: catalogState.selectedCategoryId == null
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                          backgroundColor: AppDesignTokens.surfaceSecondary,
+                          side: BorderSide(
+                            color: catalogState.selectedCategoryId == null
+                                ? AppDesignTokens.primary
+                                : AppDesignTokens.border,
+                          ),
                         ),
                       ),
                       ...catalogState.categories.map((cat) {
@@ -133,10 +159,26 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
-                            label: Text(cat.name),
+                            label: Text(context.loc.categoryName(cat.name)),
                             selected: isSelected,
                             onSelected: (_) =>
                                 catalogNotifier.selectCategory(cat.id),
+                            selectedColor: AppDesignTokens.primary,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppDesignTokens.textPrimary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                            backgroundColor: AppDesignTokens.surfaceSecondary,
+                            side: BorderSide(
+                              color: isSelected
+                                  ? AppDesignTokens.primary
+                                  : AppDesignTokens.border,
+                            ),
                           ),
                         );
                       }),
@@ -155,33 +197,10 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
           child: catalogState.isLoading
               ? const Center(child: CircularProgressIndicator())
               : productGroups.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 64,
-                        color: AppTheme.textSecondary.withValues(alpha: 0.4),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Aucun article trouvé',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (_searchController.text.isNotEmpty)
-                        TextButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            catalogNotifier.search('');
-                          },
-                          child: const Text('Effacer la recherche'),
-                        ),
-                    ],
-                  ),
+              ? AppEmptyState(
+                  icon: Icons.inventory_2_outlined,
+                  title: context.loc.none,
+                  subtitle: context.loc.searchProductOrBarcode,
                 )
               : LayoutBuilder(
                   builder: (context, constraints) {
@@ -221,85 +240,60 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: AppTheme.surface,
+                              color: AppDesignTokens.surface,
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                              border: Border.all(color: AppDesignTokens.border),
+                              boxShadow: AppDesignTokens.shadowSm,
                             ),
                             padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Top row: Variant count badge & stock
+                                // Top row: Thumbnail & badges
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: variants.length > 1
-                                            ? AppTheme.primary.withValues(
-                                                alpha: 0.2,
-                                              )
-                                            : Colors.white.withValues(
-                                                alpha: 0.08,
-                                              ),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(
-                                          color: variants.length > 1
-                                              ? AppTheme.primary
-                                              : AppTheme.border,
-                                          width: 0.5,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        variants.length > 1
-                                            ? '${variants.length} var.'
-                                            : 'Unique',
-                                        style: TextStyle(
-                                          color: variants.length > 1
-                                              ? AppTheme.primaryLight
-                                              : AppTheme.textSecondary,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                    ProductThumbnail(
+                                      imageUrl: firstVar.imageUrl,
+                                      size: 38,
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: totalStock > 0
-                                            ? AppTheme.success.withValues(
-                                                alpha: 0.15,
-                                              )
-                                            : AppTheme.error.withValues(
-                                                alpha: 0.15,
+                                    const Spacer(),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        if (variants.length > 1)
+                                          Container(
+                                            margin: const EdgeInsets.only(
+                                              bottom: 4,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEFF6FF),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              border: Border.all(
+                                                color: const Color(0xFFBFDBFE),
+                                                width: 0.5,
                                               ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        'Stock: $totalStock',
-                                        style: TextStyle(
-                                          color: totalStock > 0
-                                              ? AppTheme.success
-                                              : AppTheme.error,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
+                                            ),
+                                            child: Text(
+                                              '${variants.length} var.',
+                                              style: const TextStyle(
+                                                color: AppDesignTokens.primary,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        AppStatusBadge.forStock(
+                                          stock: totalStock,
+                                          isCompact: true,
+                                          loc: context.loc,
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -311,14 +305,14 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
                                   productName,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: Colors.white,
+                                    fontSize: 13,
+                                    color: AppDesignTokens.textPrimary,
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
 
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 3),
 
                                 // SKU / barcode subtitle
                                 Text(
@@ -326,7 +320,7 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
                                       ? firstVar.barcode
                                       : firstVar.sku,
                                   style: const TextStyle(
-                                    color: AppTheme.textSecondary,
+                                    color: AppDesignTokens.textSecondary,
                                     fontSize: 11,
                                   ),
                                   maxLines: 1,
@@ -337,15 +331,20 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
 
                                 // Price Display
                                 if (minPrice == maxPrice)
-                                  MoneyDisplay(amount: minPrice, fontSize: 16)
+                                  PriceText(money: minPrice, fontSize: 14)
                                 else
-                                  Text(
-                                    '${minPrice.format()} - ${maxPrice.format()}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: AppTheme.primaryLight,
-                                    ),
+                                  Row(
+                                    children: [
+                                      PriceText(money: minPrice, fontSize: 12),
+                                      const Text(
+                                        ' - ',
+                                        style: TextStyle(
+                                          color: AppDesignTokens.textSecondary,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                      PriceText(money: maxPrice, fontSize: 12),
+                                    ],
                                   ),
                               ],
                             ),

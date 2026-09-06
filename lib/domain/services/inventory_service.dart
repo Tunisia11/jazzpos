@@ -1,9 +1,11 @@
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
+import 'permission_guard.dart';
 
 class InventoryService {
   final AppDatabase db;
@@ -67,6 +69,36 @@ class InventoryService {
     )..where((tbl) => tbl.id.equals(newId))).getSingle();
   }
 
+  /// Return the quarantine location used for stock that must not be sold.
+  /// Older databases may only contain a shop-floor location, so create the
+  /// missing location on demand instead of putting damaged goods back on sale.
+  Future<StockLocation> getDamagedLocation(String storeId) async {
+    final existing =
+        await (db.select(db.stockLocations)..where(
+              (table) =>
+                  table.storeId.equals(storeId) &
+                  table.locationType.equals(AppConstants.locationDamaged),
+            ))
+            .getSingleOrNull();
+    if (existing != null) return existing;
+
+    final id = IdGenerator.uuid();
+    await db
+        .into(db.stockLocations)
+        .insert(
+          StockLocationsCompanion.insert(
+            id: id,
+            storeId: storeId,
+            name: 'Articles endommagés',
+            code: 'DAMAGED',
+            locationType: AppConstants.locationDamaged,
+          ),
+        );
+    return (db.select(
+      db.stockLocations,
+    )..where((table) => table.id.equals(id))).getSingle();
+  }
+
   /// Validate if stock is sufficient according to store negative stock policy
   Future<void> validateStockAvailability({
     required String variantId,
@@ -101,6 +133,11 @@ class InventoryService {
           message: 'Manager override required to sell below zero stock.',
         );
       }
+      await PermissionGuard.requirePermission(
+        db,
+        managerOverrideId,
+        AppPermissions.manageInventory,
+      );
     }
     // WARN policy allows sale to proceed with warning logged
   }
@@ -226,6 +263,11 @@ class InventoryService {
     required String actorId,
     String? reason,
   }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.manageInventory,
+    );
     if (quantity <= 0) {
       throw const ValidationException(
         'Transfer quantity must be greater than zero',
@@ -252,6 +294,11 @@ class InventoryService {
     required String reason,
     String? managerId,
   }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.manualStockAdjustment,
+    );
     final current = await getStock(variantId, locationId: locationId);
     final delta = newQuantity - current;
     if (delta == 0) return;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
@@ -7,8 +8,9 @@ import 'package:jazzpos/domain/services/purchase_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
+import 'package:jazzpos/ui/widgets/common/app_button.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 
 class GoodsReceivingScreen extends ConsumerStatefulWidget {
@@ -92,20 +94,21 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
   }
 
   Future<void> _submitReceiving() async {
+    final loc = context.loc;
     if (_selectedSupplierId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner un fournisseur'),
-          backgroundColor: AppTheme.error,
+        SnackBar(
+          content: Text(loc.selectSupplierPrompt),
+          backgroundColor: AppDesignTokens.danger,
         ),
       );
       return;
     }
     if (_lines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez ajouter au moins un article reçu'),
-          backgroundColor: AppTheme.error,
+        SnackBar(
+          content: Text(loc.addAtLeastOneArticlePrompt),
+          backgroundColor: AppDesignTokens.danger,
         ),
       );
       return;
@@ -133,11 +136,9 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Réception de marchandises enregistrée avec succès !',
-            ),
-            backgroundColor: AppTheme.success,
+          SnackBar(
+            content: Text(loc.receivingSavedSuccess),
+            backgroundColor: AppDesignTokens.success,
           ),
         );
         Navigator.of(context).pop();
@@ -147,8 +148,8 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: AppTheme.error,
+            content: Text('${loc.error}: $e'),
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
@@ -157,6 +158,7 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final catalogState = ref.watch(catalogNotifierProvider);
 
     Money totalCost = Money.zero;
@@ -174,42 +176,44 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppDesignTokens.canvas,
         appBar: AppBar(
-          title: const Text(
-            'Réception Marchandises Fournisseur (Bon de Livraison)',
+          title: Text(
+            '${loc.goodsReceivingTitle} (${loc.invoiceOrDeliveryNote})',
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              color: AppDesignTokens.textPrimary,
+            ),
           ),
-          backgroundColor: AppTheme.surface,
+          backgroundColor: AppDesignTokens.surface,
+          foregroundColor: AppDesignTokens.textPrimary,
+          elevation: 0,
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, color: AppDesignTokens.border),
+          ),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: ElevatedButton.icon(
+              padding: const EdgeInsetsDirectional.only(end: 16),
+              child: AppButton(
                 onPressed: _isSaving ? null : _submitReceiving,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.success,
-                  foregroundColor: Colors.white,
-                ),
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline, size: 20),
-                label: Text(
-                  _isSaving ? 'ENREGISTREMENT...' : 'VALIDER LA RÉCEPTION',
-                ),
+                variant: AppButtonVariant.success,
+                isLoading: _isSaving,
+                icon: Icons.check_circle_outline,
+                label: loc.validateReceiving.toUpperCase(),
               ),
             ),
           ],
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppDesignTokens.primary,
+                ),
+              )
             : Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsetsDirectional.all(20),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -223,9 +227,12 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppTheme.surface,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppTheme.border),
+                              color: AppDesignTokens.surface,
+                              borderRadius: BorderRadius.circular(
+                                AppDesignTokens.radiusCard,
+                              ),
+                              border: Border.all(color: AppDesignTokens.border),
+                              boxShadow: AppDesignTokens.shadowSm,
                             ),
                             child: Row(
                               children: [
@@ -233,16 +240,14 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                                   flex: 3,
                                   child: DropdownButtonFormField<String>(
                                     initialValue: _selectedSupplierId,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Fournisseur *',
+                                    decoration: InputDecoration(
+                                      labelText: '${loc.supplier} *',
                                     ),
                                     items: _suppliers.isEmpty
                                         ? [
-                                            const DropdownMenuItem(
+                                            DropdownMenuItem(
                                               value: null,
-                                              child: Text(
-                                                'Aucun fournisseur (par défaut)',
-                                              ),
+                                              child: Text(loc.none),
                                             ),
                                           ]
                                         : _suppliers
@@ -263,8 +268,11 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                                   flex: 2,
                                   child: TextField(
                                     controller: _invoiceRefCtrl,
-                                    decoration: const InputDecoration(
-                                      labelText: 'N° Bon Livraison / Facture',
+                                    style: const TextStyle(
+                                      color: AppDesignTokens.textPrimary,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: loc.invoiceOrDeliveryNote,
                                       hintText: 'ex: BL-2026-9812',
                                     ),
                                   ),
@@ -279,214 +287,255 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: AppTheme.surface,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.border),
+                                color: AppDesignTokens.surface,
+                                borderRadius: BorderRadius.circular(
+                                  AppDesignTokens.radiusCard,
+                                ),
+                                border: Border.all(
+                                  color: AppDesignTokens.border,
+                                ),
+                                boxShadow: AppDesignTokens.shadowSm,
                               ),
                               child: _lines.isEmpty
-                                  ? const Center(
+                                  ? Center(
                                       child: Text(
-                                        'Aucun article dans cette réception.\nSélectionnez ou scannez des articles à droite.',
+                                        loc.noArticlesInReceiving,
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: AppTheme.textSecondary,
+                                        style: const TextStyle(
+                                          color: AppDesignTokens.textSecondary,
                                         ),
                                       ),
                                     )
-                                  : ListView.separated(
-                                      itemCount: _lines.length,
-                                      separatorBuilder: (_, __) =>
-                                          const Divider(
-                                            color: AppTheme.border,
-                                            height: 1,
-                                          ),
-                                      itemBuilder: (context, index) {
-                                        final line = _lines[index];
-                                        final variant =
-                                            _variantMap[line.variantId];
+                                  : ClipRRect(
+                                      borderRadius: BorderRadius.circular(
+                                        AppDesignTokens.radiusCard,
+                                      ),
+                                      child: ListView.separated(
+                                        itemCount: _lines.length,
+                                        separatorBuilder: (_, __) =>
+                                            const Divider(
+                                              color: AppDesignTokens.border,
+                                              height: 1,
+                                              thickness: 1,
+                                            ),
+                                        itemBuilder: (context, index) {
+                                          final line = _lines[index];
+                                          final variant =
+                                              _variantMap[line.variantId];
 
-                                        return Padding(
-                                          padding: const EdgeInsets.all(12),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                flex: 4,
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      variant?.productName ??
-                                                          'Article',
-                                                      style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 14,
+                                          return Padding(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  flex: 4,
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        variant?.productName ??
+                                                            'Article',
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 14,
+                                                          color: AppDesignTokens
+                                                              .textPrimary,
+                                                        ),
                                                       ),
-                                                    ),
-                                                    Text(
-                                                      '${variant?.variantDescription ?? ""} • SKU: ${variant?.sku ?? ""}',
-                                                      style: const TextStyle(
-                                                        color: AppTheme
-                                                            .textSecondary,
-                                                        fontSize: 12,
+                                                      Text(
+                                                        '${variant?.variantDescription ?? ""} • ${loc.sku}: ${variant?.sku ?? ""}',
+                                                        style: const TextStyle(
+                                                          color: AppDesignTokens
+                                                              .textSecondary,
+                                                          fontSize: 12,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
 
-                                              // Qty Received
-                                              Expanded(
-                                                flex: 2,
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    const Text(
-                                                      'Qté Reçue',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: AppTheme
-                                                            .textSecondary,
+                                                // Qty Received
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        loc.qtyReceived,
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color: AppDesignTokens
+                                                              .textSecondary,
+                                                        ),
                                                       ),
-                                                    ),
-                                                    TextFormField(
-                                                      initialValue:
-                                                          '${line.quantityReceived}',
-                                                      keyboardType:
-                                                          TextInputType.number,
-                                                      onChanged: (v) {
-                                                        final val =
-                                                            int.tryParse(v) ??
-                                                            1;
-                                                        setState(() {
-                                                          _lines[index] =
-                                                              ReceivedLineInput(
-                                                                variantId: line
-                                                                    .variantId,
-                                                                quantityReceived:
-                                                                    val,
-                                                                quantityDamaged:
-                                                                    line.quantityDamaged,
-                                                                unitCost: line
-                                                                    .unitCost,
-                                                              );
-                                                        });
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-
-                                              // Qty Damaged
-                                              Expanded(
-                                                flex: 2,
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    const Text(
-                                                      'Défectueux',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: AppTheme.error,
-                                                      ),
-                                                    ),
-                                                    TextFormField(
-                                                      initialValue:
-                                                          '${line.quantityDamaged}',
-                                                      keyboardType:
-                                                          TextInputType.number,
-                                                      onChanged: (v) {
-                                                        final val =
-                                                            int.tryParse(v) ??
-                                                            0;
-                                                        setState(() {
-                                                          _lines[index] =
-                                                              ReceivedLineInput(
-                                                                variantId: line
-                                                                    .variantId,
-                                                                quantityReceived:
-                                                                    line.quantityReceived,
-                                                                quantityDamaged:
-                                                                    val,
-                                                                unitCost: line
-                                                                    .unitCost,
-                                                              );
-                                                        });
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-
-                                              // Unit Cost
-                                              Expanded(
-                                                flex: 2,
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    const Text(
-                                                      'Coût U. (TND)',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: AppTheme
-                                                            .textSecondary,
-                                                      ),
-                                                    ),
-                                                    TextFormField(
-                                                      initialValue: line
-                                                          .unitCost
-                                                          .format(
-                                                            includeCurrency:
-                                                                false,
-                                                            useGrouping: false,
-                                                          ),
-                                                      keyboardType:
-                                                          TextInputType.number,
-                                                      onChanged: (v) {
-                                                        final val =
-                                                            Money.fromTnd(
-                                                              double.tryParse(
-                                                                    v,
-                                                                  ) ??
-                                                                  0,
+                                                      TextFormField(
+                                                        initialValue:
+                                                            '${line.quantityReceived}',
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .number,
+                                                        style: const TextStyle(
+                                                          color: AppDesignTokens
+                                                              .textPrimary,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                        onChanged: (v) {
+                                                          final val =
+                                                              int.tryParse(v) ??
+                                                              1;
+                                                          setState(() {
+                                                            _lines[index] = ReceivedLineInput(
+                                                              variantId: line
+                                                                  .variantId,
+                                                              quantityReceived:
+                                                                  val,
+                                                              quantityDamaged: line
+                                                                  .quantityDamaged,
+                                                              unitCost:
+                                                                  line.unitCost,
                                                             );
-                                                        setState(() {
-                                                          _lines[index] = ReceivedLineInput(
-                                                            variantId:
-                                                                line.variantId,
-                                                            quantityReceived: line
-                                                                .quantityReceived,
-                                                            quantityDamaged: line
-                                                                .quantityDamaged,
-                                                            unitCost: val,
-                                                          );
-                                                        });
-                                                      },
-                                                    ),
-                                                  ],
+                                                          });
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
+                                                const SizedBox(width: 8),
 
-                                              IconButton(
-                                                icon: const Icon(
-                                                  Icons.close,
-                                                  color: AppTheme.error,
-                                                  size: 18,
+                                                // Qty Damaged
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        loc.qtyDamaged,
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color: AppDesignTokens
+                                                              .dangerText,
+                                                        ),
+                                                      ),
+                                                      TextFormField(
+                                                        initialValue:
+                                                            '${line.quantityDamaged}',
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .number,
+                                                        style: const TextStyle(
+                                                          color: AppDesignTokens
+                                                              .dangerText,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                        onChanged: (v) {
+                                                          final val =
+                                                              int.tryParse(v) ??
+                                                              0;
+                                                          setState(() {
+                                                            _lines[index] =
+                                                                ReceivedLineInput(
+                                                                  variantId: line
+                                                                      .variantId,
+                                                                  quantityReceived:
+                                                                      line.quantityReceived,
+                                                                  quantityDamaged:
+                                                                      val,
+                                                                  unitCost: line
+                                                                      .unitCost,
+                                                                );
+                                                          });
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                                onPressed: () => setState(
-                                                  () => _lines.removeAt(index),
+                                                const SizedBox(width: 8),
+
+                                                // Unit Cost
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        '${loc.costPrice} (${loc.currencySymbol})',
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color: AppDesignTokens
+                                                              .textSecondary,
+                                                        ),
+                                                      ),
+                                                      TextFormField(
+                                                        initialValue: line
+                                                            .unitCost
+                                                            .format(
+                                                              includeCurrency:
+                                                                  false,
+                                                              useGrouping:
+                                                                  false,
+                                                            ),
+                                                        keyboardType:
+                                                            TextInputType
+                                                                .number,
+                                                        style: const TextStyle(
+                                                          color: AppDesignTokens
+                                                              .textPrimary,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                        onChanged: (v) {
+                                                          final val =
+                                                              Money.fromTnd(
+                                                                double.tryParse(
+                                                                      v,
+                                                                    ) ??
+                                                                    0,
+                                                              );
+                                                          setState(() {
+                                                            _lines[index] = ReceivedLineInput(
+                                                              variantId: line
+                                                                  .variantId,
+                                                              quantityReceived:
+                                                                  line.quantityReceived,
+                                                              quantityDamaged: line
+                                                                  .quantityDamaged,
+                                                              unitCost: val,
+                                                            );
+                                                          });
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
+
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.close,
+                                                    color:
+                                                        AppDesignTokens.danger,
+                                                    size: 18,
+                                                  ),
+                                                  onPressed: () => setState(
+                                                    () =>
+                                                        _lines.removeAt(index),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                             ),
                           ),
@@ -502,27 +551,36 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppTheme.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.border),
+                          color: AppDesignTokens.surface,
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusCard,
+                          ),
+                          border: Border.all(color: AppDesignTokens.border),
+                          boxShadow: AppDesignTokens.shadowSm,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Ajouter des articles',
-                              style: TextStyle(
+                            Text(
+                              loc.addArticles,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
+                                color: AppDesignTokens.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 12),
                             TextField(
                               controller: _searchCtrl,
-                              decoration: const InputDecoration(
-                                hintText:
-                                    'Rechercher ou scanner code-barres...',
-                                prefixIcon: Icon(Icons.search),
+                              style: const TextStyle(
+                                color: AppDesignTokens.textPrimary,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: loc.searchProductOrBarcode,
+                                prefixIcon: const Icon(
+                                  Icons.search,
+                                  color: AppDesignTokens.textSecondary,
+                                ),
                               ),
                               onChanged: (val) => ref
                                   .read(catalogNotifierProvider.notifier)
@@ -534,7 +592,7 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                               child: ListView.separated(
                                 itemCount: catalogState.variants.length,
                                 separatorBuilder: (_, __) => const Divider(
-                                  color: AppTheme.border,
+                                  color: AppDesignTokens.border,
                                   height: 1,
                                 ),
                                 itemBuilder: (context, index) {
@@ -545,14 +603,18 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                                       v.productName,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w600,
+                                        color: AppDesignTokens.textPrimary,
                                       ),
                                     ),
                                     subtitle: Text(
-                                      '${v.variantDescription} • Coût: ${v.costPrice.format()}',
+                                      '${v.variantDescription} • ${loc.costPrice}: ${v.costPrice.format()}',
+                                      style: const TextStyle(
+                                        color: AppDesignTokens.textSecondary,
+                                      ),
                                     ),
                                     trailing: const Icon(
                                       Icons.add_circle,
-                                      color: AppTheme.primaryLight,
+                                      color: AppDesignTokens.primary,
                                       size: 20,
                                     ),
                                     onTap: () => _addVariantToReceiving(v),
@@ -561,18 +623,24 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
                               ),
                             ),
 
-                            const Divider(color: AppTheme.border, height: 16),
+                            const Divider(
+                              color: AppDesignTokens.border,
+                              height: 16,
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'TOTAL RÉCEPTION :',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                Text(
+                                  '${loc.total.toUpperCase()} :',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppDesignTokens.textPrimary,
+                                  ),
                                 ),
                                 MoneyDisplay(
                                   amount: totalCost,
                                   fontSize: 18,
-                                  color: AppTheme.primaryLight,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ],
                             ),

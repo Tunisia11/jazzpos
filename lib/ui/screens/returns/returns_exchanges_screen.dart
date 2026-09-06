@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/localization/app_localizations.dart';
+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/models/cart_item.dart';
@@ -12,7 +14,7 @@ import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 
@@ -77,6 +79,7 @@ class _ReturnsExchangesScreenState
         db.saleLines,
       )..where((tbl) => tbl.saleId.equals(sale.id))).get();
       if (mounted) {
+        final loc = context.loc;
         setState(() {
           _foundSale = sale;
           _saleLines = lines;
@@ -84,17 +87,18 @@ class _ReturnsExchangesScreenState
           for (final l in lines) {
             _selectedReturnQtys[l.id] = 0;
             _returnConditions[l.id] = AppConstants.returnConditionSellable;
-            _returnReasons[l.id] = 'Taille non adaptée';
+            _returnReasons[l.id] = loc.returnReasonSize;
           }
         });
       }
     } else {
       if (mounted) {
+        final loc = context.loc;
         setState(() => _isSearching = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Aucun ticket trouvé pour "$clean"'),
-            backgroundColor: AppTheme.error,
+            content: Text(loc.ticketNotFound(clean)),
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
@@ -113,14 +117,15 @@ class _ReturnsExchangesScreenState
   }
 
   Future<void> _submitReturn() async {
+    final loc = context.loc;
     final auth = ref.read(authNotifierProvider);
     final shift = ref.read(shiftNotifierProvider).activeShift;
 
     if (shift == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez d\'abord ouvrir une session de caisse'),
-          backgroundColor: AppTheme.error,
+        SnackBar(
+          content: Text(loc.openRegisterSessionFirst),
+          backgroundColor: AppDesignTokens.danger,
         ),
       );
       return;
@@ -146,11 +151,9 @@ class _ReturnsExchangesScreenState
 
     if (returnItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Veuillez sélectionner au moins un article à retourner',
-          ),
-          backgroundColor: AppTheme.error,
+        SnackBar(
+          content: Text(loc.selectArticleToReturnPrompt),
+          backgroundColor: AppDesignTokens.danger,
         ),
       );
       return;
@@ -170,7 +173,7 @@ class _ReturnsExchangesScreenState
             shiftId: shift.id,
             cashierId: auth.user?.id ?? 'system',
             refundMethod: _refundMethod,
-            reason: 'Retour article',
+            reason: loc.returnReasonDefault,
             items: returnItems,
           ),
         );
@@ -184,10 +187,8 @@ class _ReturnsExchangesScreenState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Retour #${result.returnNumber} validé avec succès !',
-              ),
-              backgroundColor: AppTheme.success,
+              content: Text(loc.returnSuccessWithNumber(result.returnNumber)),
+              backgroundColor: AppDesignTokens.success,
             ),
           );
           _searchSale(_receiptSearchCtrl.text);
@@ -196,9 +197,9 @@ class _ReturnsExchangesScreenState
         // Exchange Mode
         if (_replacementItem == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Veuillez sélectionner un article de remplacement'),
-              backgroundColor: AppTheme.error,
+            SnackBar(
+              content: Text(loc.selectReplacementArticlePrompt),
+              backgroundColor: AppDesignTokens.danger,
             ),
           );
           setState(() => _isSubmitting = false);
@@ -216,7 +217,7 @@ class _ReturnsExchangesScreenState
             returnedItems: returnItems,
             newItems: [_replacementItem!],
             paymentMethod: _refundMethod,
-            reason: 'Échange vêtement (taille / modèle)',
+            reason: loc.exchangeReasonDefault,
           ),
         );
 
@@ -224,9 +225,9 @@ class _ReturnsExchangesScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Échange validé ! Différence : ${result.difference.format()}',
+                loc.exchangeSuccessWithDiff(result.difference.format()),
               ),
-              backgroundColor: AppTheme.success,
+              backgroundColor: AppDesignTokens.success,
             ),
           );
           _searchSale(_receiptSearchCtrl.text);
@@ -236,8 +237,8 @@ class _ReturnsExchangesScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: AppTheme.error,
+            content: Text('${loc.error}: $e'),
+            backgroundColor: AppDesignTokens.danger,
           ),
         );
       }
@@ -248,6 +249,7 @@ class _ReturnsExchangesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final catalogState = ref.watch(catalogNotifierProvider);
 
     return BarcodeScannerListener(
@@ -256,10 +258,23 @@ class _ReturnsExchangesScreenState
         _searchSale(code);
       },
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppDesignTokens.canvas,
         appBar: AppBar(
-          title: const Text('Retours & Échanges de Vêtements'),
-          backgroundColor: AppTheme.surface,
+          title: Text(
+            loc.returnsExchangesTitle,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppDesignTokens.textPrimary,
+            ),
+          ),
+          backgroundColor: AppDesignTokens.surface,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: AppDesignTokens.textPrimary),
+          bottom: const PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(height: 1, color: AppDesignTokens.border),
+          ),
         ),
         body: Padding(
           padding: const EdgeInsets.all(20),
@@ -270,9 +285,12 @@ class _ReturnsExchangesScreenState
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.border),
+                  color: AppDesignTokens.surface,
+                  borderRadius: BorderRadius.circular(
+                    AppDesignTokens.radiusCard,
+                  ),
+                  border: Border.all(color: AppDesignTokens.border),
+                  boxShadow: AppDesignTokens.shadowSm,
                 ),
                 child: Row(
                   children: [
@@ -280,11 +298,13 @@ class _ReturnsExchangesScreenState
                       flex: 4,
                       child: TextField(
                         controller: _receiptSearchCtrl,
-                        decoration: const InputDecoration(
-                          labelText:
-                              'Numéro de Ticket ou Scanner Code-barres Ticket',
+                        decoration: InputDecoration(
+                          labelText: loc.searchReceiptPrompt,
                           hintText: 'ex: REC-20260904-0001',
-                          prefixIcon: Icon(Icons.receipt),
+                          prefixIcon: const Icon(
+                            Icons.receipt,
+                            color: AppDesignTokens.textSecondary,
+                          ),
                         ),
                         onSubmitted: _searchSale,
                       ),
@@ -295,9 +315,15 @@ class _ReturnsExchangesScreenState
                           ? null
                           : () => _searchSale(_receiptSearchCtrl.text),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
+                        backgroundColor: AppDesignTokens.primary,
                         foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 50),
+                        minimumSize: const Size(0, 48),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusInput,
+                          ),
+                        ),
                       ),
                       icon: _isSearching
                           ? const SizedBox(
@@ -309,7 +335,7 @@ class _ReturnsExchangesScreenState
                               ),
                             )
                           : const Icon(Icons.search),
-                      label: const Text('RECHERCHER TICKET'),
+                      label: Text(loc.searchReceipt),
                     ),
                   ],
                 ),
@@ -325,38 +351,43 @@ class _ReturnsExchangesScreenState
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF161F2E),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.border),
+                    color: AppDesignTokens.surface,
+                    borderRadius: BorderRadius.circular(
+                      AppDesignTokens.radiusCard,
+                    ),
+                    border: Border.all(color: AppDesignTokens.border),
+                    boxShadow: AppDesignTokens.shadowSm,
                   ),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.receipt_long,
-                        color: AppTheme.primaryLight,
+                        color: AppDesignTokens.primary,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Ticket: ${_foundSale!.receiptNumber}',
+                        '${loc.reference}: ${_foundSale!.receiptNumber}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: Colors.white,
+                          color: AppDesignTokens.textPrimary,
                         ),
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        'Date: ${DateFormat('dd/MM/yyyy HH:mm').format(_foundSale!.createdAt)}',
+                        '${loc.date}: ${DateFormat('dd/MM/yyyy HH:mm').format(_foundSale!.createdAt)}',
                         style: const TextStyle(
-                          color: AppTheme.textSecondary,
+                          color: AppDesignTokens.textSecondary,
                           fontSize: 13,
                         ),
                       ),
                       const Spacer(),
-                      const Text(
-                        'Total Vente: ',
-                        style: TextStyle(color: AppTheme.textSecondary),
+                      Text(
+                        '${loc.total}: ',
+                        style: const TextStyle(
+                          color: AppDesignTokens.textSecondary,
+                        ),
                       ),
                       MoneyDisplay(
                         amount: Money.fromMillimes(_foundSale!.totalMillimes),
@@ -372,17 +403,43 @@ class _ReturnsExchangesScreenState
                 Row(
                   children: [
                     ChoiceChip(
-                      label: const Text('Remboursement / Avoir'),
+                      label: Text(loc.returnMode),
                       selected: !_isExchangeMode,
+                      selectedColor: AppDesignTokens.primary.withValues(
+                        alpha: 0.12,
+                      ),
+                      side: BorderSide(
+                        color: !_isExchangeMode
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.border,
+                      ),
+                      labelStyle: TextStyle(
+                        color: !_isExchangeMode
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
                       onSelected: (_) =>
                           setState(() => _isExchangeMode = false),
                     ),
                     const SizedBox(width: 12),
                     ChoiceChip(
-                      label: const Text(
-                        'Échange de Vêtement (Taille / Couleur)',
-                      ),
+                      label: Text(loc.exchangeMode),
                       selected: _isExchangeMode,
+                      selectedColor: AppDesignTokens.primary.withValues(
+                        alpha: 0.12,
+                      ),
+                      side: BorderSide(
+                        color: _isExchangeMode
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.border,
+                      ),
+                      labelStyle: TextStyle(
+                        color: _isExchangeMode
+                            ? AppDesignTokens.primary
+                            : AppDesignTokens.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
                       onSelected: (_) => setState(() => _isExchangeMode = true),
                     ),
                   ],
@@ -401,18 +458,22 @@ class _ReturnsExchangesScreenState
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.border),
+                            color: AppDesignTokens.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusCard,
+                            ),
+                            border: Border.all(color: AppDesignTokens.border),
+                            boxShadow: AppDesignTokens.shadowSm,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Articles achetés à retourner :',
-                                style: TextStyle(
+                              Text(
+                                loc.purchasedItemsToReturn,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
+                                  color: AppDesignTokens.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -420,7 +481,7 @@ class _ReturnsExchangesScreenState
                                 child: ListView.separated(
                                   itemCount: _saleLines.length,
                                   separatorBuilder: (_, __) => const Divider(
-                                    color: AppTheme.border,
+                                    color: AppDesignTokens.border,
                                     height: 1,
                                   ),
                                   itemBuilder: (context, index) {
@@ -439,6 +500,8 @@ class _ReturnsExchangesScreenState
                                         children: [
                                           Checkbox(
                                             value: returnQty > 0,
+                                            activeColor:
+                                                AppDesignTokens.primary,
                                             onChanged: (val) {
                                               setState(() {
                                                 _selectedReturnQtys[line.id] =
@@ -456,10 +519,17 @@ class _ReturnsExchangesScreenState
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13,
+                                                    color: AppDesignTokens
+                                                        .textPrimary,
                                                   ),
                                                 ),
                                                 Text(
-                                                  '${line.variantDescription} • Acheté : ${line.quantity}x • P.U: ${Money.fromMillimes(line.unitPriceMillimes).format()}',
+                                                  '${line.variantDescription} • ${line.quantity}x • ${loc.price}: ${Money.fromMillimes(line.unitPriceMillimes).format()}',
+                                                  style: const TextStyle(
+                                                    color: AppDesignTokens
+                                                        .textSecondary,
+                                                    fontSize: 12,
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -469,20 +539,26 @@ class _ReturnsExchangesScreenState
                                             // Condition: Remettable en vente ou Défectueux
                                             DropdownButton<String>(
                                               value: condition,
-                                              dropdownColor: AppTheme.surface,
-                                              items: const [
+                                              dropdownColor:
+                                                  AppDesignTokens.surface,
+                                              style: const TextStyle(
+                                                color:
+                                                    AppDesignTokens.textPrimary,
+                                                fontSize: 13,
+                                              ),
+                                              items: [
                                                 DropdownMenuItem(
                                                   value: AppConstants
                                                       .returnConditionSellable,
                                                   child: Text(
-                                                    'Re-vendable (Rayon)',
+                                                    loc.returnConditionSellable,
                                                   ),
                                                 ),
                                                 DropdownMenuItem(
                                                   value: AppConstants
                                                       .returnConditionDamaged,
                                                   child: Text(
-                                                    'Défectueux (Isoler)',
+                                                    loc.returnConditionDamaged,
                                                   ),
                                                 ),
                                               ],
@@ -493,14 +569,18 @@ class _ReturnsExchangesScreenState
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            // Qty
+                                            // Qty Stepper
                                             Container(
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFF161F2E),
+                                                color: AppDesignTokens
+                                                    .surfaceElevated,
                                                 borderRadius:
-                                                    BorderRadius.circular(4),
+                                                    BorderRadius.circular(
+                                                      AppDesignTokens
+                                                          .radiusInput,
+                                                    ),
                                                 border: Border.all(
-                                                  color: AppTheme.border,
+                                                  color: AppDesignTokens.border,
                                                 ),
                                               ),
                                               child: Row(
@@ -509,6 +589,8 @@ class _ReturnsExchangesScreenState
                                                     icon: const Icon(
                                                       Icons.remove,
                                                       size: 14,
+                                                      color: AppDesignTokens
+                                                          .textPrimary,
                                                     ),
                                                     onPressed: returnQty > 1
                                                         ? () => setState(
@@ -525,12 +607,16 @@ class _ReturnsExchangesScreenState
                                                     style: const TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
+                                                      color: AppDesignTokens
+                                                          .textPrimary,
                                                     ),
                                                   ),
                                                   IconButton(
                                                     icon: const Icon(
                                                       Icons.add,
                                                       size: 14,
+                                                      color: AppDesignTokens
+                                                          .textPrimary,
                                                     ),
                                                     onPressed:
                                                         returnQty <
@@ -567,34 +653,37 @@ class _ReturnsExchangesScreenState
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.border),
+                            color: AppDesignTokens.surface,
+                            borderRadius: BorderRadius.circular(
+                              AppDesignTokens.radiusCard,
+                            ),
+                            border: Border.all(color: AppDesignTokens.border),
+                            boxShadow: AppDesignTokens.shadowSm,
                           ),
                           child: _isExchangeMode
-                              ? _buildExchangePane(catalogState)
-                              : _buildReturnPane(),
+                              ? _buildExchangePane(loc, catalogState)
+                              : _buildReturnPane(loc),
                         ),
                       ),
                     ],
                   ),
                 ),
               ] else
-                const Expanded(
+                Expanded(
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.assignment_return_outlined,
                           size: 64,
-                          color: AppTheme.textSecondary,
+                          color: AppDesignTokens.textMuted,
                         ),
-                        SizedBox(height: 12),
+                        const SizedBox(height: 12),
                         Text(
-                          'Saisissez le numéro de ticket ou scannez le ticket de caisse',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
+                          loc.searchTicketPlaceholder,
+                          style: const TextStyle(
+                            color: AppDesignTokens.textSecondary,
                             fontSize: 16,
                           ),
                         ),
@@ -609,58 +698,104 @@ class _ReturnsExchangesScreenState
     );
   }
 
-  Widget _buildReturnPane() {
+  Widget _buildReturnPane(AppLocalizations loc) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Détails du Remboursement',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        Text(
+          loc.refundDetails,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: AppDesignTokens.textPrimary,
+          ),
         ),
         const SizedBox(height: 16),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Montant à Rembourser :'),
+            Text(
+              '${loc.amountToRefund} ',
+              style: const TextStyle(
+                color: AppDesignTokens.textSecondary,
+                fontSize: 14,
+              ),
+            ),
             MoneyDisplay(
               amount: _totalRefundAmount,
               fontSize: 24,
-              color: AppTheme.warning,
+              color: AppDesignTokens.warning,
             ),
           ],
         ),
         const SizedBox(height: 16),
 
-        const Text(
-          'Mode de Remboursement :',
-          style: TextStyle(
+        Text(
+          '${loc.refundMethod} ',
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 13,
-            color: AppTheme.textSecondary,
+            color: AppDesignTokens.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             ChoiceChip(
-              label: const Text('Espèces'),
+              label: Text(loc.paymentCash),
               selected: _refundMethod == AppConstants.paymentCash,
+              selectedColor: AppDesignTokens.primary.withValues(alpha: 0.12),
+              side: BorderSide(
+                color: _refundMethod == AppConstants.paymentCash
+                    ? AppDesignTokens.primary
+                    : AppDesignTokens.border,
+              ),
+              labelStyle: TextStyle(
+                color: _refundMethod == AppConstants.paymentCash
+                    ? AppDesignTokens.primary
+                    : AppDesignTokens.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
               onSelected: (_) =>
                   setState(() => _refundMethod = AppConstants.paymentCash),
             ),
             const SizedBox(width: 8),
             ChoiceChip(
-              label: const Text('Avoir Magasin'),
+              label: Text(loc.paymentStoreCredit),
               selected: _refundMethod == AppConstants.paymentStoreCredit,
+              selectedColor: AppDesignTokens.primary.withValues(alpha: 0.12),
+              side: BorderSide(
+                color: _refundMethod == AppConstants.paymentStoreCredit
+                    ? AppDesignTokens.primary
+                    : AppDesignTokens.border,
+              ),
+              labelStyle: TextStyle(
+                color: _refundMethod == AppConstants.paymentStoreCredit
+                    ? AppDesignTokens.primary
+                    : AppDesignTokens.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
               onSelected: (_) => setState(
                 () => _refundMethod = AppConstants.paymentStoreCredit,
               ),
             ),
             const SizedBox(width: 8),
             ChoiceChip(
-              label: const Text('Carte'),
+              label: Text(loc.paymentCard),
               selected: _refundMethod == AppConstants.paymentCard,
+              selectedColor: AppDesignTokens.primary.withValues(alpha: 0.12),
+              side: BorderSide(
+                color: _refundMethod == AppConstants.paymentCard
+                    ? AppDesignTokens.primary
+                    : AppDesignTokens.border,
+              ),
+              labelStyle: TextStyle(
+                color: _refundMethod == AppConstants.paymentCard
+                    ? AppDesignTokens.primary
+                    : AppDesignTokens.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
               onSelected: (_) =>
                   setState(() => _refundMethod = AppConstants.paymentCard),
             ),
@@ -677,21 +812,29 @@ class _ReturnsExchangesScreenState
                 ? null
                 : _submitReturn,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.warning,
-              foregroundColor: Colors.black,
+              backgroundColor: AppDesignTokens.warning,
+              foregroundColor: Colors.black87,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppDesignTokens.radiusInput,
+                ),
+              ),
             ),
             icon: _isSubmitting
                 ? const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                      color: Colors.black,
+                      color: Colors.black87,
                       strokeWidth: 2,
                     ),
                   )
                 : const Icon(Icons.check_circle, size: 20),
             label: Text(
-              _isSubmitting ? 'VALIDATION...' : 'VALIDER LE REMBOURSEMENT',
+              _isSubmitting
+                  ? loc.processing.toUpperCase()
+                  : loc.completeReturnAction.toUpperCase(),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -700,7 +843,7 @@ class _ReturnsExchangesScreenState
     );
   }
 
-  Widget _buildExchangePane(CatalogState catalogState) {
+  Widget _buildExchangePane(AppLocalizations loc, CatalogState catalogState) {
     Money newTotal = _replacementItem != null
         ? _replacementItem!.total
         : Money.zero;
@@ -709,19 +852,25 @@ class _ReturnsExchangesScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Sélectionner le nouvel article de remplacement :',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        Text(
+          loc.selectNewReplacementArticle,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: AppDesignTokens.textPrimary,
+          ),
         ),
         const SizedBox(height: 8),
 
         if (_replacementItem != null)
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppTheme.primary),
+              color: AppDesignTokens.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppDesignTokens.radiusInput),
+              border: Border.all(
+                color: AppDesignTokens.primary.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
@@ -731,16 +880,27 @@ class _ReturnsExchangesScreenState
                     children: [
                       Text(
                         _replacementItem!.productName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppDesignTokens.textPrimary,
+                        ),
                       ),
                       Text(
                         '${_replacementItem!.variantDescription} • ${_replacementItem!.unitPrice.format()}',
+                        style: const TextStyle(
+                          color: AppDesignTokens.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 18),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 18,
+                    color: AppDesignTokens.textSecondary,
+                  ),
                   onPressed: () => setState(() => _replacementItem = null),
                 ),
               ],
@@ -751,21 +911,27 @@ class _ReturnsExchangesScreenState
             child: ListView.separated(
               itemCount: catalogState.variants.length,
               separatorBuilder: (_, __) =>
-                  const Divider(color: AppTheme.border, height: 1),
+                  const Divider(color: AppDesignTokens.border, height: 1),
               itemBuilder: (context, index) {
                 final v = catalogState.variants[index];
                 return ListTile(
                   dense: true,
                   title: Text(
                     v.productName,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppDesignTokens.textPrimary,
+                    ),
                   ),
                   subtitle: Text(
                     '${v.variantDescription} • ${v.salePrice.format()}',
+                    style: const TextStyle(
+                      color: AppDesignTokens.textSecondary,
+                    ),
                   ),
                   trailing: const Icon(
                     Icons.add_circle,
-                    color: AppTheme.primaryLight,
+                    color: AppDesignTokens.primary,
                     size: 20,
                   ),
                   onTap: () {
@@ -790,36 +956,42 @@ class _ReturnsExchangesScreenState
             ),
           ),
 
-        const Divider(color: AppTheme.border, height: 16),
+        const Divider(color: AppDesignTokens.border, height: 16),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Différence de Prix :'),
+            Text(
+              '${loc.priceDifference} ',
+              style: const TextStyle(
+                color: AppDesignTokens.textSecondary,
+                fontSize: 14,
+              ),
+            ),
             if (diff == Money.zero)
-              const Text(
-                '0.000 TND (Échange Égal)',
-                style: TextStyle(
+              Text(
+                '${Money.zero.format()} (${loc.netDifferenceZero})',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.success,
+                  color: AppDesignTokens.success,
                   fontSize: 16,
                 ),
               )
             else if (diff > Money.zero)
               Text(
-                '+${diff.format()} (Client Paye)',
+                '+${diff.format()} (${loc.customerOwes})',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
+                  color: AppDesignTokens.primary,
                   fontSize: 16,
                 ),
               )
             else
               Text(
-                '-${diff.abs.format()} (À Rendre au Client)',
+                '-${diff.abs.format()} (${loc.refundDueCustomer})',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.warning,
+                  color: AppDesignTokens.warning,
                   fontSize: 16,
                 ),
               ),
@@ -839,8 +1011,14 @@ class _ReturnsExchangesScreenState
                 ? null
                 : _submitReturn,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
+              backgroundColor: AppDesignTokens.primary,
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  AppDesignTokens.radiusInput,
+                ),
+              ),
             ),
             icon: _isSubmitting
                 ? const SizedBox(
@@ -853,7 +1031,9 @@ class _ReturnsExchangesScreenState
                   )
                 : const Icon(Icons.swap_horiz, size: 20),
             label: Text(
-              _isSubmitting ? 'VALIDATION...' : 'VALIDER L\'ÉCHANGE DE TAILLE',
+              _isSubmitting
+                  ? loc.processing.toUpperCase()
+                  : loc.completeExchangeAction.toUpperCase(),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),

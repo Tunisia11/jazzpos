@@ -90,7 +90,39 @@ class DatabaseIntegrityService {
       );
     }
 
-    // 6. Metrics
+    // 6. Compare the cached per-location balances with the immutable stock
+    // movement ledger. A transfer has both a source and a destination, so its
+    // signed quantity alone is not sufficient to calculate either location.
+    final movementRows = await db.select(db.stockMovements).get();
+    final expectedByLevel = <String, int>{};
+    for (final movement in movementRows) {
+      final amount = movement.quantityDelta.abs();
+      if (movement.fromLocationId != null) {
+        final key = '${movement.variantId}|${movement.fromLocationId}';
+        expectedByLevel[key] = (expectedByLevel[key] ?? 0) - amount;
+      }
+      if (movement.toLocationId != null) {
+        final key = '${movement.variantId}|${movement.toLocationId}';
+        expectedByLevel[key] = (expectedByLevel[key] ?? 0) + amount;
+      }
+    }
+    final cachedLevels = await db.select(db.stockLevels).get();
+    final cachedByLevel = <String, int>{};
+    for (final level in cachedLevels) {
+      final key = '${level.variantId}|${level.locationId}';
+      cachedByLevel[key] = (cachedByLevel[key] ?? 0) + level.quantity;
+    }
+    final allLevelKeys = {...expectedByLevel.keys, ...cachedByLevel.keys};
+    final ledgerMismatches = allLevelKeys.where(
+      (key) => (expectedByLevel[key] ?? 0) != (cachedByLevel[key] ?? 0),
+    );
+    if (ledgerMismatches.isNotEmpty) {
+      issues.add(
+        'Found ${ledgerMismatches.length} stock level(s) that differ from the stock movement ledger.',
+      );
+    }
+
+    // 7. Metrics
     final salesCount = (await db.select(db.sales).get()).length;
     final productsCount = (await db.select(db.products).get()).length;
     final variantsCount = (await db.select(db.productVariants).get()).length;
@@ -128,32 +160,57 @@ class DatabaseIntegrityService {
         final movements = await (db.select(
           db.stockMovements,
         )..where((tbl) => tbl.variantId.equals(v.id))).get();
-        final actualCalculatedStock = movements.fold<int>(
-          0,
-          (sum, m) => sum + m.quantityDelta,
-        );
-
         final stockLevels = await (db.select(
           db.stockLevels,
         )..where((tbl) => tbl.variantId.equals(v.id))).get();
-        final currentCachedStock = stockLevels.fold<int>(
-          0,
-          (sum, s) => sum + s.quantity,
-        );
-
-        if (actualCalculatedStock != currentCachedStock) {
-          if (stockLevels.isNotEmpty) {
-            final firstLevel = stockLevels.first;
+        final expectedByLocation = <String, int>{};
+        for (final movement in movements) {
+          final amount = movement.quantityDelta.abs();
+          if (movement.fromLocationId != null) {
+            final locationId = movement.fromLocationId!;
+            expectedByLocation[locationId] =
+                (expectedByLocation[locationId] ?? 0) - amount;
+          }
+          if (movement.toLocationId != null) {
+            final locationId = movement.toLocationId!;
+            expectedByLocation[locationId] =
+                (expectedByLocation[locationId] ?? 0) + amount;
+          }
+        }
+        final levelByLocation = {
+          for (final level in stockLevels) level.locationId: level,
+        };
+        final locationIds = {
+          ...expectedByLocation.keys,
+          ...levelByLocation.keys,
+        };
+        for (final locationId in locationIds) {
+          final expected = expectedByLocation[locationId] ?? 0;
+          final existing = levelByLocation[locationId];
+          if (existing == null) {
+            await db
+                .into(db.stockLevels)
+                .insert(
+                  StockLevelsCompanion.insert(
+                    id: '${v.id}-$locationId',
+                    variantId: v.id,
+                    locationId: locationId,
+                    quantity: Value(expected),
+                    updatedAt: DateTime.now(),
+                  ),
+                );
+            repairedCount++;
+          } else if (existing.quantity != expected) {
             await (db.update(
               db.stockLevels,
-            )..where((tbl) => tbl.id.equals(firstLevel.id))).write(
+            )..where((tbl) => tbl.id.equals(existing.id))).write(
               StockLevelsCompanion(
-                quantity: Value(actualCalculatedStock),
+                quantity: Value(expected),
                 updatedAt: Value(DateTime.now()),
               ),
             );
+            repairedCount++;
           }
-          repairedCount++;
         }
       }
     });

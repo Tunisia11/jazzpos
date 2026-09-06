@@ -3,6 +3,46 @@ import 'package:flutter/services.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'barcode_scanner_interface.dart';
 
+/// Separates scanner-speed bursts from ordinary keyboard typing.
+class BarcodeInputAccumulator {
+  final Duration maximumInterKeyDelay;
+  final int minimumLength;
+  final StringBuffer _buffer = StringBuffer();
+  DateTime? _lastCharacterAt;
+
+  BarcodeInputAccumulator({
+    this.maximumInterKeyDelay = const Duration(milliseconds: 80),
+    this.minimumLength = 3,
+  });
+
+  void addCharacter(String character, DateTime timestamp) {
+    final previous = _lastCharacterAt;
+    if (previous != null &&
+        timestamp.difference(previous) > maximumInterKeyDelay) {
+      _buffer.clear();
+    }
+    _buffer.write(character);
+    _lastCharacterAt = timestamp;
+  }
+
+  String? complete(DateTime timestamp) {
+    final last = _lastCharacterAt;
+    final value = _buffer.toString().trim();
+    clear();
+    if (last == null ||
+        timestamp.difference(last) > maximumInterKeyDelay ||
+        value.length < minimumLength) {
+      return null;
+    }
+    return value;
+  }
+
+  void clear() {
+    _buffer.clear();
+    _lastCharacterAt = null;
+  }
+}
+
 /// Global USB HID Barcode Scanner listener that intercepts barcode input
 /// without requiring focus on a specific text field.
 class KeyboardBarcodeScanner implements BarcodeScanner {
@@ -10,8 +50,7 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
   final String name;
 
   final _scanController = StreamController<String>.broadcast();
-  final StringBuffer _buffer = StringBuffer();
-  DateTime _lastKeystrokeTime = DateTime.now();
+  final BarcodeInputAccumulator _input = BarcodeInputAccumulator();
   bool _listening = false;
 
   KeyboardBarcodeScanner({this.name = 'USB HID Hardware Scanner'});
@@ -41,21 +80,11 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
     if (event is! KeyDownEvent) return false;
 
     final now = DateTime.now();
-    final elapsedMs = now.difference(_lastKeystrokeTime).inMilliseconds;
-    _lastKeystrokeTime = now;
-
-    // Scanners type at superhuman speed (< 50ms between strokes).
-    // If more than 300ms elapsed since last char, reset buffer.
-    if (elapsedMs > 300) {
-      _buffer.clear();
-    }
-
     if (event.logicalKey == LogicalKeyboardKey.enter ||
         event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      final barcode = _buffer.toString().trim();
-      _buffer.clear();
+      final barcode = _input.complete(now);
 
-      if (barcode.isNotEmpty && barcode.length >= 3) {
+      if (barcode != null) {
         PosLogger.instance.info(
           'Scanner',
           'Hardware barcode scanned: $barcode',
@@ -68,7 +97,7 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
 
     final char = event.character;
     if (char != null && char.isNotEmpty && char.codeUnitAt(0) >= 32) {
-      _buffer.write(char);
+      _input.addCharacter(char, now);
     }
 
     return false;

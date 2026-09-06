@@ -81,7 +81,11 @@ class ReportService {
               (tbl) =>
                   tbl.createdAt.isBiggerOrEqualValue(startDate) &
                   tbl.createdAt.isSmallerOrEqualValue(endDate) &
-                  tbl.status.equals(AppConstants.saleCompleted),
+                  tbl.status.isIn([
+                    AppConstants.saleCompleted,
+                    AppConstants.salePartiallyRefunded,
+                    AppConstants.saleRefunded,
+                  ]),
             ))
             .get();
 
@@ -103,6 +107,26 @@ class ReportService {
             ))
             .get();
 
+    final returnIds = returns.map((r) => r.id).toList();
+    final returnLines = returnIds.isEmpty
+        ? <ReturnLine>[]
+        : await (db.select(
+            db.returnLines,
+          )..where((tbl) => tbl.returnId.isIn(returnIds))).get();
+    final originalSaleLineIds = returnLines
+        .map((line) => line.originalSaleLineId)
+        .whereType<String>()
+        .toSet()
+        .toList();
+    final originalSaleLines = originalSaleLineIds.isEmpty
+        ? <SaleLine>[]
+        : await (db.select(
+            db.saleLines,
+          )..where((tbl) => tbl.id.isIn(originalSaleLineIds))).get();
+    final costByOriginalLineId = {
+      for (final line in originalSaleLines) line.id: line.unitCostMillimes,
+    };
+
     // 4. Fetch payments
     final payments = saleIds.isEmpty
         ? <SalePayment>[]
@@ -111,13 +135,30 @@ class ReportService {
           )..where((tbl) => tbl.saleId.isIn(saleIds))).get();
 
     Money gross = Money.zero;
-    Money discounts = Money.zero;
+    // `sales.discountMillimes` is the canonical discount total.  It includes
+    // both line discounts and cart-level discounts, whereas sale_lines only
+    // retains the former.
+    final discounts = sales.fold(
+      Money.zero,
+      (sum, sale) => sum + Money.fromMillimes(sale.discountMillimes),
+    );
     Money costs = Money.zero;
 
     for (final l in lines) {
       gross += Money.fromMillimes(l.originalPriceMillimes * l.quantity);
-      discounts += Money.fromMillimes(l.discountMillimes);
       costs += Money.fromMillimes(l.unitCostMillimes * l.quantity);
+    }
+
+    // Returned receipt lines are placed back in inventory. Reverse their
+    // original COGS in the period of the return so a full return is neither a
+    // negative sale nor a permanent cost of goods sold.
+    for (final line in returnLines) {
+      final originalUnitCost = line.originalSaleLineId == null
+          ? null
+          : costByOriginalLineId[line.originalSaleLineId!];
+      if (originalUnitCost != null) {
+        costs -= Money.fromMillimes(originalUnitCost * line.quantity);
+      }
     }
 
     Money totalRefunds = returns.fold(

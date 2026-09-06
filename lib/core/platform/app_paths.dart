@@ -14,14 +14,17 @@ class AppPaths {
   late Directory _logsDir;
   late Directory _backupsDir;
   late Directory _tempDir;
+  late Directory _imagesDir;
 
   bool _initialized = false;
+  bool get isInitialized => _initialized;
 
   Directory get baseDir => _baseDir;
   Directory get databaseDir => _databaseDir;
   Directory get logsDir => _logsDir;
   Directory get backupsDir => _backupsDir;
   Directory get tempDir => _tempDir;
+  Directory get imagesDir => _imagesDir;
 
   String get databaseFilePath => p.join(_databaseDir.path, 'jazzpos.sqlite');
   String get logFilePath => p.join(_logsDir.path, 'jazzpos.log');
@@ -53,12 +56,14 @@ class AppPaths {
     _logsDir = Directory(p.join(_baseDir.path, 'logs'));
     _backupsDir = Directory(p.join(_baseDir.path, 'backups'));
     _tempDir = Directory(p.join(_baseDir.path, 'temp'));
+    _imagesDir = Directory(p.join(_baseDir.path, 'product_images'));
 
     await _ensureDirectoryExists(_baseDir);
     await _ensureDirectoryExists(_databaseDir);
     await _ensureDirectoryExists(_logsDir);
     await _ensureDirectoryExists(_backupsDir);
     await _ensureDirectoryExists(_tempDir);
+    await _ensureDirectoryExists(_imagesDir);
 
     _initialized = true;
   }
@@ -80,6 +85,7 @@ class AppPaths {
       'logs': _logsDir,
       'backups': _backupsDir,
       'temp': _tempDir,
+      'images': _imagesDir,
     };
 
     for (final entry in targets.entries) {

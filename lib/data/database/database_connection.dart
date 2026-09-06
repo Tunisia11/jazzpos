@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
+import 'package:jazzpos/core/platform/app_paths.dart';
 
 /// Creates a resilient SQLite database connection for desktop POS environments.
 ///
@@ -39,16 +38,8 @@ LazyDatabase createDatabaseConnection({
     if (customPath != null) {
       dbFile = File(customPath);
     } else {
-      final appDir = await getApplicationSupportDirectory();
-      final baseDir =
-          (Platform.isWindows && !appDir.path.toLowerCase().contains('jazzpos'))
-          ? Directory(p.join(appDir.path, 'JazzPOS'))
-          : appDir;
-      final dir = Directory(p.join(baseDir.path, 'database'));
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      dbFile = File(p.join(dir.path, 'jazzpos.sqlite'));
+      await AppPaths.instance.initialize();
+      dbFile = File(AppPaths.instance.databaseFilePath);
     }
 
     // Apply native library setup on desktop if needed
