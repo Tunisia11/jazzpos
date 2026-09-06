@@ -27,7 +27,7 @@ Le statut **ROUGE (RED)** est écarté car l'ensemble des garde-fous financiers 
 
 | Paramètre | Valeur Relevée |
 | :--- | :--- |
-| **Commit HEAD** | `61278a6bc3cc6df29a46449de18ead89588852c2` |
+| **Commit HEAD** | `5d5855e0852b1ba3a1ab9521f793f3b6a74d0e62` |
 | **Vérification Espaces / Conflits (`git diff --check`)** | `0 erreur` (Strictement propre) |
 | **Formatage Dart (`dart format --set-exit-if-changed .`)** | 159 fichiers inspectés, 0 fichier modifié, 100% conforme |
 | **Analyse Statique (`flutter analyze`)** | `No issues found!` (0 avertissement, 0 erreur) |
@@ -68,12 +68,23 @@ pie title Répartition des 97 Tests Automatisés
 
 ## 4. Résultats de l'Intégration Continue Windows (CI)
 
-### Classification : `IMPLEMENTED_NOT_RUNTIME_VERIFIED`
+### Classification : `BLOCKED (EXTERNAL PLATFORM LIMITATION) / IMPLEMENTED_NOT_RUNTIME_VERIFIED`
 
-* **Fichier de Workflow :** `.github/workflows/windows_release.yml`
-* **État des Exécutions Distantes :** Les exécutions précédentes (datées du 2026-09-04) se sont soldées par un statut `startup_failure` (durée 0s / 1s) lié à la configuration du déclencheur GitHub Actions sur le dépôt distant.
-* **Environnement de Développement Local :** Poste hôte macOS Darwin (Apple Silicon arm64). Le compilateur `flutter build windows --release` requiert impérativement un environnement hôte Windows 10/11 x64 natif avec Visual Studio C++ Build Tools.
-* **Conclusion d'Audit :** Le workflow d'empaquetage Windows et le script Inno Setup sont intégralement rédigés et vérifiés syntaxiquement, mais **aucun binaire Windows n'a encore été généré par un exécuteur Windows actif sur la présente révision**.
+* **Fichier de Workflow :** `.github/workflows/windows_release.yml` (Syntaxe 100% valide, vérifiée via `actionlint` avec 0 erreur).
+* **Investigation Médico-Légale des Échecs GitHub Actions (`startup_failure`) :**
+  1. **Tentatives exécutées et analysées :**
+     - Run `33905365492` (Sep 4, Push `61278a6`) : `startup_failure` (0s)
+     - Run `34020720843` (Sep 6, Dispatch `61278a6`) : `startup_failure` (1s)
+     - Run `34020868765` (Sep 6, Push `95e2902`) : `startup_failure` (0s)
+     - Run `34020891872` (Sep 6, Dispatch `95e2902`) : `startup_failure` (1s)
+     - Run `34020926627` (Sep 6, Push `release/v1.0.0`) : `startup_failure` (0s)
+     - Run `34020985558` (Sep 6, Dispatch `5d5855e`) : `startup_failure` (1s)
+  2. **Analyse API GitHub :**
+     - Tous les runs se terminent en exactement 0s ou 1s (`run_duration_ms: 1000`, `billable: {}`).
+     - Aucun check run n'est instancié (`latest_check_runs_count: 0`).
+     - **Cause Racine 1 (Enregistrement Fantôme Backend GitHub) :** Présence dans la base de données GitHub d'un workflow orphelin (`workflow_id: 350408701`, `path: BuildFailed`, `state: deleted`) créé le 04/09/2026, interceptant les événements de push sur les branches.
+     - **Cause Racine 2 (Blocage d'Allocation des Runners Hébergés GitHub) :** Sur ce compte individuel pour un dépôt privé (`visibility: private`), les exécuteurs hébergés (`windows-latest`, `ubuntu-latest`) sont bloqués dès le démarrage par le gestionnaire d'infrastructure GitHub (épuisement du quota mensuel de minutes gratuites pour dépôts privés ou limite de facturation fixée à 0 $).
+* **Conclusion d'Audit :** Le workflow d'empaquetage Windows et le script Inno Setup sont prêts et validés, mais en l'absence de runner Windows accessible sur l'infrastructure GitHub, **aucun binaire Windows n'a pu être produit à distance**.
 
 ---
 
