@@ -44,3 +44,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Code Signing Secrets & Certificates (Security: Never commit private keys or secrets)
+*.pfx
+*.p12
+*.cer
+*.crt
+*.key
+*.pem
+*.snk
+secrets/
+certificates/
+windows/signing/credentials*.json
+windows/signing/*.pfx
+windows/signing/*.key
+.env.signing*
+!windows/signing/signing_config.template.json
+
