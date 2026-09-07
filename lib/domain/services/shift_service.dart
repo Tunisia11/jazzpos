@@ -44,12 +44,26 @@ class ShiftService {
 
   ShiftService(this.db);
 
+  Future<String> _resolveRegisterId(String registerId) async {
+    final direct = await (db.select(db.registers)..where((t) => t.id.equals(registerId))).getSingleOrNull();
+    if (direct != null) return direct.id;
+
+    final byCode = await (db.select(db.registers)..where((t) => t.code.equals(registerId))).getSingleOrNull();
+    if (byCode != null) return byCode.id;
+
+    final fallback = await (db.select(db.registers)..limit(1)).getSingleOrNull();
+    if (fallback != null) return fallback.id;
+
+    return registerId;
+  }
+
   /// Get active open shift for register or cashier
   Future<Shift?> getOpenShift(String registerId) async {
+    final regId = await _resolveRegisterId(registerId);
     return (db.select(db.shifts)
           ..where(
             (tbl) =>
-                tbl.registerId.equals(registerId) &
+                tbl.registerId.equals(regId) &
                 tbl.status.equals(AppConstants.shiftOpen),
           )
           ..limit(1))
@@ -67,10 +81,11 @@ class ShiftService {
       throw const ValidationException('Opening float cash cannot be negative.');
     }
 
+    final resolvedRegisterId = await _resolveRegisterId(registerId);
     final shiftId = IdGenerator.uuid();
     final now = DateTime.now();
     await db.transaction(() async {
-      final existing = await getOpenShift(registerId);
+      final existing = await getOpenShift(resolvedRegisterId);
       if (existing != null) {
         throw const ValidationException(
           'An active shift is already open for this register.',
@@ -91,7 +106,7 @@ class ShiftService {
           .insert(
             ShiftsCompanion.insert(
               id: shiftId,
-              registerId: registerId,
+              registerId: resolvedRegisterId,
               cashierId: cashierId,
               openedAt: now,
               openingCashMillimes: Value(openingCash.millimes),

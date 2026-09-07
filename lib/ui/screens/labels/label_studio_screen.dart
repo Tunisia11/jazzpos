@@ -1,6 +1,7 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/localization/app_localizations.dart';
 import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
@@ -27,7 +28,7 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
   int _copies = 1;
   bool _isPrinting = false;
   String? _statusMessage;
-  String _storeName = 'JAZZ POS';
+  String _storeName = AppConstants.appName;
 
   final TextEditingController _searchCtrl = TextEditingController();
 

@@ -1,13 +1,18 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/localization/app_localizations.dart';
 import 'package:jazzpos/core/localization/locale_provider.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:jazzpos/core/logging/startup_tracker.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/numpad.dart';
+import 'package:jazzpos/ui/widgets/startup_recovery_widget.dart';
 import 'setup_wizard_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -24,40 +29,107 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   List<User> _users = [];
   User? _selectedUser;
   final StringBuffer _pinBuffer = StringBuffer();
-  bool _isLoading = true;
+  StartupStatus _startupStatus = StartupStatus.initializing;
+  bool _isSetupCompleted = false;
+  String? _startupError;
+  String? _startupErrorDetails;
   String? _errorMessage;
+  Timer? _queryTimeoutTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadUsers();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _queryTimeoutTimer?.cancel();
     _keyboardFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _loadUsers() async {
-    setState(() => _isLoading = true);
-    final db = ref.read(databaseProvider);
-    final users = await (db.select(
-      db.users,
-    )..where((tbl) => tbl.isActive.equals(true))).get();
+    setState(() {
+      _startupStatus = StartupStatus.initializing;
+      _startupError = null;
+      _startupErrorDetails = null;
+    });
 
-    if (mounted) {
-      setState(() {
-        _users = users;
-        _isLoading = false;
-        if (_users.isNotEmpty) {
-          _selectedUser = _users.first;
+    StartupTracker.instance.startStage('users_loading');
+    _queryTimeoutTimer?.cancel();
+    try {
+      final db = ref.read(databaseProvider);
+      final completer = Completer<List<User>>();
+      _queryTimeoutTimer = Timer(const Duration(seconds: 5), () {
+        if (!completer.isCompleted) {
+          completer.completeError(
+            TimeoutException(
+              'Le délai de chargement de la base de données a expiré (5 secondes).',
+            ),
+          );
         }
       });
 
-      // If no users exist at all, offer setup wizard
-      if (users.isEmpty) {
-        _navigateToSetup();
+      (db.select(db.users)..where((tbl) => tbl.isActive.equals(true)))
+          .get()
+          .then((users) {
+            if (!completer.isCompleted) completer.complete(users);
+          })
+          .catchError((e, st) {
+            if (!completer.isCompleted) completer.completeError(e, st);
+          });
+
+      final users = await completer.future;
+      _queryTimeoutTimer?.cancel();
+
+      final isCompleted = await ref
+          .read(posInitializationServiceProvider)
+          .isSetupCompleted();
+
+      if (mounted) {
+        setState(() {
+          _isSetupCompleted = isCompleted;
+          _users = users;
+          _startupStatus = StartupStatus.ready;
+          if (_users.isNotEmpty) {
+            _selectedUser = _users.first;
+          }
+        });
+
+        StartupTracker.instance.endStage('users_loading', success: true);
+        StartupTracker.instance.endStage('first_usable_screen', success: true);
+
+        // Only redirect to setup wizard if system has not completed initial setup
+        if (!isCompleted && users.isEmpty) {
+          _navigateToSetup();
+        }
+      }
+    } catch (e, st) {
+      PosLogger.instance.error(
+        'Startup',
+        'Database query error during user initialization: $e',
+        e,
+        st,
+      );
+      StartupTracker.instance.endStage(
+        'users_loading',
+        success: false,
+        error: e.toString(),
+      );
+
+      if (mounted) {
+        setState(() {
+          _startupStatus = StartupStatus.recoverableError;
+          _startupError = e is TimeoutException
+              ? e.message
+              : 'Erreur d\'accès aux données utilisateur : ${e.toString().split('\n').first}';
+          _startupErrorDetails = '$e\n\n$st';
+        });
       }
     }
   }
@@ -244,9 +316,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loc = context.loc;
-
-    if (_isLoading) {
+    if (_startupStatus == StartupStatus.initializing) {
       return const Scaffold(
         backgroundColor: AppDesignTokens.canvas,
         body: Center(
@@ -254,6 +324,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       );
     }
+
+    if (_startupStatus == StartupStatus.recoverableError ||
+        _startupStatus == StartupStatus.fatalError) {
+      return StartupRecoveryWidget(
+        errorMessage: _startupError,
+        technicalDetails: _startupErrorDetails,
+        onRetry: _loadUsers,
+        onClose: () => exit(0),
+      );
+    }
+
+    final loc = context.loc;
 
     if (_users.isEmpty) {
       return Scaffold(
@@ -269,10 +351,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.storefront,
-                    size: 80,
-                    color: AppDesignTokens.primary,
+                  Image.asset(
+                    'assets/images/trace_logo_mark.png',
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -359,17 +442,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppDesignTokens.primary,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.checkroom,
-                                      color: Colors.white,
-                                      size: 28,
-                                    ),
+                                  Image.asset(
+                                    'assets/images/trace_logo_mark.png',
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.contain,
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(
@@ -377,9 +454,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'JAZZ POS',
-                                          style: TextStyle(
+                                        Text(
+                                          loc.appTitle,
+                                          style: const TextStyle(
                                             fontSize: 22,
                                             fontWeight: FontWeight.bold,
                                             color: AppDesignTokens.textPrimary,
@@ -411,146 +488,162 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               const SizedBox(height: 12),
 
                               // Users Grid
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 320,
-                                ),
-                                child: ListView.separated(
-                                  shrinkWrap: true,
-                                  itemCount: _users.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(height: 8),
-                                  itemBuilder: (context, index) {
-                                    final user = _users[index];
-                                    final isSelected =
-                                        user.id == _selectedUser?.id;
+                              if (_users.isEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 24),
+                                  child: Center(
+                                    child: Text(
+                                      loc.noUsersConfigured,
+                                      style: const TextStyle(
+                                        color: AppDesignTokens.textSecondary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 320,
+                                  ),
+                                  child: ListView.separated(
+                                    shrinkWrap: true,
+                                    itemCount: _users.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 8),
+                                    itemBuilder: (context, index) {
+                                      final user = _users[index];
+                                      final isSelected =
+                                          user.id == _selectedUser?.id;
 
-                                    return InkWell(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedUser = user;
-                                          _pinBuffer.clear();
-                                          _errorMessage = null;
-                                        });
-                                      },
+                                      return InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedUser = user;
+                                            _pinBuffer.clear();
+                                            _errorMessage = null;
+                                          });
+                                        },
+                                        borderRadius: BorderRadius.circular(
+                                          AppDesignTokens.radiusInput,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? AppDesignTokens.primary
+                                                      .withValues(alpha: 0.08)
+                                                : AppDesignTokens.surface,
+                                            borderRadius: BorderRadius.circular(
+                                              AppDesignTokens.radiusInput,
+                                            ),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? AppDesignTokens.primary
+                                                  : AppDesignTokens.border,
+                                              width: isSelected ? 1.5 : 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 18,
+                                                backgroundColor: isSelected
+                                                    ? AppDesignTokens.primary
+                                                    : AppDesignTokens
+                                                          .surfaceElevated,
+                                                child: Text(
+                                                  user.displayName.isNotEmpty
+                                                      ? user.displayName
+                                                            .substring(0, 1)
+                                                            .toUpperCase()
+                                                      : '?',
+                                                  style: TextStyle(
+                                                    color: isSelected
+                                                        ? Colors.white
+                                                        : AppDesignTokens
+                                                              .textPrimary,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      user.displayName,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 14,
+                                                        color: isSelected
+                                                            ? AppDesignTokens
+                                                                  .primary
+                                                            : AppDesignTokens
+                                                                  .textPrimary,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _localizedRole(
+                                                        user.role,
+                                                        loc,
+                                                      ).toUpperCase(),
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color: AppDesignTokens
+                                                            .textSecondary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              if (isSelected)
+                                                const Icon(
+                                                  Icons.check_circle,
+                                                  color: AppDesignTokens.primary,
+                                                  size: 20,
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+
+                              if (!_isSetupCompleted) ...[
+                                const SizedBox(height: 16),
+                                OutlinedButton.icon(
+                                  onPressed: _navigateToSetup,
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: AppDesignTokens.border,
+                                    ),
+                                    foregroundColor:
+                                        AppDesignTokens.textSecondary,
+                                    minimumSize: const Size(double.infinity, 40),
+                                    shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(
                                         AppDesignTokens.radiusInput,
                                       ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 10,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? AppDesignTokens.primary
-                                                    .withValues(alpha: 0.08)
-                                              : AppDesignTokens.surface,
-                                          borderRadius: BorderRadius.circular(
-                                            AppDesignTokens.radiusInput,
-                                          ),
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? AppDesignTokens.primary
-                                                : AppDesignTokens.border,
-                                            width: isSelected ? 1.5 : 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            CircleAvatar(
-                                              radius: 18,
-                                              backgroundColor: isSelected
-                                                  ? AppDesignTokens.primary
-                                                  : AppDesignTokens
-                                                        .surfaceElevated,
-                                              child: Text(
-                                                user.displayName.isNotEmpty
-                                                    ? user.displayName
-                                                          .substring(0, 1)
-                                                          .toUpperCase()
-                                                    : '?',
-                                                style: TextStyle(
-                                                  color: isSelected
-                                                      ? Colors.white
-                                                      : AppDesignTokens
-                                                            .textPrimary,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    user.displayName,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 14,
-                                                      color: isSelected
-                                                          ? AppDesignTokens
-                                                                .primary
-                                                          : AppDesignTokens
-                                                                .textPrimary,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    _localizedRole(
-                                                      user.role,
-                                                      loc,
-                                                    ).toUpperCase(),
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      color: AppDesignTokens
-                                                          .textSecondary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            if (isSelected)
-                                              const Icon(
-                                                Icons.check_circle,
-                                                color: AppDesignTokens.primary,
-                                                size: 20,
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              const SizedBox(height: 16),
-                              OutlinedButton.icon(
-                                onPressed: _navigateToSetup,
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: AppDesignTokens.border,
-                                  ),
-                                  foregroundColor:
-                                      AppDesignTokens.textSecondary,
-                                  minimumSize: const Size(double.infinity, 40),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppDesignTokens.radiusInput,
                                     ),
                                   ),
+                                  icon: const Icon(
+                                    Icons.add_circle_outline,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    loc.setupWizardButton,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
                                 ),
-                                icon: const Icon(
-                                  Icons.add_circle_outline,
-                                  size: 16,
-                                ),
-                                label: Text(
-                                  loc.setupWizardButton,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
+                              ],
                             ],
                           ),
                         ),

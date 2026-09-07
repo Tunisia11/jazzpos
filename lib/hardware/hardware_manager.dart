@@ -270,7 +270,7 @@ class HardwareManager {
   /// Exercises ASCII, French accents, TND 3-decimals, formatting, barcode, cutter
   Future<void> testReceiptPrinter() async {
     final doc = ReceiptDocument(
-      storeName: 'JAZZ POS TEST',
+      storeName: 'TRACE POS TEST',
       storeAddress: 'Test Terminal, Avenue Habib Bourguiba, Tunis',
       storePhone: '+216 71 000 000',
       fiscalId: '00012345/A/M/000',
@@ -312,7 +312,7 @@ class HardwareManager {
   /// Specifically test Arabic / Raster fallback rendering
   Future<void> testArabicPrinting() async {
     final testPattern = ReceiptRasterizer.createTestRasterPattern(
-      text: 'JAZZ POS ARABIC / RASTER ENGINE',
+      text: 'TRACE POS ARABIC / RASTER ENGINE',
     );
     final rasterBytes = ReceiptRasterizer.rasterizeImage(testPattern);
     await receiptPrinter.printRaw(rasterBytes);
@@ -325,9 +325,9 @@ class HardwareManager {
   /// Print test label
   Future<void> testLabelPrinter() async {
     const doc = LabelDocument(
-      storeName: 'JAZZ POS',
+      storeName: 'TRACE POS',
       productName: 'Chemise Slim Coton',
-      brandName: 'Jazz Collection',
+      brandName: 'Trace Collection',
       color: 'Bleu Ciel',
       size: '42',
       sku: 'CHM-BLU-42',

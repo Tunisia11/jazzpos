@@ -137,17 +137,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                       ),
                       if (_isDrawerOpen) ...[
                         const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppDesignTokens.primary,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Icon(
-                            Icons.storefront,
-                            size: 16,
-                            color: Colors.white,
-                          ),
+                        Image.asset(
+                          'assets/images/trace_logo_mark.png',
+                          width: 26,
+                          height: 26,
+                          fit: BoxFit.contain,
                         ),
                         const SizedBox(width: 8),
                         Expanded(

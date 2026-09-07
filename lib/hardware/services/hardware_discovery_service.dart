@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
 import 'package:jazzpos/hardware/receipt_printer/printer_candidate.dart';
 import 'package:jazzpos/hardware/receipt_printer/printer_scorer.dart';
@@ -185,7 +186,7 @@ class HardwareDiscoveryService {
         final psScript = '''
 Get-CimInstance Win32_Printer | Select-Object Name, DriverName, PortName, Local, Network, Default, WorkOffline | ConvertTo-Json -Compress
 ''';
-        final result = await Process.run('powershell', [
+        final result = await ProcessUtils.safeRun('powershell', [
           '-NoProfile',
           '-NonInteractive',
           '-Command',
@@ -254,7 +255,7 @@ Get-CimInstance Win32_Printer | Select-Object Name, DriverName, PortName, Local,
         final psScript = '''
 Get-CimInstance Win32_PnPEntity | Where-Object { \$_.DeviceID -like 'USB*' } | Select-Object Name, Manufacturer, DeviceID, Status, Service | ConvertTo-Json -Compress
 ''';
-        final result = await Process.run('powershell', [
+        final result = await ProcessUtils.safeRun('powershell', [
           '-NoProfile',
           '-NonInteractive',
           '-Command',
@@ -313,7 +314,7 @@ Get-CimInstance Win32_PnPEntity | Where-Object { \$_.DeviceID -like 'USB*' } | S
         final psScript = '''
 Get-CimInstance Win32_SerialPort | Select-Object DeviceID, Name, Description, PNPDeviceID | ConvertTo-Json -Compress
 ''';
-        final result = await Process.run('powershell', [
+        final result = await ProcessUtils.safeRun('powershell', [
           '-NoProfile',
           '-NonInteractive',
           '-Command',

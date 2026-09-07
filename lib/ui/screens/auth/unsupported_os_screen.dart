@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
 
-/// Screen displayed when JAZZ POS detects an unsupported or legacy operating system
+/// Screen displayed when Trace POS detects an unsupported or legacy operating system
 /// (e.g., Windows 7, Windows 8, 32-bit x86). Prevents data corruption.
 class UnsupportedOsScreen extends StatelessWidget {
   final EnvironmentDiagnosticReport report;
@@ -18,9 +19,9 @@ class UnsupportedOsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final warningMsg =
         report.compatibilityWarning ??
-        'JAZZ POS detected an unsupported operating system (${report.osEdition} ${report.architecture}). '
-            'This version of Windows is outside the supported runtime target for this JAZZ POS build. '
-            'Do not modify or delete your database. Use a compatible JAZZ POS legacy build or upgrade Windows.';
+        '${AppConstants.appName} detected an unsupported operating system (${report.osEdition} ${report.architecture}). '
+            'This version of Windows is outside the supported runtime target for this ${AppConstants.appName} build. '
+            'Do not modify or delete your database. Use a compatible ${AppConstants.appName} legacy build or upgrade Windows.';
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A), // Dark slate

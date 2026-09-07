@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'printer_profile.dart';
@@ -59,8 +60,8 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
     }
 
     try {
-      // Query Windows printer spooler status
-      final result = await Process.run('powershell', [
+      // Query Windows printer spooler status with strict timeout
+      final result = await ProcessUtils.safeRun('powershell', [
         '-NoProfile',
         '-NonInteractive',
         '-Command',
@@ -110,7 +111,9 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
     }
 
     // Write bytes to temporary spool file
-    final tempDir = AppPaths.instance.tempDir;
+    final tempDir = AppPaths.instance.isInitialized
+        ? AppPaths.instance.tempDir
+        : Directory.systemTemp;
     final tempFile = File(
       '${tempDir.path}${Platform.pathSeparator}spool_${DateTime.now().millisecondsSinceEpoch}.bin',
     );
@@ -129,12 +132,11 @@ if (Test-Path \$filePath) {
     cmd /c "copy /b `"\$filePath`" `"\$printerName`"" | Out-Null;
 }
 ''';
-      final result = await Process.run('powershell', [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        psScript,
-      ]);
+      final result = await ProcessUtils.safeRun(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-Command', psScript],
+        timeout: const Duration(seconds: 5),
+      );
 
       if (result.exitCode != 0) {
         PosLogger.instance.warning(

@@ -7,7 +7,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   // --- Common & Actions ---
   @override
-  String get appTitle => 'JAZZ POS';
+  String get appTitle => 'Trace POS';
   @override
   String get appSubtitle => 'Point de Vente & Gestion Prêt-à-Porter';
   @override
@@ -826,7 +826,7 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get authorizeAction => 'Autoriser';
   @override
-  String get welcomeTitle => 'Bienvenue sur JazzPOS';
+  String get welcomeTitle => 'Bienvenue sur Trace POS';
   @override
   String get noUsersConfigured =>
       'Aucun compte configuré. Lancez l\'assistant de configuration initiale.';
@@ -872,6 +872,132 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reprintAction => 'Réimprimer';
   @override
   String get printingInProgress => 'Impression en cours...';
+  @override
+  String get receiptDuplicateBanner => '*** DUPLICATA ***';
+  @override
+  String get receiptTicketLabel => 'Ticket';
+  @override
+  String get receiptRegisterLabel => 'Caisse';
+  @override
+  String get receiptDateLabel => 'Date';
+  @override
+  String get receiptCashierLabel => 'Caissier';
+  @override
+  String get receiptHeaderArticle => 'ARTICLE';
+  @override
+  String get receiptHeaderQty => 'QTE';
+  @override
+  String get receiptHeaderPrice => 'P.U';
+  @override
+  String get receiptHeaderTotal => 'TOTAL';
+  @override
+  String get receiptLineDiscount => 'Remise';
+  @override
+  String get receiptSubtotal => 'SOUS-TOTAL';
+  @override
+  String get receiptDiscount => 'REMISE GLOBALE';
+  @override
+  String get receiptTax => 'DONT TVA';
+  @override
+  String get receiptTotal => 'TOTAL';
+  @override
+  String get receiptPaymentMode => 'Mode';
+  @override
+  String get receiptTendered => 'Reçu';
+  @override
+  String get receiptChange => 'Rendu';
+  @override
+  String get receiptFooterGreeting => 'Merci de votre visite !';
+  @override
+  String get receiptFooterPolicy => 'Articles échangeables sous 15 jours sur ticket';
+
+  // --- Setup Wizard ---
+  @override
+  String get wizardTitle => 'Assistant d’installation & Configuration Trace POS';
+  @override
+  String get wizardStepStore => 'Boutique';
+  @override
+  String get wizardStepRegister => 'Caisse';
+  @override
+  String get wizardStepAdmin => 'Admin PIN';
+  @override
+  String get wizardStepHardware => 'Périphériques';
+  @override
+  String get wizardStoreInfo => 'Informations sur votre commerce de prêt-à-porter :';
+  @override
+  String get wizardCompanyName => 'Nom de la Boutique / Société *';
+  @override
+  String get wizardFiscalId => 'Matricule Fiscal (MF)';
+  @override
+  String get wizardPhone => 'Téléphone';
+  @override
+  String get wizardAddress => 'Adresse';
+  @override
+  String get wizardRegisterInfo => 'Identification de ce poste de caisse :';
+  @override
+  String get wizardStoreName => 'Nom du Point de Vente *';
+  @override
+  String get wizardRegisterCode => 'Identifiant Caisse (ex: REG-001)';
+  @override
+  String get wizardRegisterCodeAuto => 'Identifiant assigné automatiquement :';
+  @override
+  String get wizardRegisterCodeEdit => 'Modifier l’identifiant (Avancé)';
+  @override
+  String get wizardStockLocation => 'Emplacement de stock par défaut';
+  @override
+  String get wizardAdminInfo => 'Création du compte administrateur / gérant :';
+  @override
+  String get wizardOwnerName => 'Nom complet du gérant *';
+  @override
+  String get wizardOwnerUsername => 'Identifiant de connexion *';
+  @override
+  String get wizardOwnerPin => 'Code PIN (4 à 6 chiffres) *';
+  @override
+  String get wizardOwnerPinConfirm => 'Confirmer Code PIN *';
+  @override
+  String get wizardHardwareInfo => 'Configuration des périphériques POS :';
+  @override
+  String get wizardHardwareNotice => 'Trace POS fonctionne immédiatement avec ou sans périphériques connectés. Vous pourrez les configurer ultérieurement.';
+  @override
+  String get wizardPaperWidth => 'Largeur de papier imprimante ticket de caisse :';
+  @override
+  String get wizardFinishButton => 'TERMINER ET INITIALISER';
+  @override
+  String get wizardNextButton => 'Suivant';
+  @override
+  String get wizardBackButton => 'Précédent';
+  @override
+  String get wizardFillRequired => 'Complétez tous les champs obligatoires avant de continuer';
+  @override
+  String get wizardPinMismatch => 'Les codes PIN ne correspondent pas';
+  @override
+  String get wizardPinTooShort => 'Le code PIN doit comporter au moins 4 chiffres';
+  @override
+  String get wizardSuccess => 'Configuration Trace POS terminée avec succès !';
+  @override
+  String get wizardRetry => 'Réessayer';
+  @override
+  String get wizardErrorTitle => 'Erreur d’initialisation';
+
+  // --- Product Image Management ---
+  @override
+  String get productImage => 'Image de l\'article';
+  @override
+  String get addImage => 'Ajouter une image';
+  @override
+  String get replaceImage => 'Remplacer';
+  @override
+  String get removeImage => 'Supprimer';
+  @override
+  String get openImageFile => 'Ouvrir le fichier';
+  @override
+  String get confirmRemoveImage => 'Voulez-vous vraiment supprimer l\'image de cet article ?';
+  @override
+  String get confirmRemoveImageTitle => 'Supprimer l\'image';
+  @override
+  String get imageTooLarge => 'Image trop volumineuse. Veuillez sélectionner une image de moins de 20 Mo.';
+  @override
+  String get invalidImageFormat => 'Format d\'image non supporté ou fichier corrompu (JPG, PNG, WebP acceptés).';
 
   // --- Formatting Helpers ---
   @override

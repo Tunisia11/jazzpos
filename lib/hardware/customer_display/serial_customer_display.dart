@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'customer_display_interface.dart';
 
@@ -30,7 +31,7 @@ class SerialCustomerDisplay implements CustomerDisplay {
   @override
   Future<void> showWelcome() async {
     await clear();
-    await _sendLines('   BIENVENUE CHEZ   ', '      JAZZ POS      ');
+    await _sendLines('   BIENVENUE CHEZ   ', '     TRACE POS      ');
   }
 
   @override
@@ -94,7 +95,11 @@ class SerialCustomerDisplay implements CustomerDisplay {
         '${Directory.systemTemp.path}${Platform.pathSeparator}vfd_${DateTime.now().millisecondsSinceEpoch}.bin',
       );
       await temp.writeAsBytes(bytes);
-      await Process.run('cmd', ['/c', 'copy', '/b', temp.path, comPort]);
+      await ProcessUtils.safeRun(
+        'cmd',
+        ['/c', 'copy', '/b', temp.path, comPort],
+        timeout: const Duration(seconds: 3),
+      );
       try {
         await temp.delete();
       } catch (_) {}

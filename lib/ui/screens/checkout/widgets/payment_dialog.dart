@@ -197,7 +197,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
       // Build receipt document and trigger printer
       final doc = ReceiptDocument(
-        storeName: company?.name ?? store?.name ?? 'JAZZ POS',
+        storeName: company?.name ?? store?.name ?? AppConstants.appName,
         storeAddress: store?.address ?? company?.address,
         storePhone: store?.phone ?? company?.phone,
         fiscalId: company?.fiscalId,

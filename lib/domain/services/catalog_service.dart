@@ -303,12 +303,14 @@ class CatalogService {
 
   /// Create product with variant matrix and initial stock movements
   Future<String> createProductWithMatrix({
+    String? productId,
     required String name,
     String? secondaryName,
     String? description,
     String? brandId,
     String? categoryId,
     String? collectionId,
+    String? imageUrl,
     required Money defaultCost,
     required Money defaultPrice,
     double taxRatePercent = 0.0,
@@ -321,7 +323,7 @@ class CatalogService {
       actorId,
       AppPermissions.editProducts,
     );
-    final productId = IdGenerator.uuid();
+    final effectiveProductId = productId ?? IdGenerator.uuid();
     final now = DateTime.now();
 
     await db.transaction(() async {
@@ -330,13 +332,14 @@ class CatalogService {
           .into(db.products)
           .insert(
             ProductsCompanion.insert(
-              id: productId,
+              id: effectiveProductId,
               name: name,
               secondaryName: Value(secondaryName),
               description: Value(description),
               brandId: Value(brandId),
               categoryId: Value(categoryId),
               collectionId: Value(collectionId),
+              imageUrl: Value(imageUrl),
               defaultCostMillimes: Value(defaultCost.millimes),
               defaultPriceMillimes: Value(defaultPrice.millimes),
               taxRatePercent: Value(taxRatePercent),
@@ -367,7 +370,7 @@ class CatalogService {
             .insert(
               ProductVariantsCompanion.insert(
                 id: item.id,
-                productId: productId,
+                productId: effectiveProductId,
                 sku: item.sku,
                 barcode: item.barcode,
                 costPriceOverrideMillimes: Value(
@@ -420,7 +423,7 @@ class CatalogService {
               id: IdGenerator.uuid(),
               action: 'PRODUCT_CREATED',
               entityType: 'PRODUCT',
-              entityId: Value(productId),
+              entityId: Value(effectiveProductId),
               userId: actorId,
               detailsJson: Value(
                 '{"name":"$name","variantsCount":${variants.length}}',
@@ -437,7 +440,7 @@ class CatalogService {
               id: IdGenerator.uuid(),
               entityType: 'PRODUCT',
               operation: 'INSERT',
-              payloadJson: '{"id":"$productId","name":"$name"}',
+              payloadJson: '{"id":"$effectiveProductId","name":"$name"}',
               createdAt: now,
               updatedAt: now,
             ),
@@ -446,9 +449,9 @@ class CatalogService {
 
     PosLogger.instance.info(
       'Catalog',
-      'Created product $name ($productId) with ${variants.length} variants',
+      'Created product $name ($effectiveProductId) with ${variants.length} variants',
     );
-    return productId;
+    return effectiveProductId;
   }
 
   /// Archive product (never physically delete products used in historical sales)

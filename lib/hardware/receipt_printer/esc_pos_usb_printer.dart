@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'printer_profile.dart';
@@ -68,7 +69,7 @@ class EscPosUsbPrinter implements ReceiptPrinter {
       final filter = vendorId != null
           ? 'DeviceID -like "*VID_$vendorId*"'
           : 'Name -like "*$name*"';
-      final result = await Process.run('powershell', [
+      final result = await ProcessUtils.safeRun('powershell', [
         '-NoProfile',
         '-NonInteractive',
         '-Command',
@@ -116,7 +117,13 @@ class EscPosUsbPrinter implements ReceiptPrinter {
         '${Directory.systemTemp.path}${Platform.pathSeparator}usb_print_${DateTime.now().millisecondsSinceEpoch}.bin',
       );
       await tempFile.writeAsBytes(bytes);
-      await Process.run('cmd', ['/c', 'copy', '/b', tempFile.path, target]);
+      await ProcessUtils.safeRun('cmd', [
+        '/c',
+        'copy',
+        '/b',
+        tempFile.path,
+        target,
+      ], timeout: const Duration(seconds: 4));
       try {
         await tempFile.delete();
       } catch (_) {}

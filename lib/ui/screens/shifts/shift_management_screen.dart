@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/data/database/app_database.dart';
+import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
@@ -22,13 +24,29 @@ class ShiftManagementScreen extends ConsumerStatefulWidget {
 class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
   final StringBuffer _countedBuffer = StringBuffer();
   bool _isClosing = false;
+  String _effectiveRegisterId = 'REG-01';
 
   @override
   void initState() {
     super.initState();
-    ref
+    _effectiveRegisterId = widget.registerId;
+    _initRegister();
+  }
+
+  Future<void> _initRegister() async {
+    final db = ref.read(databaseProvider);
+    final allRegisters = await db.select(db.registers).get();
+    final reg = allRegisters.cast<Register?>().firstWhere(
+      (r) => r?.id == widget.registerId || r?.code == widget.registerId,
+      orElse: () => allRegisters.isNotEmpty ? allRegisters.first : null,
+    );
+    if (reg != null) {
+      _effectiveRegisterId = reg.id;
+      if (mounted) setState(() {});
+    }
+    await ref
         .read(shiftNotifierProvider.notifier)
-        .checkActiveShift(widget.registerId);
+        .checkActiveShift(_effectiveRegisterId);
   }
 
   void _openShiftDialog() {
@@ -79,14 +97,25 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
             onPressed: () async {
               final auth = ref.read(authNotifierProvider);
               final val = double.tryParse(ctrl.text) ?? 0;
-              await ref
-                  .read(shiftNotifierProvider.notifier)
-                  .openShift(
-                    registerId: widget.registerId,
-                    cashierId: auth.user?.id ?? 'system',
-                    openingCash: Money.fromTnd(val),
+              try {
+                await ref
+                    .read(shiftNotifierProvider.notifier)
+                    .openShift(
+                      registerId: _effectiveRegisterId,
+                      cashierId: auth.user?.id ?? 'system',
+                      openingCash: Money.fromTnd(val),
+                    );
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              } catch (e) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
-              if (ctx.mounted) Navigator.of(ctx).pop();
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppDesignTokens.success,

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/database_integrity_service.dart';
 
@@ -31,6 +32,9 @@ class EnvironmentDiagnosticReport {
   final String dataDirectory;
   final bool dataDirWritable;
   final bool backupDirWritable;
+  final bool productImagesDirWritable;
+  final int productImagesCount;
+  final int productImagesTotalBytes;
   final bool sqliteAccessible;
   final bool sqliteIntegrityHealthy;
   final String? sqliteDetails;
@@ -64,6 +68,9 @@ class EnvironmentDiagnosticReport {
     required this.dataDirectory,
     required this.dataDirWritable,
     required this.backupDirWritable,
+    this.productImagesDirWritable = true,
+    this.productImagesCount = 0,
+    this.productImagesTotalBytes = 0,
     required this.sqliteAccessible,
     required this.sqliteIntegrityHealthy,
     this.sqliteDetails,
@@ -94,6 +101,9 @@ class EnvironmentDiagnosticReport {
       'dataDirectory': dataDirectory,
       'dataDirWritable': dataDirWritable,
       'backupDirWritable': backupDirWritable,
+      'productImagesDirWritable': productImagesDirWritable,
+      'productImagesCount': productImagesCount,
+      'productImagesTotalBytes': productImagesTotalBytes,
     },
     'display': {
       'primaryWidth': primaryDisplayWidth,
@@ -159,6 +169,10 @@ class EnvironmentDiagnosticsService {
     String dataDir;
     bool dataWritable = false;
     bool backupWritable = false;
+    bool productImagesWritable = false;
+    int productImagesCount = 0;
+    int productImagesTotalBytes = 0;
+
     try {
       if (!AppPaths.instance.isInitialized) {
         await AppPaths.instance.initialize();
@@ -167,6 +181,18 @@ class EnvironmentDiagnosticsService {
       final storageHealth = await AppPaths.instance.verifyStorageHealth();
       dataWritable = storageHealth['database'] ?? false;
       backupWritable = storageHealth['backups'] ?? false;
+      productImagesWritable = storageHealth['images'] ?? false;
+
+      final imgDir = AppPaths.instance.productImagesDir;
+      if (await imgDir.exists()) {
+        final all = await imgDir.list(recursive: true).toList();
+        for (final entity in all) {
+          if (entity is File && !entity.path.endsWith('.tmp')) {
+            productImagesCount++;
+            productImagesTotalBytes += await entity.length();
+          }
+        }
+      }
     } catch (_) {
       dataDir = Directory.current.path;
     }
@@ -227,6 +253,9 @@ class EnvironmentDiagnosticsService {
       dataDirectory: dataDir,
       dataDirWritable: dataWritable,
       backupDirWritable: backupWritable,
+      productImagesDirWritable: productImagesWritable,
+      productImagesCount: productImagesCount,
+      productImagesTotalBytes: productImagesTotalBytes,
       sqliteAccessible: sqliteOk,
       sqliteIntegrityHealthy: integrityOk,
       sqliteDetails: sqliteSummary,
@@ -283,12 +312,12 @@ class EnvironmentDiagnosticsService {
       arch = 'x86 (32-bit)';
       isSupported = false;
       warning =
-          '32-bit Windows detected. JAZZ POS requires a 64-bit operating system.';
+          '32-bit Windows detected. Trace POS requires a 64-bit operating system.';
     }
 
     try {
-      // Query Windows registry for precise release & build info
-      final result = await Process.run('reg', [
+      // Query Windows registry for precise release & build info with strict timeout
+      final result = await ProcessUtils.safeRun('reg', [
         'query',
         r'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion',
         '/v',
@@ -304,7 +333,7 @@ class EnvironmentDiagnosticsService {
         }
       }
 
-      final buildResult = await Process.run('reg', [
+      final buildResult = await ProcessUtils.safeRun('reg', [
         'query',
         r'HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion',
         '/v',
@@ -335,14 +364,14 @@ class EnvironmentDiagnosticsService {
         (buildNumber > 0 && buildNumber <= 7601)) {
       isSupported = false;
       warning =
-          'JAZZ POS detected Windows 7. This version of Windows is outside the supported runtime target for this JAZZ POS build. Do not modify or delete your database. Use a compatible JAZZ POS legacy build or upgrade Windows.';
+          'Trace POS detected Windows 7. This version of Windows is outside the supported runtime target for this Trace POS build. Do not modify or delete your database. Use a compatible Trace POS legacy build or upgrade Windows.';
     } else if (edition.contains('Windows 8') ||
         osVersionRaw.contains(' 6.2') ||
         osVersionRaw.contains(' 6.3') ||
         (buildNumber > 0 && buildNumber < 10240)) {
       isSupported = false;
       warning =
-          'JAZZ POS detected Windows 8 / 8.1. This version of Windows is outside the supported target. Please upgrade to Windows 10 or Windows 11.';
+          'Trace POS detected Windows 8 / 8.1. This version of Windows is outside the supported target. Please upgrade to Windows 10 or Windows 11.';
     }
 
     return _WindowsDetails(

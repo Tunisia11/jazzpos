@@ -202,10 +202,10 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.black, width: 2),
                             ),
-                            child: const Text(
-                              '*** DUPLICATA ***',
+                            child: Text(
+                              loc.receiptDuplicateBanner,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                                 letterSpacing: 2,
@@ -255,15 +255,15 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Ticket: ${doc.receiptNumber}'),
-                            Text('Caisse: ${doc.registerCode}'),
+                            Text('${loc.receiptTicketLabel}: ${doc.receiptNumber}'),
+                            Text('${loc.receiptRegisterLabel}: ${doc.registerCode}'),
                           ],
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Date: $dateStr'),
-                            Text('Caissier: ${doc.cashierName}'),
+                            Text('${loc.receiptDateLabel}: $dateStr'),
+                            Text('${loc.receiptCashierLabel}: ${doc.cashierName}'),
                           ],
                         ),
 
@@ -277,37 +277,37 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                         const SizedBox(height: 6),
 
                         // Column Headers
-                        const Row(
+                        Row(
                           children: [
                             Expanded(
                               flex: 5,
                               child: Text(
-                                'ARTICLE',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                loc.receiptHeaderArticle,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                             Expanded(
                               flex: 1,
                               child: Text(
-                                'QTE',
+                                loc.receiptHeaderQty,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                             Expanded(
                               flex: 3,
                               child: Text(
-                                'P.U',
+                                loc.receiptHeaderPrice,
                                 textAlign: TextAlign.right,
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                             Expanded(
                               flex: 3,
                               child: Text(
-                                'TOTAL',
+                                loc.receiptHeaderTotal,
                                 textAlign: TextAlign.right,
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -389,9 +389,9 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text(
-                                        '  Remise:',
-                                        style: TextStyle(
+                                      Text(
+                                        '  ${loc.receiptLineDiscount}:',
+                                        style: const TextStyle(
                                           color: Colors.red,
                                           fontSize: 11,
                                         ),
@@ -423,7 +423,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('SOUS-TOTAL:'),
+                            Text('${loc.receiptSubtotal}:'),
                             Text(doc.subtotal.format()),
                           ],
                         ),
@@ -431,7 +431,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('REMISE GLOBALE:'),
+                              Text('${loc.receiptDiscount}:'),
                               Text(
                                 '-${doc.discount.format()}',
                                 style: const TextStyle(color: Colors.red),
@@ -442,7 +442,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('DONT TVA:'),
+                              Text('${loc.receiptTax}:'),
                               Text(doc.tax.format()),
                             ],
                           ),
@@ -461,9 +461,9 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'TOTAL:',
-                                style: TextStyle(
+                              Text(
+                                '${loc.receiptTotal}:',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -488,7 +488,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Mode: ${p.method.toUpperCase()}'),
+                                  Text('${loc.receiptPaymentMode}: ${p.method.toUpperCase()}'),
                                   Text(p.amount.format()),
                                 ],
                               ),
@@ -497,7 +497,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('  Reçu:'),
+                                    Text('  ${loc.receiptTendered}:'),
                                     Text(p.tendered.format()),
                                   ],
                                 ),
@@ -506,7 +506,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('  Rendu:'),
+                                    Text('  ${loc.receiptChange}:'),
                                     Text(
                                       p.change.format(),
                                       style: const TextStyle(
@@ -559,8 +559,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
 
                         const SizedBox(height: 16),
                         Text(
-                          doc.footerMessage ??
-                              'MERCI DE VOTRE VISITE\nA BIENTOT !',
+                          doc.footerMessage ?? loc.receiptFooterGreeting,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 11,
@@ -568,10 +567,10 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Les articles peuvent être échangés sous 15 jours sur présentation de ce ticket.',
+                        Text(
+                          loc.receiptFooterPolicy,
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 9),
+                          style: const TextStyle(fontSize: 9),
                         ),
                       ],
                     ),

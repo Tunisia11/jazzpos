@@ -1,6 +1,6 @@
 /// Application-wide constants and enumerations.
 class AppConstants {
-  static const String appName = 'JazzPOS';
+  static const String appName = 'Trace POS';
   static const String appVersion = '1.0.0+1';
   static const String currencyCode = 'TND';
   static const int currencyDecimals = 3;

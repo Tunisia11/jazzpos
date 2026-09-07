@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
@@ -35,10 +36,16 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   int _suspendedCount = 0;
+  String _effectiveRegisterId = 'REG-01';
+  String _effectiveRegisterCode = 'REG-01';
+  String _effectiveStoreId = 'STORE-01';
 
   @override
   void initState() {
     super.initState();
+    _effectiveRegisterId = widget.registerId;
+    _effectiveRegisterCode = widget.registerId;
+    _effectiveStoreId = widget.storeId;
     HardwareKeyboard.instance.addHandler(_handleRawKeyEvent);
     _loadShiftAndSuspended();
   }
@@ -50,15 +57,28 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _loadShiftAndSuspended() async {
+    final db = ref.read(databaseProvider);
+    final allRegisters = await db.select(db.registers).get();
+    final reg = allRegisters.cast<Register?>().firstWhere(
+      (r) => r?.id == widget.registerId || r?.code == widget.registerId,
+      orElse: () => allRegisters.isNotEmpty ? allRegisters.first : null,
+    );
+    if (reg != null) {
+      _effectiveRegisterId = reg.id;
+      _effectiveRegisterCode = reg.code;
+      _effectiveStoreId = reg.storeId;
+      if (mounted) setState(() {});
+    }
+
     await ref
         .read(shiftNotifierProvider.notifier)
-        .checkActiveShift(widget.registerId);
+        .checkActiveShift(_effectiveRegisterId);
     await _refreshSuspendedCount();
   }
 
   Future<void> _refreshSuspendedCount() async {
     final saleService = ref.read(saleServiceProvider);
-    final carts = await saleService.getSuspendedCarts(widget.registerId);
+    final carts = await saleService.getSuspendedCarts(_effectiveRegisterId);
     if (mounted) {
       setState(() => _suspendedCount = carts.length);
     }
@@ -86,12 +106,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void _triggerCheckout() {
     final cart = ref.read(cartNotifierProvider);
     final shift = ref.read(shiftNotifierProvider).activeShift;
-    if (cart.items.isNotEmpty && shift != null) {
+    if (shift == null) {
+      _openShiftPrompt();
+      return;
+    }
+    if (cart.items.isNotEmpty) {
       PaymentDialog.show(
         context,
         totalAmount: cart.total,
-        storeId: widget.storeId,
-        registerId: widget.registerId,
+        storeId: _effectiveStoreId,
+        registerId: _effectiveRegisterId,
       );
     }
   }
@@ -198,14 +222,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             onPressed: () async {
               final val = double.tryParse(controller.text) ?? 0.0;
               final auth = ref.read(authNotifierProvider);
-              await ref
-                  .read(shiftNotifierProvider.notifier)
-                  .openShift(
-                    registerId: widget.registerId,
-                    cashierId: auth.user?.id ?? 'system',
-                    openingCash: Money.fromTnd(val),
+              try {
+                await ref
+                    .read(shiftNotifierProvider.notifier)
+                    .openShift(
+                      registerId: _effectiveRegisterId,
+                      cashierId: auth.user?.id ?? 'system',
+                      openingCash: Money.fromTnd(val),
+                    );
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              } catch (e) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur lors de l\'ouverture de caisse: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
-              if (ctx.mounted) Navigator.of(ctx).pop();
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppDesignTokens.success,
@@ -275,7 +310,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      '${context.loc.register}: ${widget.registerId}',
+                      '${context.loc.register}: $_effectiveRegisterCode',
                       style: const TextStyle(
                         color: AppDesignTokens.textSecondary,
                         fontSize: 13,
@@ -468,8 +503,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       Expanded(
                         flex: 7,
                         child: CartView(
-                          storeId: widget.storeId,
-                          registerId: widget.registerId,
+                          storeId: _effectiveStoreId,
+                          registerId: _effectiveRegisterId,
                         ),
                       ),
                     ],

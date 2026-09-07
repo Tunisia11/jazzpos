@@ -444,6 +444,71 @@ abstract class AppLocalizations {
   String receiptPrintError(String error);
   String get reprintAction;
   String get printingInProgress;
+  String get receiptDuplicateBanner;
+  String get receiptTicketLabel;
+  String get receiptRegisterLabel;
+  String get receiptDateLabel;
+  String get receiptCashierLabel;
+  String get receiptHeaderArticle;
+  String get receiptHeaderQty;
+  String get receiptHeaderPrice;
+  String get receiptHeaderTotal;
+  String get receiptLineDiscount;
+  String get receiptSubtotal;
+  String get receiptDiscount;
+  String get receiptTax;
+  String get receiptTotal;
+  String get receiptPaymentMode;
+  String get receiptTendered;
+  String get receiptChange;
+  String get receiptFooterGreeting;
+  String get receiptFooterPolicy;
+
+  // --- Setup Wizard ---
+  String get wizardTitle;
+  String get wizardStepStore;
+  String get wizardStepRegister;
+  String get wizardStepAdmin;
+  String get wizardStepHardware;
+  String get wizardStoreInfo;
+  String get wizardCompanyName;
+  String get wizardFiscalId;
+  String get wizardPhone;
+  String get wizardAddress;
+  String get wizardRegisterInfo;
+  String get wizardStoreName;
+  String get wizardRegisterCode;
+  String get wizardRegisterCodeAuto;
+  String get wizardRegisterCodeEdit;
+  String get wizardStockLocation;
+  String get wizardAdminInfo;
+  String get wizardOwnerName;
+  String get wizardOwnerUsername;
+  String get wizardOwnerPin;
+  String get wizardOwnerPinConfirm;
+  String get wizardHardwareInfo;
+  String get wizardHardwareNotice;
+  String get wizardPaperWidth;
+  String get wizardFinishButton;
+  String get wizardNextButton;
+  String get wizardBackButton;
+  String get wizardFillRequired;
+  String get wizardPinMismatch;
+  String get wizardPinTooShort;
+  String get wizardSuccess;
+  String get wizardRetry;
+  String get wizardErrorTitle;
+
+  // --- Product Image Management ---
+  String get productImage;
+  String get addImage;
+  String get replaceImage;
+  String get removeImage;
+  String get openImageFile;
+  String get confirmRemoveImage;
+  String get confirmRemoveImageTitle;
+  String get imageTooLarge;
+  String get invalidImageFormat;
 
   // --- Formatting Helpers ---
   String get currencySymbol;

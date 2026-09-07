@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
 import 'package:jazzpos/core/platform/export_diagnostic_report_service.dart';
 import 'package:jazzpos/hardware/barcode_scanner/scanner_input_service.dart';
@@ -220,7 +221,7 @@ class _HardwareSetupWizardState extends ConsumerState<HardwareSetupWizard> {
                   ),
                   SizedBox(width: 10),
                   Text(
-                    'JAZZ POS — Configuration Matériel & Diagnostic',
+                    '${AppConstants.appName} — Configuration Matériel & Diagnostic',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

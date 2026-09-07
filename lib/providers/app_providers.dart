@@ -8,6 +8,7 @@ import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/domain/services/database_integrity_service.dart';
 import 'package:jazzpos/domain/services/exchange_service.dart';
 import 'package:jazzpos/domain/services/import_export_service.dart';
+import 'package:jazzpos/domain/services/pos_initialization_service.dart';
 import 'package:jazzpos/domain/services/inventory_count_service.dart';
 import 'package:jazzpos/domain/services/inventory_service.dart';
 import 'package:jazzpos/domain/services/pricing_service.dart';
@@ -139,3 +140,9 @@ final environmentDiagnosticsServiceProvider =
         database: ref.watch(databaseProvider),
       );
     });
+
+final posInitializationServiceProvider =
+    Provider<PosInitializationService>((ref) {
+      return PosInitializationService(ref.watch(databaseProvider));
+    });
+

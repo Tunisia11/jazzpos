@@ -11,7 +11,7 @@ class FakeCustomerDisplay implements CustomerDisplay {
   @override
   final HardwareStatus status = HardwareStatus.simulated;
 
-  String line1 = 'WELCOME TO JAZZ';
+  String line1 = 'WELCOME TO TRACE';
   String line2 = 'READY';
 
   FakeCustomerDisplay({this.name = 'Simulated 2x20 VFD Customer Display'});

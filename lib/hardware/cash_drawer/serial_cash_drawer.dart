@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'cash_drawer_interface.dart';
 
@@ -52,7 +53,11 @@ class SerialCashDrawer implements CashDrawer {
         '${Directory.systemTemp.path}${Platform.pathSeparator}drawer_${DateTime.now().millisecondsSinceEpoch}.bin',
       );
       await temp.writeAsBytes([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-      await Process.run('cmd', ['/c', 'copy', '/b', temp.path, comPort]);
+      await ProcessUtils.safeRun(
+        'cmd',
+        ['/c', 'copy', '/b', temp.path, comPort],
+        timeout: const Duration(seconds: 3),
+      );
       try {
         await temp.delete();
       } catch (_) {}

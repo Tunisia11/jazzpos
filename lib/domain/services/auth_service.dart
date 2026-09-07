@@ -140,13 +140,34 @@ class AuthService {
     required String pin,
     Set<String>? customPermissions,
   }) async {
-    final existingUsers = await db.select(db.users).get();
-    if (existingUsers.isNotEmpty &&
-        (_currentSession == null ||
-            !_currentSession!.hasPermission(AppPermissions.manageUsers))) {
-      throw const AuthException(
-        'User management permission is required to create an account.',
-      );
+    final setupSetting = await (db.select(db.appSettings)
+          ..where((tbl) => tbl.key.equals('setup_completed')))
+        .getSingleOrNull();
+    final isSetupCompleted = setupSetting?.value == 'true';
+
+    if (isSetupCompleted) {
+      if (_currentSession == null ||
+          !_currentSession!.hasPermission(AppPermissions.manageUsers)) {
+        throw const AuthException(
+          'User management permission is required to create an account.',
+        );
+      }
+    } else {
+      // During initial bootstrap (before setup completion):
+      // An administrative user can be provisioned. If an administrative user
+      // already exists, unauthenticated creation is blocked.
+      final existingAdmins = await (db.select(db.users)
+            ..where((tbl) =>
+                tbl.role.equals(AppRoles.owner) |
+                tbl.role.equals(AppRoles.manager)))
+          .get();
+      if (existingAdmins.isNotEmpty &&
+          (_currentSession == null ||
+              !_currentSession!.hasPermission(AppPermissions.manageUsers))) {
+        throw const AuthException(
+          'User management permission is required to create an account.',
+        );
+      }
     }
     final salt = PasswordHasher.generateSalt();
     final hash = PasswordHasher.hashPin(pin, salt);

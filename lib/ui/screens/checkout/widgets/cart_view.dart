@@ -331,17 +331,98 @@ class CartView extends ConsumerWidget {
                   label: shift == null
                       ? context.loc.clickToOpenRegister
                       : context.loc.payAction,
-                  variant: AppButtonVariant.cta,
+                  variant: shift == null ? AppButtonVariant.cta : AppButtonVariant.cta,
                   height: 50,
                   isExpanded: true,
-                  icon: Icons.payments_outlined,
+                  icon: shift == null ? Icons.lock_open : Icons.payments_outlined,
                   shortcutHint: shift == null ? null : 'F12',
-                  onPressed: (cartState.items.isEmpty || shift == null)
-                      ? null
-                      : () => _openPaymentDialog(context, cartState.total),
+                  onPressed: shift == null
+                      ? () => _openShiftPrompt(context, ref)
+                      : (cartState.items.isEmpty
+                          ? null
+                          : () => _openPaymentDialog(context, cartState.total)),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openShiftPrompt(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController(text: '150.000');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppDesignTokens.surface,
+        title: Text(
+          context.loc.openRegisterTitle,
+          style: const TextStyle(
+            color: AppDesignTokens.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${context.loc.initialCashFloat} :',
+              style: const TextStyle(color: AppDesignTokens.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              autofocus: true,
+              style: const TextStyle(color: AppDesignTokens.textPrimary),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(
+                  Icons.account_balance_wallet,
+                  color: AppDesignTokens.primary,
+                ),
+                suffixText: context.loc.currencySymbol,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(context.loc.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final val = double.tryParse(controller.text) ?? 0.0;
+              final auth = ref.read(authNotifierProvider);
+              try {
+                await ref
+                    .read(shiftNotifierProvider.notifier)
+                    .openShift(
+                      registerId: registerId,
+                      cashierId: auth.user?.id ?? 'system',
+                      openingCash: Money.fromTnd(val),
+                    );
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              } catch (e) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesignTokens.success,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(context.loc.openRegisterAction),
           ),
         ],
       ),

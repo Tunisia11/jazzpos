@@ -6,6 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/core/localization/locale_provider.dart';
 import 'package:jazzpos/core/money/money.dart';
@@ -50,7 +51,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final company = await (db.select(db.companies)..limit(1)).getSingleOrNull();
     return company?.name.trim().isNotEmpty == true
         ? company!.name.trim()
-        : 'JAZZ POS';
+        : AppConstants.appName;
   }
 
   @override
@@ -569,9 +570,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           AppCard(
             child: Column(
               children: [
-                const _InfoRow(
+                _InfoRow(
                   'Application :',
-                  'JazzPOS Desktop v1.0.0 (Production)',
+                  '${AppConstants.appName} Desktop v1.0.0 (Production)',
                 ),
                 const Divider(color: AppDesignTokens.border),
                 const _InfoRow(
@@ -644,7 +645,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                               ),
                             ),
                             Text(
-                              'Lancer JAZZ POS automatiquement au démarrage du terminal caisse',
+                              'Lancer ${AppConstants.appName} automatiquement au démarrage du terminal caisse',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppDesignTokens.textSecondary,

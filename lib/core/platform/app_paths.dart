@@ -23,33 +23,87 @@ class AppPaths {
   Directory get databaseDir => _databaseDir;
   Directory get logsDir => _logsDir;
   Directory get backupsDir => _backupsDir;
-  Directory get tempDir => _tempDir;
+  Directory get tempDir => _initialized ? _tempDir : Directory.systemTemp;
   Directory get imagesDir => _imagesDir;
+  Directory get productImagesDir =>
+      Directory(p.join(_baseDir.path, 'images', 'products'));
+  Directory get stagedImagesDir =>
+      Directory(p.join(tempDir.path, 'staged_images'));
 
   String get databaseFilePath => p.join(_databaseDir.path, 'jazzpos.sqlite');
   String get logFilePath => p.join(_logsDir.path, 'jazzpos.log');
+  String get startupLogFilePath => p.join(_logsDir.path, 'startup.log');
+
+  /// Safely resolve a managed relative or legacy absolute image path to an absolute filesystem path.
+  /// Protects against directory traversal attacks and absolute paths outside baseDir.
+  String? resolveImagePath(String? imagePath) {
+    if (imagePath == null || imagePath.trim().isEmpty) return null;
+    final clean = imagePath.trim().replaceAll(r'\', '/');
+
+    // Prevent directory traversal
+    if (clean.contains('..')) {
+      return null;
+    }
+
+    if (p.isAbsolute(clean)) {
+      if (p.isWithin(_baseDir.path, clean) || p.equals(_baseDir.path, clean)) {
+        return p.normalize(clean);
+      }
+      return null;
+    }
+
+    final fullPath = p.normalize(p.join(_baseDir.path, clean));
+    if (!p.isWithin(_baseDir.path, fullPath) && !p.equals(_baseDir.path, fullPath)) {
+      return null;
+    }
+
+    return fullPath;
+  }
+
+  /// Convert a filesystem path inside baseDir to a canonical database-storable relative path.
+  String toRelativeImagePath(String absoluteOrRelativePath) {
+    final clean = absoluteOrRelativePath.trim().replaceAll(r'\', '/');
+    final baseClean = _baseDir.path.replaceAll(r'\', '/');
+
+    if (clean.startsWith('$baseClean/')) {
+      return clean.substring(baseClean.length + 1);
+    }
+    if (clean.startsWith(baseClean)) {
+      return clean.substring(baseClean.length);
+    }
+    return clean;
+  }
 
   /// Initialize and guarantee directory hierarchy
   Future<void> initialize({Directory? customBaseDir}) async {
-    if (_initialized) return;
+    if (_initialized && customBaseDir == null) return;
 
     if (customBaseDir != null) {
       _baseDir = customBaseDir;
     } else {
-      // Check environment override (e.g. JAZZPOS_DATA_DIR=D:\JazzPOS_Data)
-      final envPath = Platform.environment['JAZZPOS_DATA_DIR'];
-      if (envPath != null && envPath.trim().isNotEmpty) {
-        _baseDir = Directory(envPath.trim());
-      } else {
-        final supportDir = await getApplicationSupportDirectory();
-        // Standardize base path under 'JazzPOS'
-        if (Platform.isWindows &&
-            !supportDir.path.toLowerCase().contains('jazzpos')) {
-          _baseDir = Directory(p.join(supportDir.path, 'JazzPOS'));
+        // Check environment override (e.g. TRACEPOS_DATA_DIR=D:\TracePOS_Data)
+        final envPath = Platform.environment['TRACEPOS_DATA_DIR'] ??
+            Platform.environment['JAZZPOS_DATA_DIR'];
+        if (envPath != null && envPath.trim().isNotEmpty) {
+          _baseDir = Directory(envPath.trim());
         } else {
-          _baseDir = supportDir;
+          final supportDir = await getApplicationSupportDirectory();
+          if (Platform.isWindows) {
+            final traceDir = Directory(p.join(supportDir.path, 'TracePOS'));
+            final legacyJazzDir = Directory(p.join(supportDir.path, 'JazzPOS'));
+            // If legacy JazzPOS directory exists with database, preserve it for existing customer data safety
+            if (!traceDir.existsSync() && legacyJazzDir.existsSync()) {
+              _baseDir = legacyJazzDir;
+            } else if (!supportDir.path.toLowerCase().contains('tracepos') &&
+                !supportDir.path.toLowerCase().contains('jazzpos')) {
+              _baseDir = traceDir;
+            } else {
+              _baseDir = supportDir;
+            }
+          } else {
+            _baseDir = supportDir;
+          }
         }
-      }
     }
 
     _databaseDir = Directory(p.join(_baseDir.path, 'database'));
@@ -64,6 +118,8 @@ class AppPaths {
     await _ensureDirectoryExists(_backupsDir);
     await _ensureDirectoryExists(_tempDir);
     await _ensureDirectoryExists(_imagesDir);
+    await _ensureDirectoryExists(productImagesDir);
+    await _ensureDirectoryExists(stagedImagesDir);
 
     _initialized = true;
   }
