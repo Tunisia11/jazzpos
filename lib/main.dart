@@ -1,6 +1,7 @@
 import 'package:jazzpos/hardware/barcode_scanner/scanner_route_observer.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,6 +22,7 @@ import 'ui/widgets/startup_recovery_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting();
   PrintJobService.processStart; // record process start for print-job cleanup
 
   // Track early startup milestones

@@ -1,3 +1,5 @@
+import 'package:jazzpos/providers/catalog_provider.dart';
+import 'package:jazzpos/ui/screens/dashboard/dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/constants/permissions.dart';
@@ -16,7 +18,6 @@ import '../screens/returns/returns_exchanges_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/shifts/shift_management_screen.dart';
 import '../screens/mobile/owner_mobile_shell.dart';
-import '../screens/mobile/owner_dashboard_view.dart';
 import '../widgets/manager_override_dialog.dart';
 
 enum AppNavDestination {
@@ -128,7 +129,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               children: [
                 // Brand (the checkout top bar owns the menu toggle there)
                 Container(
-                  height: 68,
+                  height: 76,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   alignment: AlignmentDirectional.centerStart,
                   child: Row(
@@ -154,14 +155,28 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
-                            context.loc.appTitle,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 21,
-                              color: AppDesignTokens.textPrimary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.loc.appTitle,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 21,
+                                  color: AppDesignTokens.textPrimary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Text(
+                                'Fashion & Apparel POS',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppDesignTokens.textSecondary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -588,7 +603,28 @@ class _AppShellState extends ConsumerState<AppShell> {
         CheckoutScreen(
           onOpenMenu: () => setState(() => _isDrawerOpen = !_isDrawerOpen),
         ),
-        const OwnerDashboardView(),
+        DashboardScreen(
+          onSearch: (q) {
+            ref.read(catalogNotifierProvider.notifier).search(q);
+            setState(() => _currentNav = AppNavDestination.checkout);
+          },
+          onViewSales: () => setState(() {
+            _currentNav = _isDestinationAllowed(
+                  AppNavDestination.reports,
+                  ref.read(authNotifierProvider),
+                )
+                ? AppNavDestination.reports
+                : _currentNav;
+          }),
+          onViewStock: () => setState(() {
+            _currentNav = _isDestinationAllowed(
+                  AppNavDestination.inventory,
+                  ref.read(authNotifierProvider),
+                )
+                ? AppNavDestination.inventory
+                : _currentNav;
+          }),
+        ),
         const ProductListScreen(),
         const InventoryScreen(),
         const ReturnsExchangesScreen(),

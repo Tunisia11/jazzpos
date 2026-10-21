@@ -67,6 +67,52 @@ class InventoryValuationReport {
   });
 }
 
+class DashboardBucket {
+  final String label;
+  final int millimes;
+  const DashboardBucket(this.label, this.millimes);
+}
+
+class DashboardTransaction {
+  final String receiptNumber;
+  final DateTime time;
+  final int itemCount;
+  final String paymentMethod;
+  final Money total;
+  final String status;
+
+  const DashboardTransaction({
+    required this.receiptNumber,
+    required this.time,
+    required this.itemCount,
+    required this.paymentMethod,
+    required this.total,
+    required this.status,
+  });
+}
+
+class DashboardSummary {
+  final SalesReportSummary current;
+  final SalesReportSummary previous;
+  final List<DashboardBucket> buckets;
+  final List<DashboardTransaction> recent;
+  final InventoryValuationReport stock;
+
+  const DashboardSummary({
+    required this.current,
+    required this.previous,
+    required this.buckets,
+    required this.recent,
+    required this.stock,
+  });
+
+  Money get averageBasket => current.totalSalesCount == 0
+      ? Money.zero
+      : Money.fromMillimes(
+          (current.netSales.millimes / current.totalSalesCount).round(),
+        );
+}
+
 class ReportService {
   final AppDatabase db;
 
@@ -204,6 +250,136 @@ class ReportService {
       grossMarginPercent: marginPct,
       salesByPaymentMethod: byPayment,
       salesByCashier: byCashier,
+    );
+  }
+
+  /// Everything the dashboard shows for the last [days] days (1 = today),
+  /// plus the equally long period before it for trend arrows.
+  Future<DashboardSummary> getDashboardSummary({
+    required String actorId,
+    int days = 1,
+    DateTime? now,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.viewReports,
+    );
+    final clock = now ?? DateTime.now();
+    final startOfToday = DateTime(clock.year, clock.month, clock.day);
+    final start = startOfToday.subtract(Duration(days: days - 1));
+    final end = startOfToday
+        .add(const Duration(days: 1))
+        .subtract(const Duration(microseconds: 1));
+    final prevStart = start.subtract(Duration(days: days));
+    final prevEnd = start.subtract(const Duration(microseconds: 1));
+
+    final current = await getSalesReport(
+      actorId: actorId,
+      startDate: start,
+      endDate: end,
+    );
+    final previous = await getSalesReport(
+      actorId: actorId,
+      startDate: prevStart,
+      endDate: prevEnd,
+    );
+
+    final counted = [
+      AppConstants.saleCompleted,
+      AppConstants.salePartiallyRefunded,
+      AppConstants.saleRefunded,
+    ];
+    final periodSales =
+        await (db.select(db.sales)..where(
+              (t) =>
+                  t.createdAt.isBiggerOrEqualValue(start) &
+                  t.createdAt.isSmallerOrEqualValue(end) &
+                  t.status.isIn(counted),
+            ))
+            .get();
+
+    // Buckets: hours for a single day, days for longer ranges.
+    final buckets = <DashboardBucket>[];
+    if (days == 1) {
+      var first = 8, last = 22;
+      for (final sale in periodSales) {
+        final h = sale.createdAt.hour;
+        if (h < first) first = h;
+        if (h > last) last = h;
+      }
+      for (var h = first; h <= last; h++) {
+        final sum = periodSales
+            .where((x) => x.createdAt.hour == h)
+            .fold<int>(0, (a, x) => a + x.totalMillimes);
+        buckets.add(
+          DashboardBucket('${h.toString().padLeft(2, '0')}h', sum),
+        );
+      }
+    } else {
+      for (var i = 0; i < days; i++) {
+        final day = start.add(Duration(days: i));
+        final sum = periodSales
+            .where(
+              (x) =>
+                  x.createdAt.year == day.year &&
+                  x.createdAt.month == day.month &&
+                  x.createdAt.day == day.day,
+            )
+            .fold<int>(0, (a, x) => a + x.totalMillimes);
+        buckets.add(
+          DashboardBucket(
+            '${day.day.toString().padLeft(2, '0')}/${day.month.toString().padLeft(2, '0')}',
+            sum,
+          ),
+        );
+      }
+    }
+
+    final latest =
+        await (db.select(db.sales)
+              ..where((t) => t.status.isNotValue(AppConstants.saleVoided))
+              ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+              ..limit(5))
+            .get();
+    final ids = latest.map((e) => e.id).toList();
+    final lines = ids.isEmpty
+        ? <SaleLine>[]
+        : await (db.select(db.saleLines)..where((t) => t.saleId.isIn(ids)))
+              .get();
+    final pays = ids.isEmpty
+        ? <SalePayment>[]
+        : await (db.select(db.salePayments)..where((t) => t.saleId.isIn(ids)))
+              .get();
+    final recent = [
+      for (final sale in latest)
+        DashboardTransaction(
+          receiptNumber: sale.receiptNumber,
+          time: sale.createdAt,
+          itemCount: lines
+              .where((l) => l.saleId == sale.id)
+              .fold<int>(0, (a, l) => a + l.quantity),
+          paymentMethod: () {
+            final methods = pays
+                .where((p) => p.saleId == sale.id)
+                .map((p) => p.paymentMethod)
+                .toSet();
+            return methods.length == 1
+                ? methods.first
+                : (methods.isEmpty ? '' : AppConstants.paymentMixed);
+          }(),
+          total: Money.fromMillimes(sale.totalMillimes),
+          status: sale.status,
+        ),
+    ];
+
+    final stock = await getInventoryValuation(actorId: actorId);
+    return DashboardSummary(
+      current: current,
+      previous: previous,
+      buckets: buckets,
+      recent: recent,
+      stock: stock,
     );
   }
 
