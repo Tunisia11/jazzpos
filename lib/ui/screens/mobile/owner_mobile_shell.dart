@@ -17,7 +17,7 @@ class OwnerMobileShell extends ConsumerStatefulWidget {
 
 class _OwnerMobileShellState extends ConsumerState<OwnerMobileShell> {
   int _currentIndex = 0;
-  String _storeName = 'JazzPOS';
+  String _storeName = 'Trace POS';
 
   @override
   void initState() {

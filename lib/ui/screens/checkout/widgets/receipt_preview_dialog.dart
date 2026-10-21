@@ -1,3 +1,4 @@
+import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,7 +85,9 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                 'reprintedAt': DateTime.now().toIso8601String(),
               }),
             );
-      } catch (_) {}
+      } catch (e) {
+        PosLogger.instance.warning('Receipt', 'Could not record reprint audit entry: $e');
+      }
 
       if (mounted) {
         setState(() {

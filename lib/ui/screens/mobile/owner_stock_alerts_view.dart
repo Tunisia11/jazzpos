@@ -1,3 +1,4 @@
+import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,7 +50,9 @@ class _OwnerStockAlertsViewState extends ConsumerState<OwnerStockAlertsView> {
       final reportService = ref.read(reportServiceProvider);
       final db = ref.read(databaseProvider);
 
-      final val = await reportService.getInventoryValuation();
+      final val = await reportService.getInventoryValuation(
+        actorId: ref.read(authNotifierProvider).user?.id ?? '',
+      );
       final variants = await (db.select(db.productVariants)
             ..where((t) => t.isActive.equals(true) & t.deletedAt.isNull()))
           .get();

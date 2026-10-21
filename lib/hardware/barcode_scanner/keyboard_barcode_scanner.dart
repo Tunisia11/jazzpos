@@ -74,6 +74,7 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
     if (!_listening) return;
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _listening = false;
+    _input.clear();
   }
 
   @override
@@ -87,7 +88,8 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
 
     final now = DateTime.now();
     if (event.logicalKey == LogicalKeyboardKey.enter ||
-        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+        event.logicalKey == LogicalKeyboardKey.numpadEnter ||
+        event.logicalKey == LogicalKeyboardKey.tab) {
       final barcode = _input.complete(now);
 
       if (barcode != null) {

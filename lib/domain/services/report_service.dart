@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/constants/permissions.dart';
+import 'package:jazzpos/domain/services/permission_guard.dart';
 import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 
@@ -72,9 +74,15 @@ class ReportService {
 
   /// Generate Sales & Profit summary for a date range from local data
   Future<SalesReportSummary> getSalesReport({
+    required String actorId,
     required DateTime startDate,
     required DateTime endDate,
   }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.viewReports,
+    );
     // 1. Fetch sales in date range
     final sales =
         await (db.select(db.sales)..where(
@@ -201,9 +209,15 @@ class ReportService {
 
   /// Clothing Intelligence: Size performance analysis
   Future<List<ClothingSizePerformance>> getSizePerformance({
+    required String actorId,
     required DateTime startDate,
     required DateTime endDate,
   }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.viewReports,
+    );
     final sales =
         await (db.select(db.sales)..where(
               (tbl) =>
@@ -251,7 +265,14 @@ class ReportService {
   }
 
   /// Inventory Valuation & Stock Health Report
-  Future<InventoryValuationReport> getInventoryValuation() async {
+  Future<InventoryValuationReport> getInventoryValuation({
+    required String actorId,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.viewReports,
+    );
     final variants = await (db.select(
       db.productVariants,
     )..where((tbl) => tbl.isActive.equals(true))).get();

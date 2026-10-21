@@ -1,3 +1,4 @@
+import 'package:jazzpos/domain/services/permission_guard.dart';
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
@@ -81,6 +82,7 @@ class ShiftService {
       throw const ValidationException('Opening float cash cannot be negative.');
     }
 
+    await PermissionGuard.requireActiveUser(db, cashierId);
     final resolvedRegisterId = await _resolveRegisterId(registerId);
     final shiftId = IdGenerator.uuid();
     final now = DateTime.now();
@@ -147,6 +149,7 @@ class ShiftService {
     required Money amount,
     required String reason,
   }) async {
+    await PermissionGuard.requireActiveUser(db, userId);
     if (amount <= Money.zero) {
       throw const ValidationException(
         'Cash movement amount must be greater than zero',
@@ -337,6 +340,7 @@ class ShiftService {
     if (countedCash.isNegative) {
       throw const ValidationException('Counted cash cannot be negative.');
     }
+    await PermissionGuard.requireActiveUser(db, cashierId);
     late ShiftSummary summary;
     late Money difference;
     late DateTime now;

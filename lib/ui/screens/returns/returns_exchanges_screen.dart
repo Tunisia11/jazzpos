@@ -1,3 +1,4 @@
+import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -181,7 +182,9 @@ class _ReturnsExchangesScreenState
         if (_refundMethod == AppConstants.paymentCash) {
           try {
             await HardwareManager.instance.cashDrawer.openDrawer();
-          } catch (_) {}
+          } catch (e) {
+            PosLogger.instance.warning('Returns', 'Cash drawer did not open for refund: $e');
+          }
         }
 
         if (mounted) {

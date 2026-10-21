@@ -1,3 +1,4 @@
+import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/localization/app_localizations.dart';
@@ -56,15 +57,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       now.day + 1,
     ).subtract(const Duration(microseconds: 1));
 
+    final actorId = ref.read(authNotifierProvider).user?.id ?? '';
     final sales = await reportService.getSalesReport(
+      actorId: actorId,
       startDate: start,
       endDate: end,
     );
     final sizes = await reportService.getSizePerformance(
+      actorId: actorId,
       startDate: start,
       endDate: end,
     );
-    final val = await reportService.getInventoryValuation();
+    final val = await reportService.getInventoryValuation(actorId: actorId);
 
     if (mounted) {
       setState(() {

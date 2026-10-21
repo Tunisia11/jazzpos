@@ -1,3 +1,4 @@
+import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:drift/drift.dart' show OrderingTerm;
@@ -72,7 +73,9 @@ class _BackupDataTabState extends ConsumerState<BackupDataTab> {
           _lastSyncAt = stats.lastSyncAt;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      PosLogger.instance.warning('Settings', 'Could not load sync stats: $e');
+    }
   }
 
   Future<void> _saveCloudConfig() async {
@@ -193,7 +196,9 @@ class _BackupDataTabState extends ConsumerState<BackupDataTab> {
             ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
           .get();
       if (mounted) setState(() => _backups = backups);
-    } catch (_) {}
+    } catch (e) {
+      PosLogger.instance.warning('Settings', 'Could not load backup history: $e');
+    }
   }
 
   Future<void> _createBackup() async {

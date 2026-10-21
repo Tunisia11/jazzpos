@@ -19,11 +19,56 @@ class UserSession {
   }
 }
 
+/// Escalating lockout after repeated wrong PINs (in memory, per target).
+class _AttemptTracker {
+  static const int freeAttempts = 5;
+  int failures = 0;
+  DateTime? lockedUntil;
+}
+
 class AuthService {
   final AppDatabase db;
+  final DateTime Function() _clock;
   UserSession? _currentSession;
+  final Map<String, _AttemptTracker> _attempts = {};
 
-  AuthService(this.db);
+  AuthService(this.db, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
+
+  /// Throws if [key] is locked out; otherwise returns normally.
+  void _ensureNotLocked(String key) {
+    final until = _attempts[key]?.lockedUntil;
+    if (until != null && _clock().isBefore(until)) {
+      final secs = until.difference(_clock()).inSeconds + 1;
+      throw AuthException(
+        'Too many failed attempts. Try again in $secs seconds.',
+      );
+    }
+  }
+
+  void _recordFailure(String key) {
+    final t = _attempts.putIfAbsent(key, _AttemptTracker.new);
+    t.failures++;
+    if (t.failures >= _AttemptTracker.freeAttempts) {
+      // 30s, 60s, 120s ... capped at 15 minutes.
+      final steps = t.failures - _AttemptTracker.freeAttempts;
+      final secs = (30 * (1 << (steps > 5 ? 5 : steps))).clamp(30, 900);
+      t.lockedUntil = _clock().add(Duration(seconds: secs));
+    }
+  }
+
+  void _clearFailures(String key) => _attempts.remove(key);
+
+  /// Re-hash a PIN with the current scheme after a successful verification.
+  Future<User> _upgradeHashIfNeeded(User user, String pin) async {
+    if (!PasswordHasher.needsRehash(user.pinHash)) return user;
+    final salt = PasswordHasher.generateSalt();
+    final hash = PasswordHasher.hashPin(pin, salt);
+    await (db.update(db.users)..where((t) => t.id.equals(user.id))).write(
+      UsersCompanion(pinHash: Value(hash), pinSalt: Value(salt)),
+    );
+    return user.copyWith(pinHash: hash, pinSalt: salt);
+  }
 
   UserSession? get currentSession => _currentSession;
   bool get isAuthenticated => _currentSession != null;
@@ -33,7 +78,10 @@ class AuthService {
     required String username,
     required String pin,
   }) async {
-    final user =
+    final lockKey = 'login:${username.trim().toLowerCase()}';
+    _ensureNotLocked(lockKey);
+
+    final found =
         await (db.select(db.users)..where(
               (tbl) =>
                   tbl.username.equals(username.trim()) &
@@ -41,23 +89,27 @@ class AuthService {
             ))
             .getSingleOrNull();
 
-    if (user == null) {
+    if (found == null) {
+      _recordFailure(lockKey);
       throw const AuthException('Invalid username or PIN');
     }
 
     final isValid = PasswordHasher.verifyPin(
       pin: pin,
-      saltHex: user.pinSalt,
-      expectedHashHex: user.pinHash,
+      saltHex: found.pinSalt,
+      expectedHashHex: found.pinHash,
     );
 
     if (!isValid) {
+      _recordFailure(lockKey);
       PosLogger.instance.warning(
         'Auth',
         'Failed login attempt for user: $username',
       );
       throw const AuthException('Invalid username or PIN');
     }
+    _clearFailures(lockKey);
+    final user = await _upgradeHashIfNeeded(found, pin);
 
     // Load permissions
     final permRows = await (db.select(
@@ -79,11 +131,19 @@ class AuthService {
   Future<bool> unlockWithPin(String pin) async {
     if (_currentSession == null) return false;
     final user = _currentSession!.user;
-    return PasswordHasher.verifyPin(
+    final lockKey = 'unlock:${user.id}';
+    _ensureNotLocked(lockKey);
+    final ok = PasswordHasher.verifyPin(
       pin: pin,
       saltHex: user.pinSalt,
       expectedHashHex: user.pinHash,
     );
+    if (ok) {
+      _clearFailures(lockKey);
+    } else {
+      _recordFailure(lockKey);
+    }
+    return ok;
   }
 
   /// Manager override verification without logging out cashier
@@ -92,6 +152,8 @@ class AuthService {
     String managerPin, {
     String requiredPermission = '',
   }) async {
+    const lockKey = 'manager-override';
+    _ensureNotLocked(lockKey);
     final managers =
         await (db.select(db.users)..where(
               (tbl) =>
@@ -119,14 +181,16 @@ class AuthService {
             continue;
           }
         }
+        _clearFailures(lockKey);
         PosLogger.instance.info(
           'Auth',
           'Manager override approved by: ${mgr.displayName} (${mgr.role})',
         );
-        return mgr;
+        return _upgradeHashIfNeeded(mgr, managerPin);
       }
     }
 
+    _recordFailure(lockKey);
     throw const AuthException(
       'Invalid Manager PIN. Override authorization denied.',
     );

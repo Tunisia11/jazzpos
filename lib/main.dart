@@ -12,6 +12,7 @@ import 'core/logging/startup_tracker.dart';
 import 'core/platform/app_paths.dart';
 import 'core/platform/environment_diagnostics_service.dart';
 import 'core/sound/sound_effect_service.dart';
+import 'domain/services/print_job_service.dart';
 import 'hardware/hardware_manager.dart';
 import 'ui/navigation/app_router.dart';
 import 'ui/theme/app_theme.dart';
@@ -19,6 +20,7 @@ import 'ui/widgets/startup_recovery_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  PrintJobService.processStart; // record process start for print-job cleanup
 
   // Track early startup milestones
   StartupTracker.instance.startStage('native_runner');
@@ -40,7 +42,7 @@ void main() async {
 
     PosLogger.instance.info(
       'Main',
-      'JazzPOS starting in production desktop mode...',
+      'Trace POS starting in production desktop mode...',
     );
 
     // 3. Storage permission health check
@@ -66,7 +68,7 @@ void main() async {
         size: Size(1280, 800),
         minimumSize: Size(1024, 768),
         center: true,
-        title: 'JAZZ POS — Point de Vente Prêt-à-Porter',
+        title: 'Trace POS — Point de Vente Prêt-à-Porter',
       );
       await windowManager.waitUntilReadyToShow(windowOptions, () async {
         await windowManager.show();

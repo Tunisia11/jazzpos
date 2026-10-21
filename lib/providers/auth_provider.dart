@@ -1,3 +1,4 @@
+import 'package:jazzpos/core/errors/failure.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/auth_service.dart';
@@ -69,7 +70,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void lockSession() => lock();
 
   Future<bool> unlock(String pin) async {
-    final ok = await authService.unlockWithPin(pin);
+    final bool ok;
+    try {
+      ok = await authService.unlockWithPin(pin);
+    } on AuthException {
+      return false; // locked out after repeated wrong PINs
+    }
     if (ok) {
       state = state.copyWith(isLocked: false);
       return true;

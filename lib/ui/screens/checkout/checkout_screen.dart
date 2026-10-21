@@ -48,6 +48,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     _effectiveStoreId = widget.storeId;
     HardwareKeyboard.instance.addHandler(_handleRawKeyEvent);
     _loadShiftAndSuspended();
+    ref.read(printJobServiceProvider).reconcileAbandonedJobs().catchError((_) => 0);
   }
 
   @override

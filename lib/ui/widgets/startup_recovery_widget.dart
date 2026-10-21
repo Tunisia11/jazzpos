@@ -23,7 +23,7 @@ class StartupRecoveryWidget extends StatelessWidget {
 
   const StartupRecoveryWidget({
     super.key,
-    this.title = "JAZZ POS n'a pas pu terminer le démarrage.",
+    this.title = "Trace POS n'a pas pu terminer le démarrage.",
     this.errorMessage,
     this.technicalDetails,
     required this.onRetry,

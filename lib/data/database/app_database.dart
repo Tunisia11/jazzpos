@@ -248,7 +248,9 @@ class AppDatabase extends _$AppDatabase {
             SELECT 'REG-01', s.id, 'Caisse 01', 'REG-01', CAST(strftime('%s', 'now') AS INTEGER), CAST(strftime('%s', 'now') AS INTEGER)
             FROM stores s LIMIT 1;
           ''');
-        } catch (_) {}
+        } catch (e) {
+          PosLogger.instance.warning('Database', 'Default register seed skipped: $e');
+        }
       },
     );
   }

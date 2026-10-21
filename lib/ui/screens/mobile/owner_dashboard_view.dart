@@ -1,3 +1,4 @@
+import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,7 +41,9 @@ class _OwnerDashboardViewState extends ConsumerState<OwnerDashboardView> {
       final reportService = ref.read(reportServiceProvider);
       final db = ref.read(databaseProvider);
 
+      final actorId = ref.read(authNotifierProvider).user?.id ?? '';
       final summary = await reportService.getSalesReport(
+        actorId: actorId,
         startDate: startOfDay,
         endDate: endOfDay,
       );
@@ -50,7 +53,7 @@ class _OwnerDashboardViewState extends ConsumerState<OwnerDashboardView> {
             ..limit(8))
           .get();
 
-      final valuation = await reportService.getInventoryValuation();
+      final valuation = await reportService.getInventoryValuation(actorId: actorId);
 
       if (mounted) {
         setState(() {

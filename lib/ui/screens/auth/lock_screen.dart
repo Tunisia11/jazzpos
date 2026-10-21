@@ -138,11 +138,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     );
 
     if (manager != null && mounted) {
-      // Force unlock via manager
-      ref.read(authNotifierProvider.notifier).unlock(manager.pinHash);
-      await ref
-          .read(authNotifierProvider.notifier)
-          .unlock(_pinBuffer.toString());
+      // Manager approved: end the locked session so a new login can start.
       ref.read(authNotifierProvider.notifier).logout();
     }
   }

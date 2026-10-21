@@ -279,6 +279,7 @@ void main() {
               AppConstants.shiftOpen,
             );
             final report = await ReportService(restoredDb).getSalesReport(
+              actorId: 'user',
               startDate: now.subtract(const Duration(hours: 1)),
               endDate: now.add(const Duration(hours: 1)),
             );

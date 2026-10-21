@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
 import 'package:jazzpos/data/database/app_database.dart';
+import 'package:jazzpos/domain/services/print_job_service.dart';
 import 'package:jazzpos/domain/services/audit_service.dart';
 import 'package:jazzpos/domain/services/auth_service.dart';
 import 'package:jazzpos/domain/services/backup_service.dart';
@@ -160,3 +161,7 @@ final posInitializationServiceProvider =
       return PosInitializationService(ref.watch(databaseProvider));
     });
 
+
+final printJobServiceProvider = Provider<PrintJobService>((ref) {
+  return PrintJobService(ref.watch(databaseProvider));
+});

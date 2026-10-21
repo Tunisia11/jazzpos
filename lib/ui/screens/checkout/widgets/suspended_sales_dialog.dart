@@ -1,3 +1,4 @@
+import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -522,7 +523,8 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
         'itemCount': totalCount,
         'total': Money.fromMillimes(totalMillimes),
       };
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('Suspended', 'Could not summarize suspended cart: $e');
       return {'items': [], 'itemCount': 0, 'total': Money.zero};
     }
   }

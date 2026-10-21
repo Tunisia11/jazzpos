@@ -332,10 +332,13 @@ class SyncService {
     Map<String, dynamic>? payload;
     try {
       payload = jsonDecode(event.payloadJson);
-    } catch (_) {}
-    if (payload != null) {
-      await backend.pushProductUpdate(payload);
+    } catch (e) {
+      throw SyncException('Invalid product payload: $e');
     }
+    if (payload == null) {
+      throw const SyncException('Invalid product payload: empty');
+    }
+    await backend.pushProductUpdate(payload);
   }
 
   /// Original processOutbox method for backward compatibility

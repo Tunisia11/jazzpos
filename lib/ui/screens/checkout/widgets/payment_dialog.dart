@@ -436,6 +436,16 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         printErrorMessage = e.toString().replaceAll('Exception: ', '');
       }
 
+      try {
+        await ref.read(printJobServiceProvider).markResult(
+          result.printJobId,
+          ok: printSuccess,
+          error: printErrorMessage,
+        );
+      } catch (e) {
+        PosLogger.instance.warning('PrintJobs', 'Could not record print result: $e');
+      }
+
       if (mounted) {
         setState(() => _isSubmitting = false);
         await WidgetsBinding.instance.endOfFrame;

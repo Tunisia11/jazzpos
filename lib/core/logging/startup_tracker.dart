@@ -42,7 +42,7 @@ class StartupTracker {
         _startupLogFile!.parent.createSync(recursive: true);
       }
       _appendToFile(
-        '\n=== JAZZ POS STARTUP SESSION: ${DateTime.now().toIso8601String()} ===\n'
+        '\n=== TRACE POS STARTUP SESSION: ${DateTime.now().toIso8601String()} ===\n'
         'OS: ${Platform.operatingSystem} (${Platform.operatingSystemVersion})\n'
         'Process PID: $pid\n'
         '------------------------------------------------------------\n',

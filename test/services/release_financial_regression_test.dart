@@ -206,6 +206,7 @@ void main() {
     );
 
     final report = await ReportService(db).getSalesReport(
+      actorId: managerId,
       startDate: DateTime.now().subtract(const Duration(days: 1)),
       endDate: DateTime.now().add(const Duration(days: 1)),
     );

@@ -1,4 +1,15 @@
 -- ==============================================================================
+-- SECURITY NOTICE
+-- The policies at the bottom of this script are intentionally permissive
+-- (using (true)) because the POS client currently talks to Supabase with the
+-- project's anon key. Anyone who obtains that key can read, change or delete
+-- every row. Before storing real sales here:
+--   * treat the anon key as a secret and keep this project private, or
+--   * replace the policies with `to authenticated` ones and sign the POS in
+--     with a dedicated Supabase Auth user (the client does not do this yet).
+-- ==============================================================================
+
+-- ==============================================================================
 -- JazzPOS - Supabase Cloud Synchronization Schema
 -- Execute this script in the Supabase Dashboard SQL Editor
 -- ==============================================================================

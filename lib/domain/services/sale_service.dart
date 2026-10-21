@@ -1,3 +1,5 @@
+import 'package:jazzpos/core/constants/permissions.dart';
+import 'package:jazzpos/domain/services/permission_guard.dart';
 import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
@@ -40,6 +42,7 @@ class SaleService {
         'At least one payment method is required',
       );
     }
+    await PermissionGuard.requireActiveUser(db, request.cashierId);
     final seenVariants = <String>{};
     for (final item in request.items) {
       if (!seenVariants.add(item.variantId)) {
@@ -520,6 +523,12 @@ class SaleService {
     required String managerId,
     required String reason,
   }) async {
+    await PermissionGuard.requireActiveUser(db, actorId);
+    await PermissionGuard.requirePermission(
+      db,
+      managerId,
+      AppPermissions.voidSale,
+    );
     final sale = await (db.select(
       db.sales,
     )..where((tbl) => tbl.id.equals(saleId))).getSingleOrNull();
