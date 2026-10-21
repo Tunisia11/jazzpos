@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
+import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/domain/services/permission_guard.dart';
 import 'package:jazzpos/core/money/money.dart';
@@ -67,6 +68,43 @@ class InventoryValuationReport {
   });
 }
 
+class OrderLineDetail {
+  final SaleLine line;
+  final String? imageUrl;
+  const OrderLineDetail(this.line, this.imageUrl);
+}
+
+class OrderDetails {
+  final Sale sale;
+  final List<OrderLineDetail> lines;
+  final List<SalePayment> payments;
+  final String cashierName;
+  final String registerCode;
+  final Customer? customer;
+  final Company? company;
+  final Store? store;
+  final List<Return> returns;
+
+  const OrderDetails({
+    required this.sale,
+    required this.lines,
+    required this.payments,
+    required this.cashierName,
+    required this.registerCode,
+    required this.customer,
+    required this.company,
+    required this.store,
+    required this.returns,
+  });
+
+  Money get refunded => returns.fold(
+    Money.zero,
+    (sum, r) => sum + Money.fromMillimes(r.totalRefundMillimes),
+  );
+
+  int get itemCount => lines.fold(0, (a, l) => a + l.line.quantity);
+}
+
 class DashboardBucket {
   final String label;
   final int millimes;
@@ -74,6 +112,8 @@ class DashboardBucket {
 }
 
 class DashboardTransaction {
+  final String saleId;
+  final List<String?> imageUrls;
   final String receiptNumber;
   final DateTime time;
   final int itemCount;
@@ -82,6 +122,8 @@ class DashboardTransaction {
   final String status;
 
   const DashboardTransaction({
+    required this.saleId,
+    this.imageUrls = const [],
     required this.receiptNumber,
     required this.time,
     required this.itemCount,
@@ -253,6 +295,84 @@ class ReportService {
     );
   }
 
+
+  /// variantId -> best available image (variant photo, else product photo).
+  Future<Map<String, String?>> _imagesForVariants(Iterable<String> ids) async {
+    final unique = ids.toSet().toList();
+    if (unique.isEmpty) return {};
+    final variants = await (db.select(
+      db.productVariants,
+    )..where((t) => t.id.isIn(unique))).get();
+    final productIds = variants.map((v) => v.productId).toSet().toList();
+    final products = productIds.isEmpty
+        ? <Product>[]
+        : await (db.select(db.products)..where((t) => t.id.isIn(productIds)))
+              .get();
+    final productImage = {for (final p in products) p.id: p.imageUrl};
+    return {
+      for (final v in variants) v.id: v.imageUrl ?? productImage[v.productId],
+    };
+  }
+
+  /// Full detail of one sale for the order-details screen.
+  Future<OrderDetails> getOrderDetails({
+    required String actorId,
+    required String saleId,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.viewReports,
+    );
+    final sale = await (db.select(
+      db.sales,
+    )..where((t) => t.id.equals(saleId))).getSingleOrNull();
+    if (sale == null) {
+      throw const ValidationException('Commande introuvable.');
+    }
+    final lines = await (db.select(
+      db.saleLines,
+    )..where((t) => t.saleId.equals(saleId))).get();
+    final payments = await (db.select(
+      db.salePayments,
+    )..where((t) => t.saleId.equals(saleId))).get();
+    final images = await _imagesForVariants(lines.map((l) => l.variantId));
+    final cashier = await (db.select(
+      db.users,
+    )..where((t) => t.id.equals(sale.cashierId))).getSingleOrNull();
+    final register = await (db.select(
+      db.registers,
+    )..where((t) => t.id.equals(sale.registerId))).getSingleOrNull();
+    final store = await (db.select(
+      db.stores,
+    )..where((t) => t.id.equals(sale.storeId))).getSingleOrNull();
+    final company = store == null
+        ? null
+        : await (db.select(
+            db.companies,
+          )..where((t) => t.id.equals(store.companyId))).getSingleOrNull();
+    final customer = sale.customerId == null
+        ? null
+        : await (db.select(
+            db.customers,
+          )..where((t) => t.id.equals(sale.customerId!))).getSingleOrNull();
+    final returns = await (db.select(db.returns)
+          ..where((t) => t.originalSaleId.equals(saleId))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .get();
+    return OrderDetails(
+      sale: sale,
+      lines: [for (final l in lines) OrderLineDetail(l, images[l.variantId])],
+      payments: payments,
+      cashierName: cashier?.displayName ?? '—',
+      registerCode: register?.code ?? '—',
+      customer: customer,
+      company: company,
+      store: store,
+      returns: returns,
+    );
+  }
+
   /// Everything the dashboard shows for the last [days] days (1 = today),
   /// plus the equally long period before it for trend arrows.
   Future<DashboardSummary> getDashboardSummary({
@@ -351,9 +471,15 @@ class ReportService {
         ? <SalePayment>[]
         : await (db.select(db.salePayments)..where((t) => t.saleId.isIn(ids)))
               .get();
+    final images = await _imagesForVariants(lines.map((l) => l.variantId));
     final recent = [
       for (final sale in latest)
         DashboardTransaction(
+          saleId: sale.id,
+          imageUrls: [
+            for (final l in lines.where((l) => l.saleId == sale.id))
+              images[l.variantId],
+          ],
           receiptNumber: sale.receiptNumber,
           time: sale.createdAt,
           itemCount: lines

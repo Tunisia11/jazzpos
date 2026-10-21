@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jazzpos/core/errors/failure.dart';
@@ -64,6 +65,47 @@ void main() {
     expect(
       ReportService(db).getDashboardSummary(actorId: 'cash', now: now),
       throwsA(isA<AuthException>()),
+    );
+  });
+
+  test('order details and dashboard rows carry product photos (variant, else product)', () async {
+    await db.into(db.products).insert(ProductsCompanion.insert(
+        id: 'p1', name: 'Chemise', createdAt: now, updatedAt: now,
+        imageUrl: const Value('products/p1.jpg')));
+    await db.into(db.products).insert(ProductsCompanion.insert(
+        id: 'p2', name: 'Jean', createdAt: now, updatedAt: now));
+    await db.into(db.productVariants).insert(ProductVariantsCompanion.insert(
+        id: 'va', productId: 'p1', sku: 'A', barcode: 'A', createdAt: now, updatedAt: now));
+    await db.into(db.productVariants).insert(ProductVariantsCompanion.insert(
+        id: 'vb', productId: 'p2', sku: 'B', barcode: 'B', createdAt: now, updatedAt: now,
+        imageUrl: const Value('variants/vb.jpg')));
+
+    await sale('o', DateTime(2026, 10, 21, 10), 60000, 'CASH');
+    await (db.update(db.saleLines)..where((t) => t.saleId.equals('o')))
+        .write(const SaleLinesCompanion(variantId: Value('va')));
+    await db.into(db.saleLines).insert(SaleLinesCompanion.insert(
+        id: 'l2', saleId: 'o', variantId: 'vb', productName: 'Jean',
+        variantDescription: '', sku: 'B', barcode: 'B', quantity: 1,
+        unitPriceMillimes: 1, originalPriceMillimes: 1, totalMillimes: 1));
+
+    final svc = ReportService(db);
+    final order = await svc.getOrderDetails(actorId: 'owner', saleId: 'o');
+    expect(order.itemCount, 3);
+    final byName = {for (final l in order.lines) l.line.productName: l.imageUrl};
+    expect(byName['x'], 'products/p1.jpg'); // falls back to the product photo
+    expect(byName['Jean'], 'variants/vb.jpg'); // variant photo wins
+
+    final dash = await svc.getDashboardSummary(actorId: 'owner', now: now);
+    expect(dash.recent.first.saleId, 'o');
+    expect(dash.recent.first.imageUrls, containsAll(['products/p1.jpg', 'variants/vb.jpg']));
+
+    expect(
+      svc.getOrderDetails(actorId: 'cash', saleId: 'o'),
+      throwsA(isA<AuthException>()),
+    );
+    expect(
+      svc.getOrderDetails(actorId: 'owner', saleId: 'nope'),
+      throwsA(isA<ValidationException>()),
     );
   });
 }

@@ -8,7 +8,10 @@ import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/services/report_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
+import 'package:jazzpos/ui/screens/dashboard/order_details_screen.dart';
+import 'package:jazzpos/ui/screens/dashboard/sale_labels.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
 
 /// Desktop owner dashboard: today's revenue, payment split, hourly sales and
 /// the latest transactions.
@@ -81,34 +84,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// Percent change vs the previous period, or null when it has no basis.
   double? _delta(num current, num previous) =>
       previous == 0 ? null : (current - previous) / previous * 100;
-
-  String _methodLabel(String m) {
-    switch (m) {
-      case AppConstants.paymentCash:
-        return 'Espèces';
-      case AppConstants.paymentCard:
-        return 'Carte / TPE';
-      case AppConstants.paymentMixed:
-        return 'Mixte';
-      case AppConstants.paymentStoreCredit:
-        return 'Avoir';
-      case '':
-        return '—';
-      default:
-        return 'Autre';
-    }
-  }
-
-  IconData _methodIcon(String m) {
-    switch (m) {
-      case AppConstants.paymentCard:
-        return Icons.credit_card;
-      case AppConstants.paymentCash:
-        return Icons.payments_outlined;
-      default:
-        return Icons.account_balance_wallet_outlined;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -849,7 +824,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                _methodLabel(entries[i].key),
+                                paymentMethodLabel(entries[i].key),
                                 style: const TextStyle(fontSize: 13),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -923,13 +898,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             child: const Row(
               children: [
-                SizedBox(width: 40),
+                SizedBox(width: 96),
                 Expanded(flex: 4, child: Text('# Reçu', style: head)),
                 Expanded(flex: 2, child: Text('Heure', style: head)),
                 Expanded(flex: 2, child: Text('Articles', style: head)),
                 Expanded(flex: 3, child: Text('Méthode de paiement', style: head)),
                 Expanded(flex: 3, child: Text('Montant', style: head)),
                 Expanded(flex: 3, child: Text('Statut', style: head)),
+                SizedBox(width: 20),
               ],
             ),
           ),
@@ -951,99 +927,140 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _txRow(DashboardTransaction t) {
-    final done = t.status == AppConstants.saleCompleted;
     final refunded = t.status == AppConstants.saleRefunded ||
         t.status == AppConstants.salePartiallyRefunded;
-    final statusLabel = done
-        ? 'Terminée'
-        : (t.status == AppConstants.saleRefunded
-              ? 'Remboursée'
-              : (refunded ? 'Part. remboursée' : 'Échangée'));
-    final statusColor = done ? _green : (refunded ? AppDesignTokens.danger : AppDesignTokens.warning);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppDesignTokens.borderSubtle)),
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => OrderDetailsScreen(saleId: t.saleId),
+        ),
       ),
-      child: Row(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: AppDesignTokens.borderSubtle),
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: 96, child: _thumbs(t.imageUrls)),
+            Expanded(
+              flex: 4,
+              child: Text(
+                t.receiptNumber,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                DateFormat('HH:mm').format(t.time),
+                style: const TextStyle(
+                  color: AppDesignTokens.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                '${t.itemCount} article${t.itemCount > 1 ? 's' : ''}',
+                style: const TextStyle(
+                  color: AppDesignTokens.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Row(
+                children: [
+                  Icon(paymentMethodIcon(t.paymentMethod), size: 18, color: _green),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      paymentMethodLabel(t.paymentMethod),
+                      style: const TextStyle(fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                '${t.total.isNegative ? '' : '+'}${_fmt(t.total)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: refunded ? AppDesignTokens.danger : _green,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SaleStatusChip(t.status),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: AppDesignTokens.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Up to three overlapping product photos, with a "+n" badge for the rest.
+  Widget _thumbs(List<String?> urls) {
+    const size = 40.0, overlap = 24.0;
+    final shown = urls.take(3).toList();
+    final extra = urls.length - shown.length;
+    return SizedBox(
+      height: size,
+      child: Stack(
         children: [
-          const SizedBox(
-            width: 40,
-            child: Icon(Icons.shopping_bag_outlined, color: _green, size: 20),
-          ),
-          Expanded(
-            flex: 4,
-            child: Text(
-              t.receiptNumber,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              DateFormat('HH:mm').format(t.time),
-              style: const TextStyle(color: AppDesignTokens.textSecondary, fontSize: 14),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              '${t.itemCount} article${t.itemCount > 1 ? 's' : ''}',
-              style: const TextStyle(color: AppDesignTokens.textSecondary, fontSize: 14),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Row(
-              children: [
-                Icon(_methodIcon(t.paymentMethod), size: 18, color: _green),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    _methodLabel(t.paymentMethod),
-                    style: const TextStyle(fontSize: 14),
-                    overflow: TextOverflow.ellipsis,
+          for (var i = 0; i < shown.length; i++)
+            Positioned(
+              left: i * overlap,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: ProductThumbnail(
+                    imageUrl: shown[i],
+                    size: size - 4,
+                    borderRadius: 0,
                   ),
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              '${t.total.isNegative ? '' : '+'}${_fmt(t.total)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: refunded ? AppDesignTokens.danger : _green,
               ),
             ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(done ? Icons.check : Icons.info_outline, size: 14, color: statusColor),
-                    const SizedBox(width: 6),
-                    Text(
-                      statusLabel,
-                      style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                  ],
+          if (extra > 0)
+            Positioned(
+              left: shown.length * overlap + 2,
+              top: 10,
+              child: Text(
+                '+$extra',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppDesignTokens.textSecondary,
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
