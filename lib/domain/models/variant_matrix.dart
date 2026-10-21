@@ -98,7 +98,7 @@ class VariantMatrixGenerator {
         sizeCode: codes.length > 1 ? codes[1] : null,
         sequenceNumber: codes.length > 2 ? counter : null,
       );
-      final barcode = IdGenerator.generateInternalBarcode();
+      final barcode = IdGenerator.generateEan13();
 
       variants.add(
         MatrixVariantItem(

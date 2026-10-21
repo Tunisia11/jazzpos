@@ -20,7 +20,13 @@ class Money implements Comparable<Money> {
         millimes >= 0 && millimes < 1000,
         'Millimes must be between 0 and 999',
       );
+      if (tnd < 0) {
+        return Money.fromMillimes(tnd * 1000 - millimes);
+      }
       return Money.fromMillimes(tnd * 1000 + millimes);
+    }
+    if (tnd < 0) {
+      return Money.fromMillimes((tnd * 1000).round() - millimes);
     }
     return Money.fromMillimes((tnd * 1000).round() + millimes);
   }
@@ -130,6 +136,25 @@ class Money implements Comparable<Money> {
     return this - percentageDiscount(percent);
   }
 
+  /// Extract tax from a tax-inclusive (TTC) amount using standard rate.
+  /// Formula: (total * rate) / (100 + rate)
+  Money extractTax(num percent) {
+    if (percent <= 0) return Money.zero;
+    final taxMillimes = ((millimes * percent) / (100 + percent)).round();
+    return Money.fromMillimes(taxMillimes);
+  }
+
+  /// Split this money evenly into [parts] without dropping millime remainders.
+  /// E.g. 10 millimes split into 3 parts yields [4, 3, 3] millimes.
+  List<Money> split(int parts) {
+    if (parts <= 0) throw ArgumentError.value(parts, 'parts', 'Must be > 0');
+    final base = millimes ~/ parts;
+    final remainder = millimes % parts;
+    return List.generate(parts, (i) {
+      return Money.fromMillimes(base + (i < remainder ? 1 : 0));
+    });
+  }
+
   bool get isZero => millimes == 0;
   bool get isNegative => millimes < 0;
   bool get isPositive => millimes > 0;
@@ -158,6 +183,9 @@ class Money implements Comparable<Money> {
 
     return includeCurrency ? '$formatted TND' : formatted;
   }
+
+  /// Convenience getter returning default formatted string (e.g. "12.500 TND")
+  String get formatted => format();
 
   @override
   int compareTo(Money other) => millimes.compareTo(other.millimes);

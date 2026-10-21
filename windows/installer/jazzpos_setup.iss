@@ -60,18 +60,18 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
 ; --- French UI Copywriting (Natural, Professional, Trustworthy) ---
-french.SetupAppTitle=Installation de JAZZ POS
-french.SetupWindowTitle=Assistant d'installation JAZZ POS — Par Virex
+french.SetupAppTitle=Installation de Trace POS
+french.SetupWindowTitle=Assistant d'installation Trace POS — Par Virex
 french.SelectLanguageTitle=Langue de l'installation
-french.SelectLanguageLabel=Veuillez choisir la langue d'installation de JAZZ POS :
+french.SelectLanguageLabel=Veuillez choisir la langue d'installation de Trace POS :
 
 ; Welcome Page
-french.WelcomeLabel1=Bienvenue dans l'installation de JAZZ POS
-french.WelcomeLabel2=JAZZ POS est votre solution complète de caisse et de gestion commerciale conçue pour fonctionner localement, de manière rapide, fiable et sécurisée.%n%n• Conçu pour le commerce de détail et le prêt-à-porter sur Windows 10 et 11%n• Fonctionnement 100%% autonome (Hors-Ligne) même en cas de panne réseau%n• Reconnaissance immédiate de votre matériel de caisse (imprimante, tiroir, lecteur)%n• Sécurité garantie : les données existantes sont intégralement conservées lors des mises à jour.%n%nCliquez sur Suivant pour continuer.
+french.WelcomeLabel1=Bienvenue dans l'installation de Trace POS
+french.WelcomeLabel2=Trace POS est votre solution complète de caisse et de gestion commerciale conçue pour fonctionner localement, de manière rapide, fiable et sécurisée.%n%n• Conçu pour le commerce de détail et le prêt-à-porter sur Windows 10 et 11%n• Fonctionnement 100%% autonome (Hors-Ligne) même en cas de panne réseau%n• Reconnaissance immédiate de votre matériel de caisse (imprimante, tiroir, lecteur)%n• Sécurité garantie : les données existantes sont intégralement conservées lors des mises à jour.%n%nCliquez sur Suivant pour continuer.
 
 ; Destination Directory
 french.WizardSelectDir=Dossier d'installation
-french.SelectDirDesc=Choisissez l'emplacement où sera installé JAZZ POS sur ce terminal.
+french.SelectDirDesc=Choisissez l'emplacement où sera installé Trace POS sur ce terminal.
 french.SelectDirLabel3=L'assistant va installer l'application dans le dossier suivant :
 french.SelectDirBrowseLabel=Cliquez sur Suivant pour accepter cet emplacement, ou sur Parcourir pour en choisir un autre.
 
@@ -82,41 +82,41 @@ french.SelectTasksLabel2=Sélectionnez les options souhaitées pour ce poste d'e
 
 ; Ready to Install
 french.WizardReady=Prêt pour l'installation
-french.ReadyLabel1=L'assistant dispose de toutes les informations pour installer JAZZ POS sur votre poste.
+french.ReadyLabel1=L'assistant dispose de toutes les informations pour installer Trace POS sur votre poste.
 french.ReadyLabel2a=Cliquez sur Installer pour débuter le déploiement.%n%n(Vos ventes précédentes, votre base de données et vos sauvegardes restent strictement préservées.)
 french.ReadyLabel2b=Cliquez sur Installer pour procéder au déploiement.
 
 ; Installing Progress
 french.WizardInstalling=Installation en cours...
-french.InstallingLabel=Veuillez patienter pendant l'installation et la configuration de JAZZ POS sur votre ordinateur...
+french.InstallingLabel=Veuillez patienter pendant l'installation et la configuration de Trace POS sur votre ordinateur...
 
 ; Completion Page
-french.FinishedHeadingLabel=Installation de JAZZ POS réussie !
-french.FinishedLabel=L'installation est terminée avec succès. JAZZ POS est maintenant configuré et prêt à être utilisé sur votre terminal.%n%nVos données de caisse, votre catalogue et vos sauvegardes sont enregistrés de façon sécurisée sur cet ordinateur.
-french.FinishedLabelNoIcons=L'installation est terminée avec succès. JAZZ POS est maintenant prêt pour une utilisation immédiate.
+french.FinishedHeadingLabel=Installation de Trace POS réussie !
+french.FinishedLabel=L'installation est terminée avec succès. Trace POS est maintenant configuré et prêt à être utilisé sur votre terminal.%n%nVos données de caisse, votre catalogue et vos sauvegardes sont enregistrés de façon sécurisée sur cet ordinateur.
+french.FinishedLabelNoIcons=L'installation est terminée avec succès. Trace POS est maintenant prêt pour une utilisation immédiate.
 french.ClickFinish=Cliquez sur Terminer pour lancer votre session d'encaissement.
 
 ; --- English UI Copywriting ---
-english.SetupAppTitle=JAZZ POS Setup
-english.SetupWindowTitle=JAZZ POS Setup Wizard — By Virex
-english.WelcomeLabel1=Welcome to JAZZ POS Setup
-english.WelcomeLabel2=JAZZ POS is a professional point-of-sale and retail management solution engineered to operate locally with high speed, reliability, and security.%n%n• Tailored for apparel, fashion, and retail stores on Windows 10 and 11%n• 100%% offline-first architecture resilient against network downtime%n• Plug-and-play POS hardware integration (receipt printers, cash drawers, scanners)%n• Data safety guaranteed: existing databases and backups are preserved during updates.%n%nClick Next to proceed with setup.
+english.SetupAppTitle=Trace POS Setup
+english.SetupWindowTitle=Trace POS Setup Wizard — By Virex
+english.WelcomeLabel1=Welcome to Trace POS Setup
+english.WelcomeLabel2=Trace POS is a professional point-of-sale and retail management solution engineered to operate locally with high speed, reliability, and security.%n%n• Tailored for apparel, fashion, and retail stores on Windows 10 and 11%n• 100%% offline-first architecture resilient against network downtime%n• Plug-and-play POS hardware integration (receipt printers, cash drawers, scanners)%n• Data safety guaranteed: existing databases and backups are preserved during updates.%n%nClick Next to proceed with setup.
 english.WizardSelectDir=Installation Folder
-english.SelectDirDesc=Select the destination folder for JAZZ POS on this terminal.
+english.SelectDirDesc=Select the destination folder for Trace POS on this terminal.
 english.WizardSelectTasks=Terminal Options
 english.SelectTasksDesc=Configure shortcuts and point-of-sale startup settings.
 english.WizardReady=Ready to Install
-english.ReadyLabel1=Setup is ready to install JAZZ POS on your computer.
+english.ReadyLabel1=Setup is ready to install Trace POS on your computer.
 english.ReadyLabel2a=Click Install to begin installation. Existing sales history and databases will remain safe.
-english.WizardInstalling=Installing JAZZ POS...
-english.InstallingLabel=Please wait while setup deploys JAZZ POS on your computer...
-english.FinishedHeadingLabel=JAZZ POS Setup Completed
-english.FinishedLabel=JAZZ POS has been successfully installed on your computer.%n%nYour point-of-sale system is ready for store operation.%n%nStore sales, catalog, and backups are safely stored locally on this terminal.
-english.ClickFinish=Click Finish to launch JAZZ POS.
+english.WizardInstalling=Installing Trace POS...
+english.InstallingLabel=Please wait while setup deploys Trace POS on your computer...
+english.FinishedHeadingLabel=Trace POS Setup Completed
+english.FinishedLabel=Trace POS has been successfully installed on your computer.%n%nYour point-of-sale system is ready for store operation.%n%nStore sales, catalog, and backups are safely stored locally on this terminal.
+english.ClickFinish=Click Finish to launch Trace POS.
 
 [Tasks]
 Name: "desktopicon"; Description: "Créer une icône d'accès rapide sur le Bureau (Recommandé)"; GroupDescription: "Raccourcis :"
-Name: "autostart"; Description: "Démarrer automatiquement JAZZ POS à l'ouverture de Windows (Terminaux de caisse dédiés)"; GroupDescription: "Démarrage automatique :"
+Name: "autostart"; Description: "Démarrer automatiquement Trace POS à l'ouverture de Windows (Terminaux de caisse dédiés)"; GroupDescription: "Démarrage automatique :"
 
 [Files]
 ; 1. Full application bundle (Executable, Flutter engine DLL, sqlite3.dll, plugins, and data folder)

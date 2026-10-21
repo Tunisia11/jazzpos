@@ -33,8 +33,11 @@ class TsplCommands {
       buffer.writeln('TEXT 20, 80, "2", 0, 1, 1, "$variantDesc"');
     }
 
-    // Barcode (Code 128)
-    buffer.writeln('BARCODE 20, 105, "128", 45, 1, 0, 2, 2, "${doc.barcode}"');
+    // Barcode (EAN13 or Code 128)
+    final bType = doc.barcodeType == 'EAN13' || (doc.barcode.length == 13 && RegExp(r'^\d+$').hasMatch(doc.barcode))
+        ? 'EAN13'
+        : '128';
+    buffer.writeln('BARCODE 20, 105, "$bType", 45, 1, 0, 2, 2, "${doc.barcode}"');
 
     // SKU
     buffer.writeln('TEXT 20, 155, "1", 0, 1, 1, "${doc.sku}"');

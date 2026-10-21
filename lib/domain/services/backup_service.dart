@@ -6,11 +6,13 @@ import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite;
+import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/platform/app_paths.dart';
 import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
+import 'package:jazzpos/domain/services/permission_guard.dart';
 
 class BackupService {
   final AppDatabase db;
@@ -358,6 +360,11 @@ class BackupService {
         'Explicit confirmation is required before restoring a backup.',
       );
     }
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.backupRestore,
+    );
     await _ensureInitialized();
     await validateBackupFile(filePath);
 

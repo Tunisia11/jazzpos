@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/money/money.dart';
+import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:path/path.dart' as p;
 import 'barcode_scanner/barcode_scanner_interface.dart';
 import 'barcode_scanner/fake_barcode_scanner.dart';
 import 'barcode_scanner/scanner_input_service.dart';
@@ -17,12 +20,14 @@ import 'label_printer/fake_label_printer.dart';
 import 'label_printer/label_document.dart';
 import 'label_printer/label_printer_interface.dart';
 import 'models/hardware_status.dart';
+import 'receipt_printer/esc_pos_network_printer.dart';
 import 'receipt_printer/fake_receipt_printer.dart';
 import 'receipt_printer/preview_printer.dart';
 import 'receipt_printer/printer_profile.dart';
 import 'receipt_printer/receipt_document.dart';
 import 'receipt_printer/receipt_printer_interface.dart';
 import 'receipt_printer/receipt_rasterizer.dart';
+import 'receipt_printer/mac_cups_printer.dart';
 import 'receipt_printer/windows_spooler_printer.dart';
 import 'services/hardware_discovery_service.dart';
 import 'services/hardware_recommendation_engine.dart';
@@ -32,7 +37,16 @@ import 'services/hardware_recommendation_engine.dart';
 /// zero-hardware mode, and comprehensive diagnostics.
 class HardwareManager {
   static final HardwareManager instance = HardwareManager._();
-  HardwareManager._();
+  HardwareManager._() : configDirectory = null, autoDiscover = true;
+  HardwareManager.forTesting({required this.configDirectory}) : autoDiscover = false;
+  final Directory? configDirectory;
+  final bool autoDiscover;
+  PrinterProfile? _configuredProfile;
+  bool _drawerEnabled = false;
+  bool get drawerEnabled => _drawerEnabled;
+  String? configLoadError;
+
+  static const String kHardwareConfigFile = 'hardware_config.json';
 
   late ReceiptPrinter receiptPrinter;
   late LabelPrinter labelPrinter;
@@ -45,7 +59,20 @@ class HardwareManager {
   HardwareDiscoveryReport? latestDiscovery;
   HardwareRecommendationBundle? latestRecommendations;
 
+  String? _configuredReceiptPrinterName;
+  String? _configuredTransport;
+  String? _configuredNetworkIp;
+  int? _configuredNetworkPort;
+  bool _configuredPrinterIsMissing = false;
+
+  String? get configuredReceiptPrinterName => _configuredReceiptPrinterName;
+  String? get configuredTransport => _configuredTransport;
+  String? get configuredNetworkIp => _configuredNetworkIp;
+  int? get configuredNetworkPort => _configuredNetworkPort;
+  bool get configuredPrinterIsMissing => _configuredPrinterIsMissing;
+
   bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
   bool _isScanning = false;
 
   bool get isScanning => _isScanning;
@@ -56,6 +83,7 @@ class HardwareManager {
       receiptPrinter.connectionType == AppConstants.connSimulated;
 
   bool get labelPrinterIsSimulated =>
+      labelPrinter is FakeLabelPrinter ||
       labelPrinter.connectionType == AppConstants.connSimulated;
 
   bool get cashDrawerIsSimulated =>
@@ -67,10 +95,16 @@ class HardwareManager {
       customerDisplay is FakeCustomerDisplay ||
       customerDisplay is DisabledCustomerDisplay;
 
-  /// Peripheral statuses
+  /// Peripheral statuses with truthful states
   HardwareStatus get printerStatus {
     if (receiptPrinterIsSimulated) return HardwareStatus.simulated;
+    if (_configuredPrinterIsMissing) return HardwareStatus.missing;
     return receiptPrinter.status;
+  }
+
+  HardwareStatus get labelPrinterStatus {
+    if (labelPrinterIsSimulated) return HardwareStatus.notConfigured;
+    return HardwareStatus.ready;
   }
 
   HardwareStatus get scannerStatus {
@@ -78,6 +112,27 @@ class HardwareManager {
       return (barcodeScanner as ScannerInputService).status;
     }
     return scannerIsSimulated ? HardwareStatus.simulated : HardwareStatus.ready;
+  }
+
+  String get scannerStatusDescription {
+    if (barcodeScanner is ScannerInputService) {
+      return (barcodeScanner as ScannerInputService).statusText;
+    }
+    return scannerIsSimulated ? 'Mode simulé' : 'Prêt';
+  }
+
+  bool get scannerHasReceivedPhysicalScan {
+    if (barcodeScanner is ScannerInputService) {
+      return (barcodeScanner as ScannerInputService).hasReceivedPhysicalScan;
+    }
+    return false;
+  }
+
+  String? get scannerLastBarcode {
+    if (barcodeScanner is ScannerInputService) {
+      return (barcodeScanner as ScannerInputService).lastScannedBarcode;
+    }
+    return null;
   }
 
   HardwareStatus get drawerStatus {
@@ -100,8 +155,109 @@ class HardwareManager {
     return customerDisplay.status;
   }
 
+  File get _configFile {
+    final dir = configDirectory ?? (AppPaths.instance.isInitialized
+        ? AppPaths.instance.baseDir
+        : Directory.systemTemp);
+    return File(p.join(dir.path, kHardwareConfigFile));
+  }
+
+  /// Load persisted printer settings on application boot
+  void loadPersistedHardwareConfig() {
+    try {
+      final file = _configFile;
+      if (file.existsSync()) {
+        final content = file.readAsStringSync();
+        final json = jsonDecode(content) as Map<String, dynamic>;
+        final saved = json['receiptPrinter'] as Map<String, dynamic>?;
+        final name = saved?['queueName'] as String? ?? json['receiptPrinterName'] as String?;
+        if (saved != null) {
+          final transport = saved['transport'] as String? ?? (Platform.isMacOS ? 'MACOS_CUPS' : 'WINDOWS_SPOOLER');
+          if (transport != 'WINDOWS_SPOOLER' && transport != 'MACOS_CUPS' && transport != 'NETWORK') {
+            throw const FormatException('Unsupported printer transport');
+          }
+          _configuredTransport = transport;
+          _configuredNetworkIp = saved['ipAddress'] as String?;
+          _configuredNetworkPort = saved['port'] as int?;
+          _configuredProfile = PrinterProfile.fromJson(Map<String,dynamic>.from(saved['profile'] as Map));
+          _drawerEnabled = saved['drawerEnabled'] == true;
+        }
+        if (name != null && name.trim().isNotEmpty) {
+          _configuredReceiptPrinterName = name.trim();
+        }
+      }
+    } catch (e) {
+      configLoadError = e.toString();
+      PosLogger.instance.warning('Hardware', 'Failed to load $kHardwareConfigFile: $e');
+    }
+  }
+
+  /// Manually select and persist the active receipt printer.
+  Future<void> saveReceiptPrinter(String printerName, {
+    String? transport,
+    String? ipAddress,
+    int? port,
+    PrinterProfile? profile,
+    bool drawerEnabled = false,
+  }) async {
+    final clean = printerName.trim();
+    if (clean.isEmpty) throw ArgumentError('Printer queue is required');
+    final activeTransport = transport ?? 'WINDOWS_SPOOLER';
+    final selected = profile ?? (Platform.isMacOS ? PrinterProfile.genericEscPos80 : PrinterProfile.genericWindows);
+    if (![58,80].contains(selected.paperWidthMm)) throw ArgumentError('Supported widths: 58/80 mm');
+    final file = _configFile;
+    final payload = jsonEncode({
+      'version':2,
+      'receiptPrinter': {
+        'queueName':clean,
+        'transport':activeTransport,
+        if (activeTransport == 'NETWORK') ...{
+          'ipAddress': ipAddress?.trim() ?? '192.168.1.100',
+          'port': port ?? 9100,
+        },
+        'paperWidth':selected.paperWidthMm,
+        'profile':selected.toJson(),
+        'encoding':selected.defaultCodePage,
+        'cutterEnabled':selected.hasCutter,
+        'drawerEnabled':drawerEnabled && selected.hasDrawerPort,
+        'drawerPin':selected.drawerKickCommand.length >= 3 ? selected.drawerKickCommand[2] : null,
+      },
+      'updatedAt':DateTime.now().toUtc().toIso8601String(),
+    });
+    // Save before activation; a failed write must reach Settings as an error.
+    final staged = File('${file.path}.tmp');
+    try {
+      await staged.writeAsString(payload, flush:true);
+      await staged.rename(file.path);
+    } finally {
+      if (await staged.exists()) await staged.delete();
+    }
+    _configuredReceiptPrinterName = clean;
+    _configuredTransport = activeTransport;
+    _configuredNetworkIp = ipAddress?.trim();
+    _configuredNetworkPort = port;
+    _configuredProfile = selected;
+    _drawerEnabled = drawerEnabled && selected.hasDrawerPort;
+    _configuredPrinterIsMissing = false;
+    if (activeTransport == 'NETWORK') {
+      receiptPrinter = EscPosNetworkPrinter(
+        name: clean,
+        ipAddress: ipAddress?.trim() ?? '192.168.1.100',
+        port: port ?? 9100,
+        profile: selected,
+      );
+    } else if (activeTransport == 'MACOS_CUPS' || (activeTransport == 'WINDOWS_SPOOLER' && Platform.isMacOS)) {
+      receiptPrinter = MacCupsPrinter(name:clean,profile:selected);
+    } else if (activeTransport == 'WINDOWS_SPOOLER') {
+      receiptPrinter = WindowsSpoolerPrinter(name:clean,profile:selected);
+    } else {
+      receiptPrinter = FakeReceiptPrinter();
+    }
+    cashDrawer = _drawerEnabled ? PrinterKickCashDrawer(printer:receiptPrinter) : const DisabledCashDrawer();
+    await receiptPrinter.connect();
+  }
+
   /// Initialize hardware manager on app startup.
-  /// Startup sequence: opens immediately with defaults, runs discovery asynchronously.
   void initialize({
     ReceiptPrinter? customReceiptPrinter,
     LabelPrinter? customLabelPrinter,
@@ -111,36 +267,63 @@ class HardwareManager {
   }) {
     if (_isInitialized) return;
 
-    // Use provided custom or fallback to zero-hardware safe defaults
-    receiptPrinter =
-        customReceiptPrinter ??
-        (Platform.isWindows
-            ? WindowsSpoolerPrinter(name: 'Default Receipt Printer')
-            : FakeReceiptPrinter());
+    loadPersistedHardwareConfig();
 
+    // 1. Restore configured receipt printer, or custom, or safe default
+    if (customReceiptPrinter != null) {
+      receiptPrinter = customReceiptPrinter;
+    } else if (_configuredReceiptPrinterName != null &&
+        _configuredReceiptPrinterName!.isNotEmpty) {
+      if (_configuredTransport == 'NETWORK') {
+        receiptPrinter = EscPosNetworkPrinter(
+          name: _configuredReceiptPrinterName!,
+          ipAddress: _configuredNetworkIp ?? '192.168.1.100',
+          port: _configuredNetworkPort ?? 9100,
+          profile: _configuredProfile ?? PrinterProfile.genericEscPos80,
+        );
+      } else if (Platform.isMacOS || _configuredTransport == 'MACOS_CUPS') {
+        receiptPrinter = MacCupsPrinter(
+          name: _configuredReceiptPrinterName!,
+          profile: _configuredProfile ?? PrinterProfile.genericEscPos80,
+        );
+      } else if (Platform.isWindows || _configuredTransport == 'WINDOWS_SPOOLER') {
+        receiptPrinter = WindowsSpoolerPrinter(
+          name: _configuredReceiptPrinterName!,
+          profile: _configuredProfile ?? PrinterProfile.genericWindows,
+        );
+      } else {
+        receiptPrinter = FakeReceiptPrinter();
+      }
+    } else {
+      receiptPrinter = Platform.isWindows
+          ? WindowsSpoolerPrinter(name: 'Default Receipt Printer')
+          : FakeReceiptPrinter();
+    }
+
+    // 2. Label printer
     labelPrinter = customLabelPrinter ?? FakeLabelPrinter();
 
-    // Barcode scanner: default to universal USB HID / Keyboard Wedge scanner
+    // 3. Barcode scanner
     barcodeScanner = customBarcodeScanner ?? ScannerInputService();
     barcodeScanner.startListening();
 
-    // Cash drawer: default through printer if printer available
-    cashDrawer =
-        customCashDrawer ??
-        (customReceiptPrinter != null
+    // 4. Cash drawer
+    cashDrawer = customCashDrawer ??
+        (_drawerEnabled
             ? PrinterKickCashDrawer(printer: receiptPrinter)
-            : FakeCashDrawer());
+            : const DisabledCashDrawer());
 
+    // 5. Customer display
     customerDisplay = customCustomerDisplay ?? FakeCustomerDisplay();
 
     _isInitialized = true;
     PosLogger.instance.info(
       'Hardware',
-      'Hardware Manager initialized. Target OS: ${Platform.operatingSystem}',
+      'Hardware Manager initialized. Configured printer: $_configuredReceiptPrinterName. Target OS: ${Platform.operatingSystem}',
     );
 
-    // Asynchronously perform discovery without blocking the cashier startup
-    Future.microtask(() => runDiscoveryScan(autoApplyIfHighConfidence: true));
+    // Asynchronously perform discovery without blocking cashier startup
+    if (autoDiscover) Future.microtask(() => runDiscoveryScan());
   }
 
   /// Execute asynchronous discovery scan across the Windows environment.
@@ -157,8 +340,25 @@ class HardwareManager {
           HardwareRecommendationEngine.generateRecommendations(report);
       latestRecommendations = recommendations;
 
-      if (autoApplyIfHighConfidence) {
-        // If high-confidence printer candidate found on Windows, bind spooler printer
+      // Check if user's configured printer is installed in the system
+      if (_configuredReceiptPrinterName != null &&
+          _configuredReceiptPrinterName!.isNotEmpty) {
+        final isPresent = report.printers.any(
+          (p) =>
+              p.name.trim().toLowerCase() ==
+              _configuredReceiptPrinterName!.toLowerCase(),
+        );
+        if (!isPresent && Platform.isWindows) {
+          _configuredPrinterIsMissing = true;
+          PosLogger.instance.warning(
+            'Hardware',
+            'Configured receipt printer "$_configuredReceiptPrinterName" is unavailable on this computer. NOT auto-switching.',
+          );
+        } else {
+          _configuredPrinterIsMissing = false;
+        }
+      } else if (autoApplyIfHighConfidence) {
+        // Only auto-apply if NO printer has been configured by user
         if (recommendations.receiptPrinter != null &&
             recommendations.receiptPrinter!.confidence ==
                 RecommendationConfidence.high) {
@@ -169,7 +369,6 @@ class HardwareManager {
           );
           await receiptPrinter.connect();
 
-          // If printer has drawer port, connect drawer
           if (rec.printerProfile?.hasDrawerPort ?? true) {
             cashDrawer = PrinterKickCashDrawer(
               name: 'Tiroir ${rec.recommendedName}',
@@ -187,14 +386,11 @@ class HardwareManager {
 
   /// Apply recommended hardware configuration bundle
   Future<void> applyRecommendations(HardwareRecommendationBundle bundle) async {
-    // 1. Printer
+    // Persist the same profile and drawer binding used by manual Settings.
     if (bundle.receiptPrinter != null) {
       final rec = bundle.receiptPrinter!;
-      receiptPrinter = WindowsSpoolerPrinter(
-        name: rec.recommendedName,
-        profile: rec.printerProfile ?? PrinterProfile.genericWindows,
-      );
-      await receiptPrinter.connect();
+      await saveReceiptPrinter(rec.recommendedName, profile: rec.printerProfile,
+        drawerEnabled: bundle.cashDrawer.transport == 'THROUGH_PRINTER');
     }
 
     // 2. Scanner
@@ -266,44 +462,49 @@ class HardwareManager {
     }
   }
 
-  /// Print comprehensive hardware test receipt
-  /// Exercises ASCII, French accents, TND 3-decimals, formatting, barcode, cutter
-  Future<void> testReceiptPrinter() async {
+  /// Print comprehensive hardware test receipt for client installation
+  /// Includes exact requirements: Boutique name, Article Test 10.000, TOTAL 10.000, Barcode, Printer test successful
+  Future<void> testReceiptPrinter({String? storeName, String? barcode}) async {
+    final now = DateTime.now();
+    final effectiveStoreName = storeName != null && storeName.isNotEmpty
+        ? (storeName.startsWith('Boutique:') ? storeName : 'Boutique: $storeName')
+        : 'Boutique: Trace POS Boutique';
+    final effectiveBarcode = barcode ?? '200123456789';
+
     final doc = ReceiptDocument(
-      storeName: 'TRACE POS TEST',
-      storeAddress: 'Test Terminal, Avenue Habib Bourguiba, Tunis',
+      storeName: effectiveStoreName,
+      storeAddress: 'Test Terminal — Installation Client',
       storePhone: '+216 71 000 000',
       fiscalId: '00012345/A/M/000',
-      receiptNumber: 'TEST-0001',
-      dateTime: DateTime.now(),
-      cashierName: 'Admin',
+      receiptNumber: 'TEST-${now.millisecondsSinceEpoch.toString().substring(7)}',
+      dateTime: now,
+      cashierName: 'Administrateur',
       registerCode: 'REG-01',
       lines: [
-        const ReceiptLineItem(
-          productName: 'T-Shirt Basic Coton (Élégant)',
-          variantDescription: 'Noir / L (Taille Standard)',
-          sku: 'TSH-BLK-L',
-          barcode: '200123456789',
-          quantity: 2,
-          unitPrice: Money.fromMillimes(39900),
-          total: Money.fromMillimes(79800),
-          discount: Money.fromMillimes(5000),
+        ReceiptLineItem(
+          productName: 'Article Test 10.000',
+          variantDescription: 'Caractères français: é è à ç ù',
+          sku: 'TEST-SKU-001',
+          barcode: effectiveBarcode,
+          quantity: 1,
+          unitPrice: const Money.fromMillimes(10000),
+          total: const Money.fromMillimes(10000),
         ),
       ],
-      subtotal: const Money.fromMillimes(84800),
-      discount: const Money.fromMillimes(5000),
-      tax: const Money.fromMillimes(14200),
-      total: const Money.fromMillimes(74800),
-      payments: [
-        const ReceiptPaymentItem(
+      subtotal: const Money.fromMillimes(10000),
+      discount: Money.zero,
+      tax: const Money.fromMillimes(1900),
+      total: const Money.fromMillimes(10000),
+      payments: const [
+        ReceiptPaymentItem(
           method: 'ESPECES',
-          amount: Money.fromMillimes(74800),
-          tendered: Money.fromMillimes(80000),
-          change: Money.fromMillimes(5200),
+          amount: Money.fromMillimes(10000),
+          tendered: Money.fromMillimes(10000),
+          change: Money.zero,
         ),
       ],
       footerMessage:
-          'Hardware diagnostics test: ASCII, French, TND 3-decimals, Barcode OK!',
+          'Printer test successful\nTRACE POS — Installation Boutique Réussie !\nBarcode: $effectiveBarcode\nCaractères accentués: é è à ç ù',
     );
 
     await receiptPrinter.printReceipt(doc);
@@ -322,8 +523,13 @@ class HardwareManager {
     );
   }
 
-  /// Print test label
+  /// Print test label — strictly fails if label printer is simulated in production
   Future<void> testLabelPrinter() async {
+    if (labelPrinterIsSimulated) {
+      throw Exception(
+        'L\'impression d\'étiquettes n\'est pas configurée (aucune imprimante physique détectée).',
+      );
+    }
     const doc = LabelDocument(
       storeName: 'TRACE POS',
       productName: 'Chemise Slim Coton',
@@ -342,6 +548,7 @@ class HardwareManager {
 
   /// Test cash drawer kick
   Future<void> testCashDrawer() async {
+    if (drawerStatus == HardwareStatus.notConfigured) throw StateError('Tiroir non configuré');
     await cashDrawer.openDrawer();
   }
 

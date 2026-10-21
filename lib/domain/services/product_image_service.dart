@@ -98,8 +98,32 @@ class ProductImageService {
     const typeGroup = XTypeGroup(
       label: 'Images (*.jpg, *.jpeg, *.png, *.webp)',
       extensions: supportedExtensions,
+      uniformTypeIdentifiers: [
+        'public.image',
+        'public.jpeg',
+        'public.png',
+      ],
     );
-    return await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+    try {
+      return await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+    } catch (e) {
+      PosLogger.instance.warning(
+        'ImageService',
+        'openFile with typeGroup failed ($e), retrying openFile without filters...',
+        e,
+      );
+      try {
+        return await openFile();
+      } catch (fallbackError, fallbackSt) {
+        PosLogger.instance.error(
+          'ImageService',
+          'openFile fallback also failed: $fallbackError',
+          fallbackError,
+          fallbackSt,
+        );
+        rethrow;
+      }
+    }
   }
 
   /// Sanitize an ID (e.g. productId) to prevent directory traversal and invalid filename characters

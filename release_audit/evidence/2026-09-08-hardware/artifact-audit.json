@@ -1,0 +1,32 @@
+{
+  "auditedAt": "2026-09-08T04:34:47.210569+01:00",
+  "target": "Windows client; models unknown; USB/Bluetooth/network",
+  "host": "macOS",
+  "gitHead": "786acf6fc8e3f50f421d6f23259e93ba68ac3c29",
+  "artifacts": [
+    {
+      "path": "/Users/macbookair/jazzpos/dist/Trace-POS-Setup-x64.exe",
+      "bytes": 13061424,
+      "sha256": "78c8a38f649e7e6bfa8ce826bd98fafc1a8efab567d2d9d92ceafe31a60b47c5",
+      "peCertificateTableBytes": 7560,
+      "signatureTrust": "not verified on Windows in this audit"
+    },
+    {
+      "path": "/Users/macbookair/jazzpos/dist/JAZZ-POS-Setup-x64.exe",
+      "bytes": 13061424,
+      "sha256": "0337822fcb4424852179100950d381c9d52846438d8cc6b072b93cf709060fc7",
+      "peCertificateTableBytes": 7560,
+      "signatureTrust": "not verified on Windows in this audit"
+    },
+    {
+      "path": "/Users/macbookair/jazzpos/build/windows/x64/runner/Release/jazzpos.exe",
+      "bytes": 86408,
+      "sha256": "07cc4b38d335ccd2b624d9b09e652b9e0857da4a463b6d1249e6e22cc08c5de8",
+      "peCertificateTableBytes": 7560,
+      "signatureTrust": "not verified on Windows in this audit"
+    }
+  ],
+  "windowsManifestExists": false,
+  "windowsManifestXmlExists": true,
+  "bundledVcRedistSourceExists": false
+}

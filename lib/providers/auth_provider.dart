@@ -66,6 +66,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  void lockSession() => lock();
+
   Future<bool> unlock(String pin) async {
     final ok = await authService.unlockWithPin(pin);
     if (ok) {

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jazzpos/core/platform/app_paths.dart';
@@ -10,13 +11,12 @@ void main() {
       name: 'NonExistentTestPrinter',
       driverName: 'Generic / Text Only',
       portName: 'NUL',
+      processRunner:(exe,args,{timeout=const Duration(seconds:3)}) async => ProcessResult(1,1,'','Missing test queue'),
     );
 
     // Should gracefully use Directory.systemTemp fallback without LateInitializationError
-    expect(
-      () async => await spooler.printRaw(Uint8List.fromList([0x1B, 0x40, 0x41, 0x42, 0x43])),
-      returnsNormally,
-    );
+    await expectLater(spooler.printRaw(Uint8List.fromList([27,64])),throwsException);
+
   });
 
   test('AppPaths.tempDir returns Directory.systemTemp when uninitialized', () {

@@ -26,7 +26,7 @@ class _BarcodeScannerListenerState extends State<BarcodeScannerListener> {
     _subscription = HardwareManager.instance.barcodeScanner.onScan.listen((
       barcode,
     ) {
-      if (mounted) {
+      if (mounted && ModalRoute.of(context)?.isCurrent != false) {
         widget.onBarcodeScanned(barcode);
       }
     });

@@ -7,15 +7,26 @@ import 'package:jazzpos/domain/services/auth_service.dart';
 import 'package:jazzpos/domain/services/pos_initialization_service.dart';
 
 void main() {
-  test('VERIFY LIVE REPRODUCTION: Initialize on exact live DB schema copy succeeds', () async {
-    final appData = Platform.environment['APPDATA']!;
-    final liveDbFile = File('$appData/JazzPOS/JAZZ POS/database/jazzpos.sqlite');
-    expect(liveDbFile.existsSync(), isTrue);
+  if (Platform.environment['RUN_LIVE_DB_TESTS'] != 'true') {
+    test('Live database checks require explicit opt-in', () {}, skip: 'Set RUN_LIVE_DB_TESTS=true only on an approved disposable database.');
+    return;
+  }
+
+  final appData = Platform.environment['APPDATA'];
+  final liveDbFile = (appData != null && Platform.isWindows)
+      ? File('$appData/JazzPOS/JAZZ POS/database/jazzpos.sqlite')
+      : null;
+  final shouldRun = liveDbFile != null && liveDbFile.existsSync();
+
+  test(
+    'VERIFY LIVE REPRODUCTION: Initialize on exact live DB schema copy succeeds',
+    () async {
+      final liveDb = liveDbFile!;
 
     // Make a temporary copy so we do not mutate the live file during testing
     final tempDir = Directory.systemTemp.createTempSync('live_db_test_');
     final tempDbFile = File('${tempDir.path}/jazzpos_copy.sqlite');
-    liveDbFile.copySync(tempDbFile.path);
+    liveDb.copySync(tempDbFile.path);
 
     final db = AppDatabase(NativeDatabase(tempDbFile));
     final initService = PosInitializationService(db);
@@ -64,5 +75,5 @@ void main() {
       await db.close();
       tempDir.deleteSync(recursive: true);
     }
-  });
+  }, skip: !shouldRun ? 'Requires live Windows AppData database file' : null);
 }

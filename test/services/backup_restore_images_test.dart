@@ -34,6 +34,32 @@ void main() {
       databaseFilePath: databaseFile.path,
       baseDirectory: rootDir,
     );
+
+    final now = DateTime.now();
+    await liveDb.into(liveDb.users).insert(
+      UsersCompanion.insert(
+        id: 'test_admin',
+        username: 'admin1',
+        displayName: 'Test Admin',
+        role: 'OWNER',
+        pinHash: 'hash',
+        pinSalt: 'salt',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await liveDb.into(liveDb.users).insert(
+      UsersCompanion.insert(
+        id: 'legacy_admin',
+        username: 'admin2',
+        displayName: 'Legacy Admin',
+        role: 'OWNER',
+        pinHash: 'hash',
+        pinSalt: 'salt',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
   });
 
   tearDown(() async {

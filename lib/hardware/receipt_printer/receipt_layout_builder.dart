@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:jazzpos/core/localization/app_localizations.dart';
@@ -76,7 +75,9 @@ class ReceiptLayoutBuilder {
     final bytes = <int>[];
 
     // 1. Initialize
+    if (profile.defaultCodePage != 'PC850') throw UnsupportedError('Receipt encoding not supported: ${profile.defaultCodePage}');
     bytes.addAll(EscPosCommands.initialize());
+    bytes.addAll([0x1B, 0x74, 2]); // ESC t 2: Epson-compatible PC850; verify device emulation onsite.
 
     // 2. Optional Drawer Kick at start of printing
     if (includeDrawerKick && profile.hasDrawerPort) {
@@ -240,6 +241,11 @@ class ReceiptLayoutBuilder {
 
   /// Safe encoding converting accented characters to standard ASCII/PC850 fallback
   static List<int> _encodeString(String text) {
-    return utf8.encode(text);
+    const upper = 'ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»░▒▓│┤ÁÂÀ©╣║╗╝¢¥┐└┴┬├─┼ãÃ╚╔╩╦╠═╬¤ðÐÊËÈıÍÎÏ┘┌█▄¦Ì▀ÓßÔÒõÕµþÞÚÛÙýÝ¯´­±‗¾¶§÷¸°¨·¹³²■ ';
+    return text.runes.map((r) {
+      if (r < 128) return r;
+      final index = upper.indexOf(String.fromCharCode(r));
+      return index < 0 ? 63 : index + 128;
+    }).toList();
   }
 }

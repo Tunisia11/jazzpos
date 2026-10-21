@@ -4,6 +4,7 @@ import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/audit_service.dart';
 import 'package:jazzpos/domain/services/auth_service.dart';
 import 'package:jazzpos/domain/services/backup_service.dart';
+import 'package:jazzpos/domain/services/boutique_settings_service.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/domain/services/database_integrity_service.dart';
 import 'package:jazzpos/domain/services/exchange_service.dart';
@@ -20,6 +21,8 @@ import 'package:jazzpos/domain/services/return_service.dart';
 import 'package:jazzpos/domain/services/sale_service.dart';
 import 'package:jazzpos/domain/services/shift_service.dart';
 import 'package:jazzpos/domain/services/sync_service.dart';
+import 'package:jazzpos/domain/sync/cloud_sync_backend.dart';
+import 'package:jazzpos/domain/sync/supabase_sync_backend.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 
 // Database Provider (singleton across app)
@@ -86,6 +89,10 @@ final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(ref.watch(databaseProvider));
 });
 
+final boutiqueSettingsServiceProvider = Provider<BoutiqueSettingsService>((ref) {
+  return BoutiqueSettingsService(ref.watch(databaseProvider));
+});
+
 final shiftServiceProvider = Provider<ShiftService>((ref) {
   return ShiftService(ref.watch(databaseProvider));
 });
@@ -108,8 +115,15 @@ final reportServiceProvider = Provider<ReportService>((ref) {
   return ReportService(ref.watch(databaseProvider));
 });
 
+final cloudSyncBackendProvider = Provider<CloudSyncBackend>((ref) {
+  return SupabaseSyncBackend();
+});
+
 final syncServiceProvider = Provider<SyncService>((ref) {
-  return SyncService(ref.watch(databaseProvider));
+  return SyncService(
+    ref.watch(databaseProvider),
+    backend: ref.watch(cloudSyncBackendProvider),
+  );
 });
 
 final backupServiceProvider = Provider<BackupService>((ref) {

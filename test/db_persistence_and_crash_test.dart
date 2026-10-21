@@ -1,17 +1,14 @@
 // ignore_for_file: avoid_print
-import 'dart:ffi';
+import 'package:flutter_test/flutter_test.dart';
 import 'dart:io';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:sqlite3/open.dart';
 
 void main() {
-  final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
-      'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
-  open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
-
-  final testDbPath = '${Directory.systemTemp.path}\\jazzpos_persistence_test.sqlite';
+  test('SQLite persistence and rollback use a disposable database', () {
+  final tempDir = Directory.systemTemp.createTempSync('trace_persistence_');
+  addTearDown(()=>tempDir.deleteSync(recursive:true));
+  final testDbPath = '${tempDir.path}${Platform.pathSeparator}test.sqlite';
   final dbFile = File(testDbPath);
-  if (dbFile.existsSync()) dbFile.deleteSync();
 
   print('=== STEP 1: INITIALIZE TEST DB & WAL MODE ===');
   var db = sqlite3.open(testDbPath);
@@ -110,5 +107,5 @@ void main() {
   final shmFile = File('$testDbPath-shm');
   if (shmFile.existsSync()) shmFile.deleteSync();
 
-  print('\nDATABASE PERSISTENCE & CRASH RESILIENCE: 100% VERIFIED');
+  });
 }

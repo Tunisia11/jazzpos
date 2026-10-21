@@ -6,15 +6,22 @@ import 'package:sqlite3/open.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('Installer data persistence verification test', () {
-    final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
-        'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
-    open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
+  if (Platform.environment['RUN_LIVE_DB_TESTS'] != 'true') {
+    test('Live database checks require explicit opt-in', () {}, skip: 'Set RUN_LIVE_DB_TESTS=true only on an approved disposable database.');
+    return;
+  }
 
-    final liveDbPath = 'C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\database\\jazzpos.sqlite';
-    expect(File(liveDbPath).existsSync(), isTrue);
+  final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
+      'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
+  final liveDbPath = Platform.environment['JAZZPOS_LIVE_DB_PATH'] ??
+      'C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\database\\jazzpos.sqlite';
+  final shouldRun = Platform.isWindows && File(liveDbPath).existsSync() && File(dllPath).existsSync();
 
-    final db = sqlite3.open(liveDbPath);
+  test(
+    'Installer data persistence verification test',
+    () {
+      open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
+      final db = sqlite3.open(liveDbPath);
 
     // 1. Seed controlled data if not already present
     db.execute("INSERT OR REPLACE INTO companies (id, name, created_at, updated_at) VALUES ('comp_inst', 'Boutique Test', '2026-09-06T15:00:00Z', '2026-09-06T15:00:00Z');");
@@ -46,5 +53,5 @@ void main() {
 
     db.dispose();
     print('DATABASE RECORDS 100% VERIFIED');
-  });
+  }, skip: !shouldRun ? 'Requires live Windows environment and database' : null);
 }

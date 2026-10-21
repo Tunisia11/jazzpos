@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
@@ -548,15 +549,22 @@ class _ScannerTestDialog extends StatefulWidget {
 
 class _ScannerTestDialogState extends State<_ScannerTestDialog> {
   final List<String> _scannedCodes = [];
+  StreamSubscription<String>? _scanSub;
 
   @override
   void initState() {
     super.initState();
-    widget.scannerService?.onScan.listen((code) {
+    _scanSub = widget.scannerService?.onScan.listen((code) {
       if (mounted) {
         setState(() => _scannedCodes.insert(0, code));
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _scanSub?.cancel();
+    super.dispose();
   }
 
   @override

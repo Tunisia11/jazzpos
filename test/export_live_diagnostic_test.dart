@@ -7,11 +7,18 @@ import 'package:jazzpos/core/platform/export_diagnostic_report_service.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 
 void main() {
+  if (Platform.environment['RUN_LIVE_DB_TESTS'] != 'true') {
+    test('Live database checks require explicit opt-in', () {}, skip: 'Set RUN_LIVE_DB_TESTS=true only on an approved disposable database.');
+    return;
+  }
+
   TestWidgetsFlutterBinding.ensureInitialized();
+  final liveBaseDir = Directory('C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS');
+  final shouldRun = Platform.isWindows && liveBaseDir.existsSync();
 
   test('Export live diagnostic report from Windows machine', () async {
     await AppPaths.instance.initialize(
-      customBaseDir: Directory('C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS'),
+      customBaseDir: liveBaseDir,
     );
     HardwareManager.instance.initialize();
 
@@ -33,5 +40,5 @@ void main() {
     final rawText = outputFile.readAsStringSync();
     expect(rawText.contains('pinHash'), isFalse);
     expect(rawText.contains('password'), isFalse);
-  });
+  }, skip: !shouldRun ? 'Requires live Windows machine with local directory' : null);
 }

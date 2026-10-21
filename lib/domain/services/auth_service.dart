@@ -209,6 +209,70 @@ class AuthService {
     return userId;
   }
 
+  /// Retrieve all users ordered by username
+  Future<List<User>> getAllUsers() async {
+    return await (db.select(db.users)
+          ..orderBy([(t) => OrderingTerm.asc(t.username)]))
+        .get();
+  }
+
+  /// Update user profile details (display name, role, active status)
+  Future<void> updateUser({
+    required String userId,
+    required String displayName,
+    required String role,
+    bool? isActive,
+  }) async {
+    final companion = UsersCompanion(
+      displayName: Value(displayName.trim()),
+      role: Value(role),
+      isActive: isActive != null ? Value(isActive) : const Value.absent(),
+      updatedAt: Value(DateTime.now()),
+    );
+    await (db.update(db.users)..where((tbl) => tbl.id.equals(userId)))
+        .write(companion);
+    PosLogger.instance.info('Auth', 'Updated user $userId: $displayName ($role)');
+  }
+
+  /// Reset or change a user's PIN with fresh salt and hash
+  Future<void> resetUserPin({
+    required String userId,
+    required String newPin,
+  }) async {
+    final salt = PasswordHasher.generateSalt();
+    final hash = PasswordHasher.hashPin(newPin, salt);
+    final companion = UsersCompanion(
+      pinHash: Value(hash),
+      pinSalt: Value(salt),
+      updatedAt: Value(DateTime.now()),
+    );
+    await (db.update(db.users)..where((tbl) => tbl.id.equals(userId)))
+        .write(companion);
+    PosLogger.instance.info('Auth', 'Reset PIN for user $userId');
+  }
+
+  /// Toggle user active/inactive status
+  Future<void> toggleUserActive(String userId, bool isActive) async {
+    final companion = UsersCompanion(
+      isActive: Value(isActive),
+      updatedAt: Value(DateTime.now()),
+    );
+    await (db.update(db.users)..where((tbl) => tbl.id.equals(userId)))
+        .write(companion);
+    PosLogger.instance.info('Auth', 'Toggled active status for user $userId to $isActive');
+  }
+
+  /// Delete a user and associated permissions
+  Future<void> deleteUser(String userId) async {
+    await db.transaction(() async {
+      await (db.delete(db.userPermissions)
+            ..where((tbl) => tbl.userId.equals(userId)))
+          .go();
+      await (db.delete(db.users)..where((tbl) => tbl.id.equals(userId))).go();
+    });
+    PosLogger.instance.info('Auth', 'Deleted user $userId');
+  }
+
   void logout() {
     if (_currentSession != null) {
       PosLogger.instance.info(

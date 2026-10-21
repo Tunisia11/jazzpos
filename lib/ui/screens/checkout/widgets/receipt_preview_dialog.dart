@@ -112,7 +112,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Container(
-        width: 440,
+        width: 620,
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
@@ -252,15 +252,17 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                         const SizedBox(height: 6),
 
                         // Metadata
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          spacing: 12,
                           children: [
                             Text('${loc.receiptTicketLabel}: ${doc.receiptNumber}'),
                             Text('${loc.receiptRegisterLabel}: ${doc.registerCode}'),
                           ],
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          spacing: 12,
                           children: [
                             Text('${loc.receiptDateLabel}: $dateStr'),
                             Text('${loc.receiptCashierLabel}: ${doc.cashierName}'),
@@ -420,8 +422,9 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                         const SizedBox(height: 6),
 
                         // Totals
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          spacing: 12,
                           children: [
                             Text('${loc.receiptSubtotal}:'),
                             Text(doc.subtotal.format()),

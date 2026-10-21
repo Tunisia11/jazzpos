@@ -1,3 +1,4 @@
+import 'package:jazzpos/hardware/barcode_scanner/scanner_route_observer.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'core/logging/pos_logger.dart';
 import 'core/logging/startup_tracker.dart';
 import 'core/platform/app_paths.dart';
 import 'core/platform/environment_diagnostics_service.dart';
+import 'core/sound/sound_effect_service.dart';
 import 'hardware/hardware_manager.dart';
 import 'ui/navigation/app_router.dart';
 import 'ui/theme/app_theme.dart';
@@ -85,6 +87,13 @@ void main() async {
 
   // 6. Asynchronous Background Initialization (Hardware & Diagnostics)
   Future.microtask(() async {
+    // Audio sound effects initialization
+    try {
+      SoundEffectService.instance.initialize();
+    } catch (e) {
+      PosLogger.instance.warning('Main', 'SoundEffectService init error: $e');
+    }
+
     // Peripheral hardware initialization
     try {
       StartupTracker.instance.startStage('hardware_init');
@@ -150,6 +159,7 @@ class TracePosApp extends ConsumerWidget {
     final currentLocale = ref.watch(localeProvider);
 
     return MaterialApp(
+      navigatorObservers:[ScannerRouteObserver()],
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

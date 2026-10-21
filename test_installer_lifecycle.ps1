@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 
 $appDataDir = "$env:APPDATA\JazzPOS\JAZZ POS"
 $dbPath = "$appDataDir\database\jazzpos.sqlite"
-$setupExe = "C:\Users\nourm\Desktop\jazzpos\dist\JAZZ-POS-Setup-x64.exe"
+$setupExe = "C:\Users\nourm\Desktop\jazzpos\dist\Trace-POS-Setup-x64.exe"
 $installedDir = "$env:LOCALAPPDATA\Programs\JAZZ POS"
 $installedExe = "$installedDir\jazzpos.exe"
 $uninstaller = "$installedDir\unins000.exe"

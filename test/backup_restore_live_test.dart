@@ -1,3 +1,4 @@
+import 'package:flutter_test/flutter_test.dart';
 // ignore_for_file: avoid_print
 import 'dart:ffi';
 import 'dart:io';
@@ -5,11 +6,27 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3/open.dart';
 
 void main() {
+  if (Platform.environment['RUN_LIVE_DB_TESTS'] != 'true') {
+    test('Live database checks require explicit opt-in', () {}, skip: 'Set RUN_LIVE_DB_TESTS=true only on an approved disposable database.');
+    return;
+  }
+
+  if (!Platform.isWindows) {
+    print('Skipping backup_restore_live_test: only runs on Windows with live database.');
+    return;
+  }
+
+  final liveDbPath = Platform.environment['JAZZPOS_LIVE_DB_PATH'] ??
+      'C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\database\\jazzpos.sqlite';
+  if (!File(liveDbPath).existsSync()) {
+    print('Skipping backup_restore_live_test: live database not found.');
+    return;
+  }
+
   final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
       'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
   open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
 
-  final liveDbPath = 'C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\database\\jazzpos.sqlite';
   final backupDir = Directory('C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\backups');
   if (!backupDir.existsSync()) {
     backupDir.createSync(recursive: true);

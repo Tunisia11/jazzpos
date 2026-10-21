@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/localization/app_localizations.dart';
 import 'package:jazzpos/core/localization/locale_provider.dart';
+import 'package:jazzpos/core/sound/sound_effect_service.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
@@ -30,41 +31,53 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     if (event is! KeyDownEvent) return;
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('0');
     } else if (key == LogicalKeyboardKey.digit1 ||
         key == LogicalKeyboardKey.numpad1) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('1');
     } else if (key == LogicalKeyboardKey.digit2 ||
         key == LogicalKeyboardKey.numpad2) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('2');
     } else if (key == LogicalKeyboardKey.digit3 ||
         key == LogicalKeyboardKey.numpad3) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('3');
     } else if (key == LogicalKeyboardKey.digit4 ||
         key == LogicalKeyboardKey.numpad4) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('4');
     } else if (key == LogicalKeyboardKey.digit5 ||
         key == LogicalKeyboardKey.numpad5) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('5');
     } else if (key == LogicalKeyboardKey.digit6 ||
         key == LogicalKeyboardKey.numpad6) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('6');
     } else if (key == LogicalKeyboardKey.digit7 ||
         key == LogicalKeyboardKey.numpad7) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('7');
     } else if (key == LogicalKeyboardKey.digit8 ||
         key == LogicalKeyboardKey.numpad8) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('8');
     } else if (key == LogicalKeyboardKey.digit9 ||
         key == LogicalKeyboardKey.numpad9) {
+      SoundEffectService.instance.playKeyTap();
       _onNumpadPress('9');
     } else if (key == LogicalKeyboardKey.backspace ||
         key == LogicalKeyboardKey.delete) {
+      SoundEffectService.instance.playBackspace();
       _onBackspace();
     } else if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
       _submitUnlock();
     } else if (key == LogicalKeyboardKey.escape) {
+      SoundEffectService.instance.playClear();
       _onClear();
     }
   }
@@ -107,10 +120,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
     final success = await ref.read(authNotifierProvider.notifier).unlock(pin);
     if (!success && mounted) {
+      SoundEffectService.instance.playError();
       setState(() {
         _pinBuffer.clear();
         _errorMessage = loc.invalidPin;
       });
+    } else if (success) {
+      SoundEffectService.instance.playSuccess();
     }
   }
 

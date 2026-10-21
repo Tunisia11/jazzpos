@@ -150,6 +150,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _onBarcodeScanned(String barcode) async {
+    // Priority 2: Disable scanner when any dialog or modal is open
+    if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+
+    final cartState = ref.read(cartNotifierProvider);
+    if (cartState.isLocked || cartState.isProcessing) {
+      return;
+    }
+
     final success = await ref
         .read(cartNotifierProvider.notifier)
         .addItemByBarcode(barcode);
@@ -165,7 +176,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${context.loc.barcodeNotFound} : $barcode'),
+            content: Text('Produit non trouvé : $barcode'),
             duration: const Duration(seconds: 2),
             backgroundColor: AppTheme.error,
           ),
@@ -272,45 +283,34 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: const BoxDecoration(
                   color: AppDesignTokens.surface,
-                  border: Border(
-                    bottom: BorderSide(color: AppDesignTokens.border),
-                  ),
+                  border: Border(bottom: BorderSide(color: AppDesignTokens.border)),
                 ),
                 child: Row(
                   children: [
-                    // Brand / Menu button
-                    if (widget.onOpenMenu != null)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.menu,
-                          color: AppDesignTokens.textPrimary,
-                        ),
-                        onPressed: widget.onOpenMenu,
-                        tooltip: 'Menu Principal',
-                      ),
+                    // Logo + brand
+                    Image.asset('assets/images/trace_logo_mark.png', width: 28, height: 28),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppDesignTokens.primary,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        context.loc.appTitle,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
+                    const Text(
+                      'Trace POS',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppDesignTokens.textPrimary,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
+                    // Menu toggle
+                    if (widget.onOpenMenu != null)
+                      IconButton(
+                        icon: const Icon(Icons.menu, color: AppDesignTokens.textSecondary, size: 20),
+                        onPressed: widget.onOpenMenu,
+                        tooltip: 'Menu',
+                      ),
+                    // Register label
+                    const Icon(Icons.desktop_windows_outlined, color: AppDesignTokens.primary, size: 18),
+                    const SizedBox(width: 6),
                     Text(
-                      '${context.loc.register}: $_effectiveRegisterCode',
+                      'Caisse: $_effectiveRegisterCode',
                       style: const TextStyle(
                         color: AppDesignTokens.textSecondary,
                         fontSize: 13,
@@ -320,26 +320,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
                     const Spacer(),
 
-                    // Shift Status Indicator
-                    InkWell(
-                      onTap: shift == null ? _openShiftPrompt : null,
-                      borderRadius: BorderRadius.circular(20),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        reverse: true,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Shift Status Pill
+                            InkWell(
+                              onTap: shift == null ? _openShiftPrompt : null,
+                              borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: shift != null
-                              ? AppDesignTokens.successBg
-                              : AppDesignTokens.warningBg,
+                          color: shift != null ? AppDesignTokens.successBg : AppDesignTokens.warningBg,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: shift != null
                                 ? AppDesignTokens.success.withValues(alpha: 0.4)
-                                : AppDesignTokens.warning.withValues(
-                                    alpha: 0.4,
-                                  ),
+                                : AppDesignTokens.warning.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Row(
@@ -347,9 +347,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             Icon(
                               Icons.circle,
                               size: 9,
-                              color: shift != null
-                                  ? AppDesignTokens.success
-                                  : AppDesignTokens.warning,
+                              color: shift != null ? AppDesignTokens.success : AppDesignTokens.warning,
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -359,9 +357,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: shift != null
-                                    ? AppDesignTokens.successText
-                                    : AppDesignTokens.warningText,
+                                color: shift != null ? AppDesignTokens.successText : AppDesignTokens.warningText,
                               ),
                             ),
                           ],
@@ -369,41 +365,30 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ),
                     ),
 
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
 
-                    // Quick Actions
-                    // Suspended Sales
+                    // Notification bell (suspended sales badge)
                     Stack(
                       children: [
                         IconButton(
-                          icon: const Icon(
-                            Icons.pause_circle_outline,
-                            color: AppDesignTokens.warning,
-                          ),
+                          icon: const Icon(Icons.notifications_none_outlined, color: AppDesignTokens.textSecondary, size: 22),
                           onPressed: _showSuspendedSales,
                           tooltip: context.loc.suspendedSales,
                         ),
                         if (_suspendedCount > 0)
                           Positioned(
-                            right: 4,
-                            top: 4,
+                            right: 6,
+                            top: 6,
                             child: Container(
-                              padding: const EdgeInsets.all(4),
+                              width: 14,
+                              height: 14,
                               decoration: const BoxDecoration(
-                                color: AppDesignTokens.warning,
+                                color: AppDesignTokens.danger,
                                 shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
                               ),
                               child: Text(
                                 '$_suspendedCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
                             ),
@@ -411,77 +396,72 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ],
                     ),
 
-                    // Drawer Kick
+                    // Cash drawer button
                     IconButton(
-                      icon: const Icon(
-                        Icons.point_of_sale,
-                        color: AppDesignTokens.textSecondary,
-                      ),
+                      icon: const Icon(Icons.point_of_sale, color: AppDesignTokens.textSecondary, size: 22),
                       onPressed: _kickDrawer,
                       tooltip: context.loc.openCashDrawer,
                     ),
 
-                    const SizedBox(width: 8),
-                    const VerticalDivider(
-                      color: AppDesignTokens.border,
-                      indent: 14,
-                      endIndent: 14,
-                    ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 4),
+                    Container(width: 1, height: 30, color: AppDesignTokens.border),
+                    const SizedBox(width: 12),
 
-                    // Cashier User & Lock
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 15,
-                          backgroundColor: const Color(0xFFDBEAFE),
-                          child: Text(
-                            auth.user?.displayName.isNotEmpty == true
-                                ? auth.user!.displayName
-                                      .substring(0, 1)
-                                      .toUpperCase()
-                                : 'U',
-                            style: const TextStyle(
-                              color: AppDesignTokens.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
+                    // User pill with dropdown look
+                    InkWell(
+                      onTap: () => ref.read(authNotifierProvider.notifier).lock(),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppDesignTokens.surfaceElevated,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppDesignTokens.border),
                         ),
-                        const SizedBox(width: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Row(
                           children: [
-                            Text(
-                              auth.user?.displayName ?? 'Utilisateur',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppDesignTokens.textPrimary,
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: const Color(0xFFDBEAFE),
+                              child: Text(
+                                auth.user?.displayName.isNotEmpty == true
+                                    ? auth.user!.displayName.substring(0, 1).toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  color: AppDesignTokens.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                            Text(
-                              auth.user?.role.toUpperCase() ?? 'CAISSIER',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: AppDesignTokens.textSecondary,
-                              ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  auth.user?.displayName ?? 'Utilisateur',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppDesignTokens.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  auth.user?.role.toUpperCase() ?? 'OWNER',
+                                  style: const TextStyle(fontSize: 10, color: AppDesignTokens.textSecondary),
+                                ),
+                              ],
                             ),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.keyboard_arrow_down, color: AppDesignTokens.textSecondary, size: 18),
                           ],
                         ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.lock_outline,
-                            color: AppDesignTokens.textSecondary,
-                            size: 19,
-                          ),
-                          onPressed: () =>
-                              ref.read(authNotifierProvider.notifier).lock(),
-                          tooltip: context.loc.lockRegister,
+                      ),
+                    ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

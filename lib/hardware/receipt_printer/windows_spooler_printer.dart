@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'windows_raw_print_bridge.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:jazzpos/core/logging/pos_logger.dart';
@@ -13,6 +15,8 @@ import 'receipt_printer_interface.dart';
 /// First-class Windows Print Spooler transport (`WINDOWS_SPOOLER`).
 /// Sends raw ESC/POS bytes directly through the Windows print spooler subsystem
 /// to any installed printer driver without altering the receipt byte stream.
+typedef SpoolerProcessRunner = Future<ProcessResult> Function(String executable, List<String> arguments, {Duration timeout});
+
 class WindowsSpoolerPrinter implements ReceiptPrinter {
   @override
   final String name;
@@ -26,6 +30,9 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
   @override
   HardwareStatus status = HardwareStatus.configured;
 
+  final SpoolerProcessRunner _run;
+  final bool _canUseSpooler;
+  int? lastJobId;
   final String? driverName;
   final String? portName;
   final List<Uint8List> lastSpoolJobs = [];
@@ -35,7 +42,9 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
     this.driverName,
     this.portName,
     this.profile = PrinterProfile.genericWindows,
-  });
+    SpoolerProcessRunner? processRunner,
+  }) : _run = processRunner ?? ProcessUtils.safeRun,
+       _canUseSpooler = Platform.isWindows || processRunner != null;
 
   @override
   HardwareFingerprint get fingerprint => HardwareFingerprint(
@@ -47,42 +56,22 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
   @override
   Future<bool> connect() async {
     status = HardwareStatus.connecting;
-    final isOk = await isConnected();
-    status = isOk ? HardwareStatus.ready : HardwareStatus.offline;
-    return isOk;
+    return isConnected();
   }
 
   @override
   Future<bool> isConnected() async {
-    if (!Platform.isWindows) {
-      // In macOS / Linux dev environments, spooler is simulated
-      return true;
-    }
-
+    if (!_canUseSpooler) { status = HardwareStatus.unsupported; return false; }
+    status = HardwareStatus.unknown;
     try {
-      // Query Windows printer spooler status with strict timeout
-      final result = await ProcessUtils.safeRun('powershell', [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        'Get-CimInstance Win32_Printer -Filter "Name = \'$name\'" | Select-Object -ExpandProperty WorkOffline',
-      ]);
-      if (result.exitCode == 0) {
-        final text = (result.stdout as String).trim().toLowerCase();
-        final isOffline = text == 'true';
-        status = isOffline ? HardwareStatus.offline : HardwareStatus.ready;
-        return !isOffline;
+      final result = await _run('powershell', WindowsRawPrintBridge.arguments({'queueName':name}, print:false), timeout:const Duration(seconds:5));
+      final value = jsonDecode(result.stdout.toString().trim());
+      if (result.exitCode == 0 && value is Map && value['success'] == true && value['exists'] is bool) {
+        status = HardwareStatus.values.where((s)=>s.value == value['status']).firstOrNull ?? HardwareStatus.unknown;
+        if (value['exists'] == false) status = HardwareStatus.missing;
       }
-      status = HardwareStatus.offline;
-      return false;
-    } catch (e) {
-      PosLogger.instance.warning(
-        'WindowsSpooler',
-        'Failed to query printer status for $name: $e',
-      );
-      status = HardwareStatus.offline;
-      return false;
-    }
+    } catch (_) { status = HardwareStatus.unknown; }
+    return status == HardwareStatus.ready;
   }
 
   @override
@@ -100,60 +89,27 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
 
   @override
   Future<void> printRaw(Uint8List bytes) async {
-    lastSpoolJobs.add(bytes);
-
-    if (!Platform.isWindows) {
-      PosLogger.instance.info(
-        'WindowsSpooler',
-        '[Simulated Spooler] ${bytes.length} bytes spooled to "$name"',
-      );
-      return;
-    }
-
-    // Write bytes to temporary spool file
-    final tempDir = AppPaths.instance.isInitialized
-        ? AppPaths.instance.tempDir
-        : Directory.systemTemp;
-    final tempFile = File(
-      '${tempDir.path}${Platform.pathSeparator}spool_${DateTime.now().millisecondsSinceEpoch}.bin',
-    );
-    await tempFile.writeAsBytes(bytes, flush: true);
-
+    if (!_canUseSpooler) { status = HardwareStatus.unsupported; throw UnsupportedError('Windows printing requires Windows.'); }
+    if (bytes.isEmpty) throw ArgumentError('Empty print job');
+    final root = AppPaths.instance.isInitialized ? AppPaths.instance.tempDir : Directory.systemTemp;
+    final jobDir = await root.createTemp('trace_spool_');
+    final tempFile = File('${jobDir.path}${Platform.pathSeparator}receipt.bin');
     try {
-      // Send raw binary file to Windows printer queue via PowerShell Raw Print
-      // or copy /b command
-      final psScript =
-          '''
-\$printerName = "$name";
-\$filePath = "${tempFile.path.replaceAll(r'\', r'\\')}";
-if (Test-Path \$filePath) {
-    [System.IO.File]::ReadAllBytes(\$filePath) | Out-Null;
-    # Spool directly to the shared/local print queue
-    cmd /c "copy /b `"\$filePath`" `"\$printerName`"" | Out-Null;
-}
-''';
-      final result = await ProcessUtils.safeRun(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-Command', psScript],
-        timeout: const Duration(seconds: 5),
-      );
-
-      if (result.exitCode != 0) {
-        PosLogger.instance.warning(
-          'WindowsSpooler',
-          'Spooler command returned exitCode ${result.exitCode}: ${result.stderr}',
-        );
-        throw Exception(
-          'Windows Spooler write failed (exit code ${result.exitCode}): ${result.stderr}',
-        );
+      await tempFile.writeAsBytes(bytes, flush:true);
+      final result = await _run('powershell', WindowsRawPrintBridge.arguments({'queueName':name, 'filePath':tempFile.path}, print:true), timeout:const Duration(seconds:15));
+      Map? value;
+      try { final decoded = jsonDecode(result.stdout.toString().trim()); if (decoded is Map) value=decoded; } catch (_) {}
+      if (result.exitCode != 0 || value?['success'] != true || value?['jobId'] is! int ||
+          (value!['jobId'] as int) <= 0 || value['bytesWritten'] != bytes.length || value['queueName'] != name || value['delivery'] != 'queued') {
+        status = HardwareStatus.error;
+        throw Exception('Impression non confirmée : ${value?['error'] ?? result.stderr}. Livraison incertaine : vérifiez la file Windows avant de réimprimer.');
       }
+      lastJobId = value['jobId'] as int;
+      lastSpoolJobs.add(Uint8List.fromList(bytes));
+      if (lastSpoolJobs.length > 10) lastSpoolJobs.removeAt(0);
+      PosLogger.instance.info('WindowsSpooler', 'Queued job $lastJobId ($name), ${bytes.length} bytes. Paper output unverified.');
     } finally {
-      // Clean up temporary spool file
-      try {
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
-      } catch (_) {}
+      try { await jobDir.delete(recursive:true); } catch (_) {}
     }
   }
 

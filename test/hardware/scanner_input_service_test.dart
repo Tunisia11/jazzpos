@@ -17,13 +17,22 @@ void main() {
     });
 
     test(
-      'initial status is configured and transitions to ready on startListening',
+      'status is honest: notConfigured when idle, configured when listening, and transitions to ready only after scan',
       () async {
-        expect(scanner.status, equals(HardwareStatus.configured));
+        expect(scanner.status, equals(HardwareStatus.notConfigured));
         await scanner.startListening();
-        expect(scanner.status, equals(HardwareStatus.ready));
-        await scanner.stopListening();
+        // Listening, but not yet verified with physical scan
         expect(scanner.status, equals(HardwareStatus.configured));
+        expect(scanner.hasReceivedPhysicalScan, isFalse);
+
+        // Receive scan -> transitions to ready
+        scanner.simulateScan('123456');
+        await pumpEventQueue();
+        expect(scanner.status, equals(HardwareStatus.ready));
+        expect(scanner.hasReceivedPhysicalScan, isTrue);
+
+        await scanner.stopListening();
+        expect(scanner.status, equals(HardwareStatus.notConfigured));
       },
     );
 

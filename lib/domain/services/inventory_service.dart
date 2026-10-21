@@ -154,6 +154,7 @@ class InventoryService {
     String? referenceType,
     String? actorId,
     String? reason,
+    bool disallowNegativeStock = false,
   }) async {
     final movementId = IdGenerator.uuid();
     final now = DateTime.now();
@@ -179,7 +180,7 @@ class InventoryService {
             ),
           );
 
-      // 2. Update cached stock levels for fromLocation
+      // 2. Update cached stock levels for fromLocation using atomic SQL delta
       if (fromLocationId != null) {
         final existingFrom =
             await (db.select(db.stockLevels)..where(
@@ -190,15 +191,45 @@ class InventoryService {
                 .getSingleOrNull();
 
         if (existingFrom != null) {
-          await (db.update(
-            db.stockLevels,
-          )..where((tbl) => tbl.id.equals(existingFrom.id))).write(
-            StockLevelsCompanion(
-              quantity: Value(existingFrom.quantity - quantityDelta.abs()),
-              updatedAt: Value(now),
-            ),
-          );
+          if (disallowNegativeStock && quantityDelta < 0) {
+            final affected = await db.customUpdate(
+              'UPDATE stock_levels SET quantity = quantity - ?, updated_at = ? WHERE id = ? AND quantity >= ?',
+              variables: [
+                Variable.withInt(quantityDelta.abs()),
+                Variable.withDateTime(now),
+                Variable.withString(existingFrom.id),
+                Variable.withInt(quantityDelta.abs()),
+              ],
+              updates: {db.stockLevels},
+            );
+            if (affected == 0) {
+              throw InsufficientStockException(
+                variantId: variantId,
+                availableStock: existingFrom.quantity,
+                requestedQuantity: quantityDelta.abs(),
+                message: 'Concurrent checkout depleted available stock.',
+              );
+            }
+          } else {
+            await db.customUpdate(
+              'UPDATE stock_levels SET quantity = quantity - ?, updated_at = ? WHERE id = ?',
+              variables: [
+                Variable.withInt(quantityDelta.abs()),
+                Variable.withDateTime(now),
+                Variable.withString(existingFrom.id),
+              ],
+              updates: {db.stockLevels},
+            );
+          }
         } else {
+          if (disallowNegativeStock && quantityDelta < 0) {
+            throw InsufficientStockException(
+              variantId: variantId,
+              availableStock: 0,
+              requestedQuantity: quantityDelta.abs(),
+              message: 'Concurrent checkout depleted available stock.',
+            );
+          }
           await db
               .into(db.stockLevels)
               .insert(
@@ -213,7 +244,7 @@ class InventoryService {
         }
       }
 
-      // 3. Update cached stock levels for toLocation
+      // 3. Update cached stock levels for toLocation using atomic SQL delta
       if (toLocationId != null) {
         final existingTo =
             await (db.select(db.stockLevels)..where(
@@ -224,13 +255,14 @@ class InventoryService {
                 .getSingleOrNull();
 
         if (existingTo != null) {
-          await (db.update(
-            db.stockLevels,
-          )..where((tbl) => tbl.id.equals(existingTo.id))).write(
-            StockLevelsCompanion(
-              quantity: Value(existingTo.quantity + quantityDelta.abs()),
-              updatedAt: Value(now),
-            ),
+          await db.customUpdate(
+            'UPDATE stock_levels SET quantity = quantity + ?, updated_at = ? WHERE id = ?',
+            variables: [
+              Variable.withInt(quantityDelta.abs()),
+              Variable.withDateTime(now),
+              Variable.withString(existingTo.id),
+            ],
+            updates: {db.stockLevels},
           );
         } else {
           await db
@@ -303,32 +335,34 @@ class InventoryService {
     final delta = newQuantity - current;
     if (delta == 0) return;
 
-    await recordMovement(
-      variantId: variantId,
-      movementType: AppConstants.movementManualAdjustment,
-      quantityDelta: delta,
-      fromLocationId: delta < 0 ? locationId : null,
-      toLocationId: delta > 0 ? locationId : null,
-      actorId: actorId,
-      reason: reason,
-    );
+    await db.transaction(() async {
+      await recordMovement(
+        variantId: variantId,
+        movementType: AppConstants.movementManualAdjustment,
+        quantityDelta: delta,
+        fromLocationId: delta < 0 ? locationId : null,
+        toLocationId: delta > 0 ? locationId : null,
+        actorId: actorId,
+        reason: reason,
+      );
 
-    // Record audit event
-    await db
-        .into(db.auditEvents)
-        .insert(
-          AuditEventsCompanion.insert(
-            id: IdGenerator.uuid(),
-            action: 'STOCK_MANUAL_ADJUSTMENT',
-            entityType: 'VARIANT',
-            entityId: Value(variantId),
-            userId: actorId,
-            managerId: Value(managerId),
-            detailsJson: Value(
-              '{"oldStock":$current,"newStock":$newQuantity,"delta":$delta,"reason":"$reason"}',
+      // Record audit event in the same atomic transaction
+      await db
+          .into(db.auditEvents)
+          .insert(
+            AuditEventsCompanion.insert(
+              id: IdGenerator.uuid(),
+              action: 'STOCK_MANUAL_ADJUSTMENT',
+              entityType: 'VARIANT',
+              entityId: Value(variantId),
+              userId: actorId,
+              managerId: Value(managerId),
+              detailsJson: Value(
+                '{"oldStock":$current,"newStock":$newQuantity,"delta":$delta,"reason":"$reason"}',
+              ),
+              createdAt: DateTime.now(),
             ),
-            createdAt: DateTime.now(),
-          ),
-        );
+          );
+    });
   }
 }

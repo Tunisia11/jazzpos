@@ -375,9 +375,10 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                   // Left: Shift Live Financial Balance
                   Expanded(
                     flex: 6,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                         // Header info
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -392,30 +393,32 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    loc.shiftOpenedAt(
-                                      DateFormat(
-                                        'HH:mm le dd/MM/yyyy',
-                                      ).format(activeShift.openedAt),
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      loc.shiftOpenedAt(
+                                        DateFormat(
+                                          'HH:mm le dd/MM/yyyy',
+                                        ).format(activeShift.openedAt),
+                                      ),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: AppDesignTokens.textPrimary,
+                                      ),
                                     ),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: AppDesignTokens.textPrimary,
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${loc.registerTerminal}: ${widget.registerId} • Shift ID: ${activeShift.id.substring(0, 8)}...',
+                                      style: const TextStyle(
+                                        color: AppDesignTokens.textSecondary,
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${loc.registerTerminal}: ${widget.registerId} • Shift ID: ${activeShift.id.substring(0, 8)}...',
-                                    style: const TextStyle(
-                                      color: AppDesignTokens.textSecondary,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                               Row(
                                 children: [
@@ -548,6 +551,7 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                         ),
                       ],
                     ),
+                    ),
                   ),
 
                   const SizedBox(width: 24),
@@ -555,7 +559,8 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                   // Right: Blind Count Close Shift Numpad
                   Expanded(
                     flex: 4,
-                    child: Container(
+                    child: SingleChildScrollView(
+                      child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: AppDesignTokens.surface,
@@ -670,6 +675,7 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
                           ),
                         ],
                       ),
+                    ),
                     ),
                   ),
                 ],

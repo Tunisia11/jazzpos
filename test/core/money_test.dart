@@ -90,5 +90,41 @@ void main() {
       expect(m3.compareTo(m1), 1);
       expect(m1.compareTo(m2), 0);
     });
+
+    test('Negative Money.fromTnd constructs correctly', () {
+      final neg1 = Money.fromTnd(-5, 250);
+      expect(neg1.millimes, -5250);
+      expect(neg1.format(), '-5.250 TND');
+
+      final neg2 = Money.fromTnd(-10);
+      expect(neg2.millimes, -10000);
+    });
+
+    test('Tax extraction from TTC amount (extractTax)', () {
+      // 119.000 TND TTC at 19% VAT should extract exactly 19.000 TND tax
+      final ttc119 = Money.fromTnd(119);
+      expect(ttc119.extractTax(19).millimes, 19000);
+      expect(ttc119.extractTax(19).format(), '19.000 TND');
+
+      // 100.000 TND TTC at 19% VAT: 100000 * 19 / 119 = 15966.38 -> 15966 millimes
+      final ttc100 = Money.fromTnd(100);
+      expect(ttc100.extractTax(19).millimes, 15966);
+
+      // 0% VAT
+      expect(ttc100.extractTax(0).millimes, 0);
+    });
+
+    test('Split money without dropping millimes remainder', () {
+      final ten = Money.fromMillimes(10);
+      final parts3 = ten.split(3);
+      expect(parts3.length, 3);
+      expect(parts3.map((p) => p.millimes).toList(), [4, 3, 3]);
+      expect(parts3.fold<int>(0, (s, p) => s + p.millimes), 10);
+
+      final oneDinar = Money.fromTnd(1); // 1000 millimes
+      final parts6 = oneDinar.split(6);
+      expect(parts6.length, 6);
+      expect(parts6.fold<int>(0, (s, p) => s + p.millimes), 1000);
+    });
   });
 }

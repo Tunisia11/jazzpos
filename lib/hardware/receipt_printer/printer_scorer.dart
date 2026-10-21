@@ -24,7 +24,6 @@ class PrinterScorer {
     'SUNMI',
     'METAPACE',
     'DATALOGIC',
-    'ZEBRA',
     'APEXA',
     'ANYPOS',
   ];
@@ -53,7 +52,7 @@ class PrinterScorer {
     'GENERIC TEXT',
   ];
 
-  /// Virtual / document printers that MUST be excluded from auto-selection
+  /// Virtual / document / label printers that MUST be excluded from receipt auto-selection
   static const List<String> excludedPrinters = [
     'MICROSOFT PRINT TO PDF',
     'PDF',
@@ -68,6 +67,14 @@ class PrinterScorer {
     'FOXIT',
     'VIRTUAL',
     'ROOT PRINT QUEUE',
+    'ZEBRA',
+    'ZD410',
+    'ZD420',
+    'GK420',
+    'GX420',
+    'TLP2844',
+    'LABEL PRINTER',
+    'BARCODE PRINTER',
   ];
 
   /// Evaluate and score a printer entry

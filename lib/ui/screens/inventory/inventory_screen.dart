@@ -37,6 +37,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
   List<VariantSearchResult> _variants = [];
   List<Category> _categories = [];
   String? _selectedLocationId;
+  String? _selectedCategoryFilter;
+  final Set<String> _expandedProductIds = {};
   final TextEditingController _searchCtrl = TextEditingController();
   bool _isLoading = true;
 
@@ -1492,6 +1494,37 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                   ),
                 ),
                 const SizedBox(width: 16),
+                if (_categories.isNotEmpty) ...[
+                  SizedBox(
+                    width: 220,
+                    child: DropdownButtonFormField<String?>(
+                      initialValue: _selectedCategoryFilter,
+                      decoration: const InputDecoration(
+                        labelText: 'Catégorie',
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Toutes les catégories'),
+                        ),
+                        ..._categories.map(
+                          (c) => DropdownMenuItem<String?>(
+                            value: c.id,
+                            child: Text(c.name),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        setState(() => _selectedCategoryFilter = val);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                ],
                 IconButton(
                   icon: const Icon(
                     Icons.refresh,
@@ -1506,197 +1539,451 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
           const SizedBox(height: 16),
 
-          // Variants Stock Table
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppDesignTokens.surface,
-                borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
-                border: Border.all(color: AppDesignTokens.border),
-                boxShadow: AppDesignTokens.shadowSm,
-              ),
-              child: _variants.isEmpty
-                  ? Center(
+          // Group variants by productId
+          Builder(
+            builder: (context) {
+              final filteredVariants = _variants.where((v) {
+                if (_selectedCategoryFilter != null &&
+                    v.categoryId != _selectedCategoryFilter) {
+                  return false;
+                }
+                return true;
+              }).toList();
+
+              final Map<String, List<VariantSearchResult>> groupedByProduct = {};
+              for (final v in filteredVariants) {
+                groupedByProduct.putIfAbsent(v.productId, () => []).add(v);
+              }
+              final productGroups = groupedByProduct.entries.toList();
+
+              if (productGroups.isEmpty) {
+                return Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppDesignTokens.surface,
+                      borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+                      border: Border.all(color: AppDesignTokens.border),
+                      boxShadow: AppDesignTokens.shadowSm,
+                    ),
+                    child: Center(
                       child: Text(
                         loc.noArticlesFoundInInventory,
                         style: const TextStyle(
                           color: AppDesignTokens.textSecondary,
                         ),
                       ),
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(
-                        AppDesignTokens.radiusCard,
-                      ),
-                      child: ListView.separated(
-                        itemCount: _variants.length,
-                        separatorBuilder: (_, __) => const Divider(
-                          color: AppDesignTokens.border,
-                          height: 1,
-                          thickness: 1,
-                        ),
-                        itemBuilder: (context, index) {
-                          final v = _variants[index];
+                    ),
+                  ),
+                );
+              }
 
-                          return ListTile(
-                            leading: _buildProductThumbnail(v.imageUrl),
-                            title: Text(
-                              v.productName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: AppDesignTokens.textPrimary,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${v.variantDescription} • ${loc.sku}: ${v.sku} • ${loc.barcode}: ${v.barcode}',
-                              style: const TextStyle(
-                                color: AppDesignTokens.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    AppStatusBadge.forStock(
-                                      stock: v.stock,
-                                      minStockAlert: v.minStockAlert,
-                                      loc: loc,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    MoneyDisplay(
-                                      amount: v.salePrice,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 14),
-                                OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppDesignTokens.primary,
-                                    side: const BorderSide(
-                                      color: AppDesignTokens.border,
-                                    ),
-                                    backgroundColor: AppDesignTokens.surface,
+              return Expanded(
+                child: ListView.builder(
+                  itemCount: productGroups.length,
+                  itemBuilder: (context, index) {
+                    final entry = productGroups[index];
+                    final productVariants = entry.value;
+                    final mainVar = productVariants.first;
+                    final totalStock = productVariants.fold<int>(
+                      0,
+                      (sum, v) => sum + v.stock,
+                    );
+                    final minAlert = productVariants
+                        .map((v) => v.minStockAlert)
+                        .fold<int>(0, (max, v) => v > max ? v : max);
+                    final minPrice = productVariants
+                        .map((v) => v.salePrice)
+                        .reduce((a, b) => a < b ? a : b);
+                    final maxPrice = productVariants
+                        .map((v) => v.salePrice)
+                        .reduce((a, b) => a > b ? a : b);
+                    final isExpanded = _expandedProductIds.contains(entry.key);
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+                        side: BorderSide(
+                          color: isExpanded
+                              ? AppDesignTokens.primary.withValues(alpha: 0.5)
+                              : AppDesignTokens.border,
+                          width: isExpanded ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                if (isExpanded) {
+                                  _expandedProductIds.remove(entry.key);
+                                } else {
+                                  _expandedProductIds.add(entry.key);
+                                }
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  // Expand icon
+                                  Icon(
+                                    isExpanded
+                                        ? Icons.keyboard_arrow_down
+                                        : Icons.keyboard_arrow_right,
+                                    color: isExpanded
+                                        ? AppDesignTokens.primary
+                                        : AppDesignTokens.textSecondary,
+                                    size: 24,
                                   ),
-                                  onPressed: () => _showTransferDialog(v),
-                                  icon: const Icon(Icons.swap_horiz, size: 16),
-                                  label: Text(
-                                    loc.stockTransfer,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                                if (canManage) ...[
-                                  const SizedBox(width: 6),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(
-                                      Icons.more_vert,
-                                      size: 20,
-                                      color: AppDesignTokens.textSecondary,
-                                    ),
-                                    tooltip: loc.productActions,
-                                    color: AppDesignTokens.surface,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      side: const BorderSide(
-                                        color: AppDesignTokens.border,
-                                      ),
-                                    ),
-                                    onSelected: (action) {
-                                      switch (action) {
-                                        case 'edit':
-                                          _showEditProductDialog(v);
-                                          break;
-                                        case 'photo':
-                                          _showPhotoUploadDialog(v);
-                                          break;
-                                        case 'delete':
-                                          _showDeleteProductDialog(v);
-                                          break;
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
+                                  const SizedBox(width: 8),
+                                  // Thumbnail
+                                  _buildProductThumbnail(mainVar.imageUrl),
+                                  const SizedBox(width: 14),
+                                  // Product info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          mainVar.productName,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: AppDesignTokens.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
                                           children: [
-                                            const Icon(
-                                              Icons.edit_outlined,
-                                              size: 18,
-                                              color: AppDesignTokens.primary,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Text(
-                                              loc.editProduct,
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color:
-                                                    AppDesignTokens.textPrimary,
+                                            if (mainVar.categoryName != null &&
+                                                mainVar.categoryName!.isNotEmpty) ...[
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: AppDesignTokens.primaryLight
+                                                      .withValues(alpha: 0.4),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  mainVar.categoryName!,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppDesignTokens.primary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                            ],
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppDesignTokens.surfaceElevated,
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: AppDesignTokens.border,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                productVariants.length == 1
+                                                    ? 'Article simple'
+                                                    : '${productVariants.length} déclinaisons',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppDesignTokens.textSecondary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'photo',
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons
-                                                  .add_photo_alternate_outlined,
-                                              size: 18,
-                                              color: AppDesignTokens.primary,
+                                      ],
+                                    ),
+                                  ),
+                                  // Stock and Price
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text(
+                                            'Stock total : ',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: AppDesignTokens.textSecondary,
                                             ),
-                                            const SizedBox(width: 10),
-                                            Text(
-                                              loc.addOrEditPhoto,
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color:
-                                                    AppDesignTokens.textPrimary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                          AppStatusBadge.forStock(
+                                            stock: totalStock,
+                                            minStockAlert: minAlert,
+                                            loc: loc,
+                                          ),
+                                        ],
                                       ),
-                                      if (canDelete) ...[
-                                        const PopupMenuDivider(height: 1),
+                                      const SizedBox(height: 4),
+                                      minPrice == maxPrice
+                                          ? MoneyDisplay(
+                                              amount: minPrice,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                            )
+                                          : Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                MoneyDisplay(
+                                                  amount: minPrice,
+                                                  fontSize: 11,
+                                                ),
+                                                const Text(
+                                                  ' - ',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppDesignTokens.textMuted,
+                                                  ),
+                                                ),
+                                                MoneyDisplay(
+                                                  amount: maxPrice,
+                                                  fontSize: 11,
+                                                ),
+                                              ],
+                                            ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Product Actions Menu
+                                  if (canManage) ...[
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(
+                                        Icons.more_vert,
+                                        size: 20,
+                                        color: AppDesignTokens.textSecondary,
+                                      ),
+                                      tooltip: loc.productActions,
+                                      onSelected: (action) {
+                                        switch (action) {
+                                          case 'edit':
+                                            _showEditProductDialog(mainVar);
+                                            break;
+                                          case 'photo':
+                                            _showPhotoUploadDialog(mainVar);
+                                            break;
+                                          case 'delete':
+                                            _showDeleteProductDialog(mainVar);
+                                            break;
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
                                         PopupMenuItem(
-                                          value: 'delete',
+                                          value: 'edit',
                                           child: Row(
                                             children: [
                                               const Icon(
-                                                Icons.delete_outline,
+                                                Icons.edit_outlined,
                                                 size: 18,
-                                                color: AppDesignTokens.danger,
+                                                color: AppDesignTokens.primary,
                                               ),
                                               const SizedBox(width: 10),
                                               Text(
-                                                loc.deleteProduct,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
+                                                loc.editProduct,
+                                                style: const TextStyle(fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'photo',
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.add_photo_alternate_outlined,
+                                                size: 18,
+                                                color: AppDesignTokens.primary,
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                loc.addOrEditPhoto,
+                                                style: const TextStyle(fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (canDelete)
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.delete_outline,
+                                                  size: 18,
                                                   color: AppDesignTokens.danger,
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Text(
+                                                  loc.deleteProduct,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: AppDesignTokens.danger,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Nested Variants Breakdown
+                          if (isExpanded) ...[
+                            const Divider(height: 1, color: AppDesignTokens.border),
+                            Container(
+                              color: AppDesignTokens.surfaceElevated
+                                  .withValues(alpha: 0.5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              child: Column(
+                                children: productVariants.map((v) {
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 4),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppDesignTokens.surface,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppDesignTokens.border
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const SizedBox(width: 8),
+                                        const Icon(
+                                          Icons.subdirectory_arrow_right,
+                                          size: 16,
+                                          color: AppDesignTokens.textMuted,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        // Variant Description
+                                        Expanded(
+                                          flex: 3,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                v.variantDescription.isNotEmpty
+                                                    ? v.variantDescription
+                                                    : 'Standard / Taille unique',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                  color: AppDesignTokens.textPrimary,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'SKU: ${v.sku}  •  Code: ${v.barcode}',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color:
+                                                      AppDesignTokens.textSecondary,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
+                                        // Price
+                                        MoneyDisplay(
+                                          amount: v.salePrice,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        const SizedBox(width: 16),
+                                        // Stock status badge
+                                        AppStatusBadge.forStock(
+                                          stock: v.stock,
+                                          minStockAlert: v.minStockAlert,
+                                          loc: loc,
+                                        ),
+                                        const SizedBox(width: 16),
+                                        // Action: Stock Transfer
+                                        OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 6,
+                                            ),
+                                            minimumSize: Size.zero,
+                                            tapTargetSize:
+                                                MaterialTapTargetSize.shrinkWrap,
+                                            side: const BorderSide(
+                                              color: AppDesignTokens.border,
+                                            ),
+                                          ),
+                                          onPressed: () => _showTransferDialog(v),
+                                          icon: const Icon(
+                                            Icons.swap_horiz,
+                                            size: 14,
+                                          ),
+                                          label: Text(
+                                            loc.stockTransfer,
+                                            style: const TextStyle(fontSize: 11),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // Action: Adjust variant
+                                        if (canManage) ...[
+                                          OutlinedButton.icon(
+                                            style: OutlinedButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 6,
+                                              ),
+                                              minimumSize: Size.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize.shrinkWrap,
+                                              side: const BorderSide(
+                                                color: AppDesignTokens.border,
+                                              ),
+                                            ),
+                                            onPressed: () =>
+                                                _showEditProductDialog(v),
+                                            icon: const Icon(Icons.edit, size: 14),
+                                            label: const Text(
+                                              'Ajuster',
+                                              style: TextStyle(fontSize: 11),
+                                            ),
+                                          ),
+                                        ],
                                       ],
-                                    ],
-                                  ),
-                                ],
-                              ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
-                    ),
-            ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
         ],
       ),

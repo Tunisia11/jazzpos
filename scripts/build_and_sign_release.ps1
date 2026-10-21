@@ -344,7 +344,6 @@ if (-not (Test-Path $DistDir)) { New-Item -ItemType Directory -Path $DistDir -Fo
 
 $InstallerIss = Join-Path $ProjectRoot "windows\installer\jazzpos_setup.iss"
 $InstallerExePrimary = Join-Path $DistDir "Trace-POS-Setup-x64.exe"
-$InstallerExeAlias = Join-Path $DistDir "JAZZ-POS-Setup-x64.exe"
 
 if (-not $SkipInstaller) {
     Write-Host "`n[4/6] Compiling Inno Setup Installer..." -ForegroundColor Cyan
@@ -365,9 +364,6 @@ if (-not $SkipInstaller) {
     Write-Host "`n[4/6] Skipping Inno Setup compilation (-SkipInstaller specified)." -ForegroundColor DarkGray
 }
 
-if (Test-Path $InstallerExePrimary) {
-    Copy-Item -Path $InstallerExePrimary -Destination $InstallerExeAlias -Force
-}
 
 # -------------------------------------------------------------------------
 # 7. Sign Final Installer Executable
@@ -377,9 +373,6 @@ $InstallerVerification = $null
 
 if (Test-Path $InstallerExePrimary) {
     Invoke-SignBinary -FilePath $InstallerExePrimary
-    if (Test-Path $InstallerExeAlias) {
-        Invoke-SignBinary -FilePath $InstallerExeAlias
-    }
 
     $InstallerVerification = Verify-Signature -FilePath $InstallerExePrimary
     Write-Host "`nInstaller Signature Details:" -ForegroundColor Cyan
@@ -434,7 +427,6 @@ $checksumLines = @()
 
 $artifactsToHash = @($ReleaseExe)
 if (Test-Path $InstallerExePrimary) { $artifactsToHash += $InstallerExePrimary }
-if (Test-Path $InstallerExeAlias) { $artifactsToHash += $InstallerExeAlias }
 
 foreach ($item in $artifactsToHash) {
     if (Test-Path $item) {

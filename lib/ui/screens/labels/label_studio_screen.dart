@@ -56,6 +56,14 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
   Future<void> _printLabels() async {
     if (_selectedVariant == null) return;
 
+    if (HardwareManager.instance.labelPrinterIsSimulated) {
+      setState(() {
+        _isPrinting = false;
+        _statusMessage = 'L\'impression d\'étiquettes n\'est pas configurée (aucune imprimante physique détectée).';
+      });
+      return;
+    }
+
     final loc = context.loc;
     setState(() {
       _isPrinting = true;
@@ -331,70 +339,117 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.remove_circle_outline,
-                                color: AppDesignTokens.textSecondary,
-                              ),
-                              onPressed: _copies > 1
-                                  ? () => setState(() => _copies--)
-                                  : null,
-                            ),
-                            Text(
-                              loc.nLabels(_copies),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppDesignTokens.textPrimary,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.add_circle_outline,
-                                color: AppDesignTokens.textSecondary,
-                              ),
-                              onPressed: () => setState(() => _copies++),
-                            ),
-                            const Spacer(),
-                            ElevatedButton.icon(
-                              onPressed:
-                                  (_selectedVariant == null || _isPrinting)
-                                  ? null
-                                  : _printLabels,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppDesignTokens.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppDesignTokens.radiusInput,
+                        Builder(
+                          builder: (context) {
+                            final isLabelSimulated = HardwareManager.instance.labelPrinterIsSimulated;
+                            final canPrint = _selectedVariant != null && !_isPrinting && !isLabelSimulated;
+                            return Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    color: AppDesignTokens.textSecondary,
+                                  ),
+                                  onPressed: _copies > 1
+                                      ? () => setState(() => _copies--)
+                                      : null,
+                                ),
+                                Text(
+                                  loc.nLabels(_copies),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppDesignTokens.textPrimary,
                                   ),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 14,
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.add_circle_outline,
+                                    color: AppDesignTokens.textSecondary,
+                                  ),
+                                  onPressed: () => setState(() => _copies++),
                                 ),
-                              ),
-                              icon: _isPrinting
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
+                                const Spacer(),
+                                Tooltip(
+                                  message: isLabelSimulated
+                                      ? 'L\'impression d\'étiquettes n\'est pas configurée'
+                                      : '',
+                                  child: ElevatedButton.icon(
+                                    onPressed: canPrint ? _printLabels : null,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isLabelSimulated
+                                          ? AppDesignTokens.textMuted
+                                          : AppDesignTokens.primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppDesignTokens.radiusInput,
+                                        ),
                                       ),
-                                    )
-                                  : const Icon(Icons.print, size: 20),
-                              label: Text(
-                                _isPrinting
-                                    ? loc.processing.toUpperCase()
-                                    : loc.printLabelsAction.toUpperCase(),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 14,
+                                      ),
+                                    ),
+                                    icon: _isPrinting
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.print, size: 20),
+                                    label: Text(
+                                      isLabelSimulated
+                                          ? 'IMPRESSION NON CONFIGURÉE'
+                                          : _isPrinting
+                                          ? loc.processing.toUpperCase()
+                                          : loc.printLabelsAction.toUpperCase(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        if (HardwareManager.instance.labelPrinterIsSimulated) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppDesignTokens.warningBg,
+                              borderRadius: BorderRadius.circular(
+                                AppDesignTokens.radiusInput,
+                              ),
+                              border: Border.all(
+                                color: AppDesignTokens.warning.withValues(alpha: 0.5),
                               ),
                             ),
-                          ],
-                        ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: AppDesignTokens.warningText,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'L\'impression d\'étiquettes n\'est pas configurée sur ce terminal (aucune imprimante physique connectée).',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppDesignTokens.warningText,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         if (_statusMessage != null) ...[
                           const SizedBox(height: 12),
                           Text(

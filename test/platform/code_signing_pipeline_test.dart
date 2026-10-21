@@ -77,8 +77,8 @@ void main() {
         final lines = checksumFile.readAsLinesSync().where((l) => l.trim().isNotEmpty).toList();
         expect(lines.isNotEmpty, isTrue);
         for (final line in lines) {
-          final parts = line.split(RegExp(r'\s+\*'));
-          expect(parts.length, equals(2), reason: 'Format must be: <hash> *<filename>');
+          final parts = line.split(RegExp(r'\s+\*?'));
+          expect(parts.length, equals(2), reason: 'Format must be: <hash> followed by filename');
           expect(parts[0].length, equals(64), reason: 'SHA-256 hex string must be 64 characters');
           expect(RegExp(r'^[a-f0-9]{64}$').hasMatch(parts[0]), isTrue,
               reason: 'SHA-256 must contain only lowercase hex characters');

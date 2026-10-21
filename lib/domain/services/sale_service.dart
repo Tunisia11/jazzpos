@@ -311,6 +311,10 @@ class SaleService {
         );
 
         // 4c. Deduct physical stock through StockMovements
+        final mustDisallowNegative =
+            currentPolicy == AppConstants.negativeStockBlock &&
+            (request.managerOverrideId == null ||
+             request.managerOverrideId!.isEmpty);
         await inventoryService.recordMovement(
           variantId: item.variantId,
           movementType: AppConstants.movementSale,
@@ -321,6 +325,7 @@ class SaleService {
           referenceType: 'SALE',
           actorId: request.cashierId,
           reason: 'Sale #$receiptNumber',
+          disallowNegativeStock: mustDisallowNegative,
         );
       }
 

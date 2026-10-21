@@ -45,7 +45,9 @@ class AppPaths {
       return null;
     }
 
-    if (p.isAbsolute(clean)) {
+    final isWindowsDrive = RegExp(r'^[a-zA-Z]:').hasMatch(clean);
+    final isAbsolute = p.isAbsolute(clean) || p.windows.isAbsolute(clean) || isWindowsDrive || clean.startsWith('/');
+    if (isAbsolute) {
       if (p.isWithin(_baseDir.path, clean) || p.equals(_baseDir.path, clean)) {
         return p.normalize(clean);
       }
