@@ -951,8 +951,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                     // Center: Virex logo
                     Image.asset(
-                      'assets/images/virex_logo.jpg',
-                      height: 28,
+                      'assets/images/virex_logo.png',
+                      height: 22,
                       fit: BoxFit.contain,
                     ),
 
