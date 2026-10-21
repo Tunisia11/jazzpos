@@ -305,7 +305,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                             ],
                           ),
                         ),
-                      Row(
+                      Flex(
+                        direction: _isDrawerOpen
+                            ? Axis.horizontal
+                            : Axis.vertical,
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           IconButton(
