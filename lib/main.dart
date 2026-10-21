@@ -16,6 +16,7 @@ import 'domain/services/print_job_service.dart';
 import 'hardware/hardware_manager.dart';
 import 'ui/navigation/app_router.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/widgets/splash_gate.dart';
 import 'ui/widgets/startup_recovery_widget.dart';
 
 void main() async {
@@ -154,7 +155,13 @@ void main() async {
 }
 
 class TracePosApp extends ConsumerWidget {
-  const TracePosApp({super.key});
+  /// Zero in tests so they land directly on the app.
+  final Duration splashDuration;
+
+  const TracePosApp({
+    super.key,
+    this.splashDuration = const Duration(milliseconds: 1400),
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -173,7 +180,7 @@ class TracePosApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const AppShell(),
+      home: SplashGate(duration: splashDuration, child: const AppShell()),
     );
   }
 }

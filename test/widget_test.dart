@@ -16,7 +16,7 @@ void main() {
   ) async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
-    await tester.pumpWidget(ProviderScope(overrides:[databaseProvider.overrideWithValue(db)], child: const JazzPosApp()));
+    await tester.pumpWidget(ProviderScope(overrides:[databaseProvider.overrideWithValue(db)], child: const JazzPosApp(splashDuration: Duration.zero)));
 
     // Initial frame renders MaterialApp with JazzPOS title
     expect(find.byType(JazzPosApp), findsOneWidget);
