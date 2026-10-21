@@ -63,9 +63,22 @@ class ReturnService {
 
   void _validateItemsAgainstSale({
     required ReturnRequest request,
+    Sale? sale,
     required List<SaleLine> saleLines,
     required List<ReturnLine> priorReturnLines,
   }) {
+    if (sale != null) {
+      final priorTotalRefund = priorReturnLines.fold<int>(
+        0,
+        (sum, line) => sum + line.totalRefundMillimes,
+      );
+      final requestedTotalRefund = request.totalRefund.millimes;
+      if (priorTotalRefund + requestedTotalRefund > sale.totalMillimes) {
+        throw const ValidationException(
+          'Total refund amount across all returns cannot exceed the original sale total.',
+        );
+      }
+    }
     final saleLineMap = {for (final line in saleLines) line.id: line};
     final requestedQuantityByLine = <String, int>{};
     final requestedRefundByLine = <String, int>{};
@@ -235,6 +248,7 @@ class ReturnService {
 
       _validateItemsAgainstSale(
         request: request,
+        sale: sale,
         saleLines: saleLines,
         priorReturnLines: priorReturnLines,
       );
@@ -326,6 +340,7 @@ class ReturnService {
               )..where((table) => table.returnId.isIn(currentReturnIds))).get();
         _validateItemsAgainstSale(
           request: request,
+          sale: currentSale,
           saleLines: saleLines,
           priorReturnLines: priorReturnLines,
         );

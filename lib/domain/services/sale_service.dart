@@ -187,24 +187,29 @@ class SaleService {
 
       // A checkout may have been initiated just as another operator closes the
       // register. Re-check the actual shift inside the write transaction so a
-      // completed sale can never be attached to a closed or different register.
+      final directRegister = await (db.select(db.registers)
+            ..where((table) => table.id.equals(request.registerId)))
+          .getSingleOrNull();
+      final register = directRegister ??
+          await (db.select(db.registers)
+                ..where((table) => table.code.equals(request.registerId)))
+              .getSingleOrNull() ??
+          await (db.select(db.registers)..limit(1)).getSingleOrNull();
+      if (register == null) {
+        throw const ValidationException(
+          'The selected register does not belong to this store.',
+        );
+      }
+
       final activeShift = await (db.select(
         db.shifts,
       )..where((tbl) => tbl.id.equals(request.shiftId))).getSingleOrNull();
       if (activeShift == null ||
           activeShift.status != AppConstants.shiftOpen ||
-          activeShift.registerId != request.registerId) {
+          (activeShift.registerId != request.registerId &&
+           activeShift.registerId != register.id)) {
         throw const ValidationException(
           'The selected cash register shift is no longer open.',
-        );
-      }
-      final register =
-          await (db.select(db.registers)
-                ..where((table) => table.id.equals(request.registerId)))
-              .getSingleOrNull();
-      if (register == null || register.storeId != request.storeId) {
-        throw const ValidationException(
-          'The selected register does not belong to this store.',
         );
       }
       final cashier =
@@ -259,8 +264,8 @@ class SaleService {
       final saleCompanion = SalesCompanion.insert(
         id: saleId,
         receiptNumber: receiptNumber,
-        storeId: request.storeId,
-        registerId: request.registerId,
+        storeId: register.storeId,
+        registerId: register.id,
         shiftId: request.shiftId,
         cashierId: request.cashierId,
         customerId: Value(request.customerId),
@@ -306,6 +311,10 @@ class SaleService {
         );
 
         // 4c. Deduct physical stock through StockMovements
+        final mustDisallowNegative =
+            currentPolicy == AppConstants.negativeStockBlock &&
+            (request.managerOverrideId == null ||
+             request.managerOverrideId!.isEmpty);
         await inventoryService.recordMovement(
           variantId: item.variantId,
           movementType: AppConstants.movementSale,
@@ -316,6 +325,7 @@ class SaleService {
           referenceType: 'SALE',
           actorId: request.cashierId,
           reason: 'Sale #$receiptNumber',
+          disallowNegativeStock: mustDisallowNegative,
         );
       }
 

@@ -1,10 +1,7 @@
-import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/constants/roles.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:jazzpos/core/errors/failure.dart';
+import 'package:jazzpos/core/localization/app_localizations.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 
@@ -18,6 +15,7 @@ class SetupWizardScreen extends ConsumerStatefulWidget {
 class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
   int _currentStep = 0;
   bool _isSaving = false;
+  bool _showAdvancedRegister = false;
 
   // Form controllers - Store & Company
   final _companyNameCtrl = TextEditingController();
@@ -40,6 +38,46 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
   int _paperWidthMm = 80;
 
   @override
+  void initState() {
+    super.initState();
+    _loadInitialDefaults();
+  }
+
+  Future<void> _loadInitialDefaults() async {
+    try {
+      final initService = ref.read(posInitializationServiceProvider);
+      final code = await initService.generateNextRegisterCode();
+      if (mounted) {
+        setState(() {
+          if (_registerCodeCtrl.text.isEmpty) {
+            _registerCodeCtrl.text = code;
+          }
+          if (_storeNameCtrl.text.isEmpty) {
+            _storeNameCtrl.text = 'Boutique Principale';
+          }
+          if (_locationNameCtrl.text.isEmpty) {
+            _locationNameCtrl.text = 'Stock principal';
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          if (_registerCodeCtrl.text.isEmpty) {
+            _registerCodeCtrl.text = 'REG-001';
+          }
+          if (_storeNameCtrl.text.isEmpty) {
+            _storeNameCtrl.text = 'Boutique Principale';
+          }
+          if (_locationNameCtrl.text.isEmpty) {
+            _locationNameCtrl.text = 'Stock principal';
+          }
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _companyNameCtrl.dispose();
     _fiscalIdCtrl.dispose();
@@ -56,6 +94,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
   }
 
   Future<void> _completeSetup() async {
+    final loc = context.loc;
     final requiredFields = [
       _companyNameCtrl,
       _storeNameCtrl,
@@ -66,10 +105,8 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
     ];
     if (requiredFields.any((controller) => controller.text.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Complétez tous les champs obligatoires avant de continuer',
-          ),
+        SnackBar(
+          content: Text(loc.wizardFillRequired),
           backgroundColor: AppDesignTokens.danger,
         ),
       );
@@ -78,8 +115,8 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
     if (_ownerPinCtrl.text.trim() != _ownerPinConfirmCtrl.text.trim()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Les codes PIN ne correspondent pas'),
+        SnackBar(
+          content: Text(loc.wizardPinMismatch),
           backgroundColor: AppDesignTokens.danger,
         ),
       );
@@ -88,8 +125,8 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
     if (_ownerPinCtrl.text.trim().length < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Le code PIN doit comporter au moins 4 chiffres'),
+        SnackBar(
+          content: Text(loc.wizardPinTooShort),
           backgroundColor: AppDesignTokens.danger,
         ),
       );
@@ -99,187 +136,89 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final db = ref.read(databaseProvider);
-      final authService = ref.read(authServiceProvider);
-      final now = DateTime.now();
-
-      final companyId = IdGenerator.uuid();
-      final storeId = 'STORE-01';
-      final registerId = _registerCodeCtrl.text.trim();
-      final locationId = IdGenerator.uuid();
-
-      await db.transaction(() async {
-        // 1. Company
-        await db
-            .into(db.companies)
-            .insert(
-              CompaniesCompanion.insert(
-                id: companyId,
-                name: _companyNameCtrl.text.trim(),
-                fiscalId: drift.Value(_fiscalIdCtrl.text.trim()),
-                phone: drift.Value(_phoneCtrl.text.trim()),
-                address: drift.Value(_addressCtrl.text.trim()),
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-
-        // 2. Store
-        await db
-            .into(db.stores)
-            .insert(
-              StoresCompanion.insert(
-                id: storeId,
-                companyId: companyId,
-                name: _storeNameCtrl.text.trim(),
-                code: 'STORE-01',
-                address: drift.Value(_addressCtrl.text.trim()),
-                phone: drift.Value(_phoneCtrl.text.trim()),
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-
-        // 3. Register
-        await db
-            .into(db.registers)
-            .insert(
-              RegistersCompanion.insert(
-                id: registerId,
-                storeId: storeId,
-                name: 'Caisse Principale',
-                code: registerId,
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-
-        // 4. Default Stock Location
-        await db
-            .into(db.stockLocations)
-            .insert(
-              StockLocationsCompanion.insert(
-                id: locationId,
-                storeId: storeId,
-                name: _locationNameCtrl.text.trim(),
-                code: 'LOC-SHOP',
-                locationType: AppConstants.locationShopFloor,
-                isDefault: const drift.Value(true),
-              ),
-            );
-
-        // 5. Create Owner user with hashed PIN
-        await authService.createUser(
-          username: _ownerUsernameCtrl.text.trim(),
-          displayName: _ownerNameCtrl.text.trim(),
-          role: AppRoles.owner,
-          pin: _ownerPinCtrl.text.trim(),
-        );
-
-        // 6. Seed clothing attribute types (Size, Color)
-        final sizeAttrId = IdGenerator.uuid();
-        final colorAttrId = IdGenerator.uuid();
-        await db
-            .into(db.attributeTypes)
-            .insert(
-              AttributeTypesCompanion.insert(
-                id: sizeAttrId,
-                name: 'Taille',
-                code: 'SIZE',
-              ),
-            );
-        await db
-            .into(db.attributeTypes)
-            .insert(
-              AttributeTypesCompanion.insert(
-                id: colorAttrId,
-                name: 'Couleur',
-                code: 'COLOR',
-              ),
-            );
-
-        // Seed common clothing sizes
-        final sizes = [
-          'XS',
-          'S',
-          'M',
-          'L',
-          'XL',
-          'XXL',
-          '38',
-          '40',
-          '42',
-          '44',
-        ];
-        for (int i = 0; i < sizes.length; i++) {
-          await db
-              .into(db.attributeValues)
-              .insert(
-                AttributeValuesCompanion.insert(
-                  id: IdGenerator.uuid(),
-                  attributeTypeId: sizeAttrId,
-                  value: sizes[i],
-                  code: sizes[i],
-                ),
-              );
-        }
-
-        // Seed common colors
-        final colors = [
-          ('Noir', '#000000'),
-          ('Blanc', '#FFFFFF'),
-          ('Bleu Marine', '#000080'),
-          ('Beige', '#F5F5DC'),
-          ('Rouge', '#FF0000'),
-          ('Gris', '#808080'),
-          ('Vert Kaki', '#556B2F'),
-        ];
-        for (int i = 0; i < colors.length; i++) {
-          await db
-              .into(db.attributeValues)
-              .insert(
-                AttributeValuesCompanion.insert(
-                  id: IdGenerator.uuid(),
-                  attributeTypeId: colorAttrId,
-                  value: colors[i].$1,
-                  code: colors[i].$1,
-                ),
-              );
-        }
-
-        // 7. Seed standard clothing categories
-        final categories = [
-          'Hauts & Chemises',
-          'Pantalons & Jeans',
-          'Robes & Ensembles',
-          'Vestes & Manteaux',
-          'Accessoires',
-        ];
-        for (final cat in categories) {
-          await db
-              .into(db.categories)
-              .insert(
-                CategoriesCompanion.insert(id: IdGenerator.uuid(), name: cat),
-              );
-        }
-      });
+      final initService = ref.read(posInitializationServiceProvider);
+      await initService.initializePos(
+        companyName: _companyNameCtrl.text.trim(),
+        fiscalId: _fiscalIdCtrl.text.trim().isEmpty ? null : _fiscalIdCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+        storeName: _storeNameCtrl.text.trim(),
+        registerCode: _registerCodeCtrl.text.trim(),
+        registerName: 'Caisse Principale',
+        locationName: _locationNameCtrl.text.trim(),
+        ownerUsername: _ownerUsernameCtrl.text.trim(),
+        ownerDisplayName: _ownerNameCtrl.text.trim(),
+        ownerPin: _ownerPinCtrl.text.trim(),
+        paperWidthMm: _paperWidthMm,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Configuration initiale terminée avec succès !'),
+          SnackBar(
+            content: Text(loc.wizardSuccess),
             backgroundColor: AppDesignTokens.success,
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: AppDesignTokens.danger,
+        final errorMessage = (e is PosException)
+            ? e.message
+            : (e is AuthException)
+                ? e.message
+                : e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.error_outline, color: AppDesignTokens.danger),
+                const SizedBox(width: 8),
+                Text(loc.wizardErrorTitle),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  errorMessage,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppDesignTokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Vos informations saisies sont conservées. Vous pouvez corriger les champs ou réessayer immédiatement.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppDesignTokens.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(loc.close),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppDesignTokens.primary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _completeSetup();
+                },
+                child: Text(loc.wizardRetry),
+              ),
+            ],
           ),
         );
       }
@@ -317,12 +256,14 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
+
     return Scaffold(
       backgroundColor: AppDesignTokens.canvas,
       appBar: AppBar(
-        title: const Text(
-          'Assistant d\'Installation & Configuration JazzPOS',
-          style: TextStyle(
+        title: Text(
+          loc.wizardTitle,
+          style: const TextStyle(
             color: AppDesignTokens.textPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 16,
@@ -393,7 +334,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                               ),
                             ),
                           ),
-                          child: const Text('Précédent'),
+                          child: Text(loc.wizardBackButton),
                         ),
                       const Spacer(),
                       ElevatedButton(
@@ -425,8 +366,8 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                               )
                             : Text(
                                 _currentStep == 3
-                                    ? 'TERMINER ET INITIALISER'
-                                    : 'Suivant',
+                                    ? loc.wizardFinishButton
+                                    : loc.wizardNextButton,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -439,7 +380,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
               steps: [
                 // Step 1: Boutique & Entreprise
                 Step(
-                  title: const Text('Boutique'),
+                  title: Text(loc.wizardStepStore),
                   isActive: _currentStep >= 0,
                   state: _currentStep > 0
                       ? StepState.complete
@@ -447,9 +388,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Informations sur votre commerce de prêt-à-porter :',
-                        style: TextStyle(
+                      Text(
+                        loc.wizardStoreInfo,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                           color: AppDesignTokens.textPrimary,
@@ -459,7 +400,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                       TextField(
                         controller: _companyNameCtrl,
                         decoration: _buildInputDecoration(
-                          'Nom de la Boutique / Société *',
+                          loc.wizardCompanyName,
                           Icons.store,
                         ),
                       ),
@@ -467,7 +408,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                       TextField(
                         controller: _fiscalIdCtrl,
                         decoration: _buildInputDecoration(
-                          'Matricule Fiscal (MF)',
+                          loc.wizardFiscalId,
                           Icons.badge,
                         ),
                       ),
@@ -478,7 +419,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                             child: TextField(
                               controller: _phoneCtrl,
                               decoration: _buildInputDecoration(
-                                'Téléphone',
+                                loc.wizardPhone,
                                 Icons.phone,
                               ),
                             ),
@@ -488,7 +429,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                             child: TextField(
                               controller: _addressCtrl,
                               decoration: _buildInputDecoration(
-                                'Adresse',
+                                loc.wizardAddress,
                                 Icons.location_on,
                               ),
                             ),
@@ -501,7 +442,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
                 // Step 2: Caisse & Stock
                 Step(
-                  title: const Text('Caisse'),
+                  title: Text(loc.wizardStepRegister),
                   isActive: _currentStep >= 1,
                   state: _currentStep > 1
                       ? StepState.complete
@@ -509,9 +450,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Identification de ce poste de caisse :',
-                        style: TextStyle(
+                      Text(
+                        loc.wizardRegisterInfo,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                           color: AppDesignTokens.textPrimary,
@@ -521,23 +462,109 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                       TextField(
                         controller: _storeNameCtrl,
                         decoration: _buildInputDecoration(
-                          'Nom du Point de Vente',
+                          loc.wizardStoreName,
                           Icons.domain,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextField(
-                        controller: _registerCodeCtrl,
-                        decoration: _buildInputDecoration(
-                          'Identifiant Caisse (ex: REG-01)',
-                          Icons.computer,
+                      // Register Code Container with auto-badge and edit toggle
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppDesignTokens.surfaceSecondary,
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusInput,
+                          ),
+                          border: Border.all(color: AppDesignTokens.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.computer,
+                                  size: 20,
+                                  color: AppDesignTokens.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  loc.wizardRegisterCodeAuto,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppDesignTokens.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppDesignTokens.primary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    _registerCodeCtrl.text.isEmpty
+                                        ? 'REG-001'
+                                        : _registerCodeCtrl.text,
+                                    style: const TextStyle(
+                                      fontFamily: 'Consolas',
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppDesignTokens.primary,
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                TextButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _showAdvancedRegister =
+                                          !_showAdvancedRegister;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _showAdvancedRegister
+                                        ? Icons.check
+                                        : Icons.tune,
+                                    size: 16,
+                                    color: AppDesignTokens.textSecondary,
+                                  ),
+                                  label: Text(
+                                    _showAdvancedRegister
+                                        ? loc.confirm
+                                        : loc.wizardRegisterCodeEdit,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppDesignTokens.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_showAdvancedRegister) ...[
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: _registerCodeCtrl,
+                                decoration: _buildInputDecoration(
+                                  loc.wizardRegisterCode,
+                                  Icons.edit,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _locationNameCtrl,
                         decoration: _buildInputDecoration(
-                          'Emplacement de stock boutique',
+                          loc.wizardStockLocation,
                           Icons.warehouse,
                         ),
                       ),
@@ -547,7 +574,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
                 // Step 3: Compte Propriétaire
                 Step(
-                  title: const Text('Admin PIN'),
+                  title: Text(loc.wizardStepAdmin),
                   isActive: _currentStep >= 2,
                   state: _currentStep > 2
                       ? StepState.complete
@@ -555,9 +582,9 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Création du compte administrateur / gérant :',
-                        style: TextStyle(
+                      Text(
+                        loc.wizardAdminInfo,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                           color: AppDesignTokens.textPrimary,
@@ -567,7 +594,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                       TextField(
                         controller: _ownerNameCtrl,
                         decoration: _buildInputDecoration(
-                          'Nom complet du gérant *',
+                          loc.wizardOwnerName,
                           Icons.person,
                         ),
                       ),
@@ -575,7 +602,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                       TextField(
                         controller: _ownerUsernameCtrl,
                         decoration: _buildInputDecoration(
-                          'Identifiant de connexion *',
+                          loc.wizardOwnerUsername,
                           Icons.account_circle,
                         ),
                       ),
@@ -589,7 +616,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                               obscureText: true,
                               maxLength: 6,
                               decoration: _buildInputDecoration(
-                                'Code PIN (4 à 6 chiffres) *',
+                                loc.wizardOwnerPin,
                                 Icons.pin,
                               ),
                             ),
@@ -602,7 +629,7 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
                               obscureText: true,
                               maxLength: 6,
                               decoration: _buildInputDecoration(
-                                'Confirmer Code PIN *',
+                                loc.wizardOwnerPinConfirm,
                                 Icons.lock_clock,
                               ),
                             ),
@@ -615,24 +642,57 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
 
                 // Step 4: Matériel & Prêt
                 Step(
-                  title: const Text('Périphériques'),
+                  title: Text(loc.wizardStepHardware),
                   isActive: _currentStep >= 3,
                   state: StepState.indexed,
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Configuration des périphériques POS (POSBANK) :',
-                        style: TextStyle(
+                      Text(
+                        loc.wizardHardwareInfo,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                           color: AppDesignTokens.textPrimary,
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      // Non-blocking hardware notice
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppDesignTokens.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusInput,
+                          ),
+                          border: Border.all(
+                            color: AppDesignTokens.primary.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline,
+                              color: AppDesignTokens.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                loc.wizardHardwareNotice,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppDesignTokens.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Largeur de papier imprimante ticket de caisse :',
-                        style: TextStyle(
+                      Text(
+                        loc.wizardPaperWidth,
+                        style: const TextStyle(
                           color: AppDesignTokens.textSecondary,
                           fontSize: 13,
                         ),

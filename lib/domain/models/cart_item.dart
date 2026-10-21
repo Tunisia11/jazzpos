@@ -37,7 +37,7 @@ class CartItem {
 
   Money get taxAmount {
     if (taxRatePercent <= 0) return Money.zero;
-    return total.percentageDiscount(taxRatePercent);
+    return total.extractTax(taxRatePercent);
   }
 
   CartItem copyWith({

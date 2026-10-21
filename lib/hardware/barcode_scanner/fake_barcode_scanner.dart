@@ -14,6 +14,7 @@ class FakeBarcodeScanner implements BarcodeScanner {
   Stream<String> get onScan => _scanController.stream;
 
   /// Trigger a programmatic scan event for testing and UI simulation
+  @override
   void simulateScan(String barcode) {
     PosLogger.instance.info('Scanner', 'Simulated barcode scan: $barcode');
     _scanController.add(barcode.trim());

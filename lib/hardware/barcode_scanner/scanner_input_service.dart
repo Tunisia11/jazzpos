@@ -1,5 +1,7 @@
+import 'dart:ui' show ViewFocusEvent;
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
@@ -32,24 +34,27 @@ class ScannerTestEvent {
 
 /// Production-grade Barcode Scanner service supporting universal USB HID
 /// Keyboard Wedge mode and optional serial COM scanner mode.
-class ScannerInputService implements BarcodeScanner {
+class ScannerInputService with WidgetsBindingObserver implements BarcodeScanner {
   @override
   final String name;
 
   final Duration maximumInterKeyDelay;
   final int minimumLength;
+  final bool acceptTabTerminator;
 
   final _scanController = StreamController<String>.broadcast();
   final _testEventController = StreamController<ScannerTestEvent>.broadcast();
 
   final List<({String char, DateTime time})> _buffer = [];
   bool _isListening = false;
-  HardwareStatus _status = HardwareStatus.configured;
+  bool _hasReceivedPhysicalScan = false;
+  String? _lastScannedBarcode;
 
   ScannerInputService({
     this.name = 'USB HID Universal Barcode Scanner',
     this.maximumInterKeyDelay = const Duration(milliseconds: 80),
     this.minimumLength = 3,
+    this.acceptTabTerminator = true,
   });
 
   @override
@@ -57,7 +62,21 @@ class ScannerInputService implements BarcodeScanner {
 
   Stream<ScannerTestEvent> get onTestEvent => _testEventController.stream;
 
-  HardwareStatus get status => _status;
+  bool get hasReceivedPhysicalScan => _hasReceivedPhysicalScan;
+  String? get lastScannedBarcode => _lastScannedBarcode;
+
+  HardwareStatus get status {
+    if (!_isListening) return HardwareStatus.notConfigured;
+    return _hasReceivedPhysicalScan ? HardwareStatus.ready : HardwareStatus.configured;
+  }
+
+  String get statusText {
+    if (!_isListening) return 'Scanner désactivé';
+    if (_hasReceivedPhysicalScan) {
+      return 'Scanner vérifié (Dernier: ${_lastScannedBarcode ?? "OK"})';
+    }
+    return 'Scanner input ready — physical scanner not yet tested';
+  }
 
   HardwareFingerprint get fingerprint => const HardwareFingerprint(
     transport: 'KEYBOARD_WEDGE',
@@ -66,10 +85,12 @@ class ScannerInputService implements BarcodeScanner {
 
   @override
   Future<void> startListening() async {
+    reset();
     if (_isListening) return;
+    WidgetsBinding.instance.addObserver(this);
+    FocusManager.instance.addListener(reset);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _isListening = true;
-    _status = HardwareStatus.ready;
     PosLogger.instance.info(
       'ScannerService',
       'Started listening for rapid USB HID barcode bursts (< ${maximumInterKeyDelay.inMilliseconds}ms/char).',
@@ -78,11 +99,19 @@ class ScannerInputService implements BarcodeScanner {
 
   @override
   Future<void> stopListening() async {
+    reset();
     if (!_isListening) return;
+    WidgetsBinding.instance.removeObserver(this);
+    FocusManager.instance.removeListener(reset);
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _isListening = false;
-    _status = HardwareStatus.configured;
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => reset();
+
+  @override
+  void didChangeViewFocus(ViewFocusEvent event) => reset();
 
   /// Reset internal input buffer
   void reset() {
@@ -96,10 +125,11 @@ class ScannerInputService implements BarcodeScanner {
     final now = DateTime.now();
     final isEnter =
         event.logicalKey == LogicalKeyboardKey.enter ||
-        event.logicalKey == LogicalKeyboardKey.numpadEnter;
+        event.logicalKey == LogicalKeyboardKey.numpadEnter ||
+        (acceptTabTerminator && event.logicalKey == LogicalKeyboardKey.tab);
 
     if (isEnter) {
-      if (_buffer.length >= minimumLength) {
+      if (_buffer.length >= minimumLength && now.difference(_buffer.last.time) <= maximumInterKeyDelay) {
         // Calculate timing metrics
         final totalDuration = _buffer.last.time.difference(_buffer.first.time);
         final avgInterKey = _buffer.length > 1
@@ -124,6 +154,8 @@ class ScannerInputService implements BarcodeScanner {
               averageInterKeyMs: avgInterKey,
               timestamp: now,
             );
+            _hasReceivedPhysicalScan = true;
+            _lastScannedBarcode = barcode;
             _testEventController.add(testEvent);
             _scanController.add(barcode);
             return true; // Consume event so enter doesn't trigger unrelated buttons
@@ -151,7 +183,10 @@ class ScannerInputService implements BarcodeScanner {
   }
 
   /// Simulate barcode scan (for testing and manual simulated input)
+  @override
   void simulateScan(String barcode) {
+    _hasReceivedPhysicalScan = true;
+    _lastScannedBarcode = barcode;
     _scanController.add(barcode);
     _testEventController.add(
       ScannerTestEvent(

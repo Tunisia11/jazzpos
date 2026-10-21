@@ -61,8 +61,8 @@ void main() {
       );
 
       try {
-        expect(
-          () => backupService.validateBackupFile(tempFile.path),
+        await expectLater(
+          backupService.validateBackupFile(tempFile.path),
           throwsA(isA<ValidationException>()),
         );
       } finally {

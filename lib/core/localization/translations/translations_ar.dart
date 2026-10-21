@@ -7,7 +7,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   // --- Common & Actions ---
   @override
-  String get appTitle => 'جاز بوس';
+  String get appTitle => 'Trace POS';
   @override
   String get appSubtitle => 'نقطة البيع وإدارة متاجر الملابس';
   @override
@@ -812,7 +812,7 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get authorizeAction => 'منح الصلاحية';
   @override
-  String get welcomeTitle => 'مرحبًا بك في JazzPOS';
+  String get welcomeTitle => 'مرحبًا بك في Trace POS';
   @override
   String get noUsersConfigured =>
       'لم يتم إعداد أي مستخدم. يرجى بدء معالج الإعداد الأولي.';
@@ -857,6 +857,132 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reprintAction => 'إعادة الطباعة';
   @override
   String get printingInProgress => 'جارٍ الطباعة...';
+  @override
+  String get receiptDuplicateBanner => '*** نسخة مكررة ***';
+  @override
+  String get receiptTicketLabel => 'وصل';
+  @override
+  String get receiptRegisterLabel => 'صندوق';
+  @override
+  String get receiptDateLabel => 'التاريخ';
+  @override
+  String get receiptCashierLabel => 'أمين الصندوق';
+  @override
+  String get receiptHeaderArticle => 'الصنف';
+  @override
+  String get receiptHeaderQty => 'الكمية';
+  @override
+  String get receiptHeaderPrice => 'س.الفردي';
+  @override
+  String get receiptHeaderTotal => 'المجموع';
+  @override
+  String get receiptLineDiscount => 'تخفيض';
+  @override
+  String get receiptSubtotal => 'المجموع الفرعي';
+  @override
+  String get receiptDiscount => 'تخفيض إجمالي';
+  @override
+  String get receiptTax => 'يشمل أ.ق.م';
+  @override
+  String get receiptTotal => 'المجموع الصافي';
+  @override
+  String get receiptPaymentMode => 'طريقة الدفع';
+  @override
+  String get receiptTendered => 'المدفوع';
+  @override
+  String get receiptChange => 'الباقي';
+  @override
+  String get receiptFooterGreeting => 'شكرًا لزيارتكم!';
+  @override
+  String get receiptFooterPolicy => 'البضاعة المباعة تستبدل خلال 15 يوماً بالوصل';
+
+  // --- Setup Wizard ---
+  @override
+  String get wizardTitle => 'معالج التثبيت والإعداد لـ Trace POS';
+  @override
+  String get wizardStepStore => 'المتجر';
+  @override
+  String get wizardStepRegister => 'نقطة البيع';
+  @override
+  String get wizardStepAdmin => 'رمز المشرف';
+  @override
+  String get wizardStepHardware => 'الملحقات';
+  @override
+  String get wizardStoreInfo => 'معلومات متجر الملابس والأنشطة التجارية :';
+  @override
+  String get wizardCompanyName => 'اسم المتجر / الشركة *';
+  @override
+  String get wizardFiscalId => 'المعرف الجبائي (MF)';
+  @override
+  String get wizardPhone => 'الهاتف';
+  @override
+  String get wizardAddress => 'العنوان';
+  @override
+  String get wizardRegisterInfo => 'تعريف نقطة البيع (الكاشير) :';
+  @override
+  String get wizardStoreName => 'اسم نقطة البيع *';
+  @override
+  String get wizardRegisterCode => 'معرف الكاشير (مثال: REG-001)';
+  @override
+  String get wizardRegisterCodeAuto => 'المعرف المحدد تلقائياً :';
+  @override
+  String get wizardRegisterCodeEdit => 'تعديل المعرف (متقدم)';
+  @override
+  String get wizardStockLocation => 'موقع المخزون الافتراضي';
+  @override
+  String get wizardAdminInfo => 'إنشاء حساب المشرف / المدير :';
+  @override
+  String get wizardOwnerName => 'الاسم الكامل للمدير *';
+  @override
+  String get wizardOwnerUsername => 'اسم المستخدم لتسجيل الدخول *';
+  @override
+  String get wizardOwnerPin => 'الرمز السري PIN (4 إلى 6 أرقام) *';
+  @override
+  String get wizardOwnerPinConfirm => 'تأكيد الرمز السري PIN *';
+  @override
+  String get wizardHardwareInfo => 'إعداد ملحقات نقطة البيع :';
+  @override
+  String get wizardHardwareNotice => 'يعمل نظام Trace POS فوراً سواء كانت الملحقات متصلة أم لا. يمكنك إعدادها لاحقاً.';
+  @override
+  String get wizardPaperWidth => 'عرض ورق طابعة الإيصالات :';
+  @override
+  String get wizardFinishButton => 'إنهاء وتهيئة النظام';
+  @override
+  String get wizardNextButton => 'التالي';
+  @override
+  String get wizardBackButton => 'السابق';
+  @override
+  String get wizardFillRequired => 'يرجى إكمال جميع الحقول الإلزامية قبل المتابعة';
+  @override
+  String get wizardPinMismatch => 'الرموز السرية غير متطابقة';
+  @override
+  String get wizardPinTooShort => 'يجب أن يتكون الرمز السري من 4 أرقام على الأقل';
+  @override
+  String get wizardSuccess => 'تمت تهيئة Trace POS بنجاح !';
+  @override
+  String get wizardRetry => 'إعادة المحاولة';
+  @override
+  String get wizardErrorTitle => 'خطأ في التهيئة';
+
+  // --- Product Image Management ---
+  @override
+  String get productImage => 'صورة المنتج';
+  @override
+  String get addImage => 'إضافة صورة';
+  @override
+  String get replaceImage => 'استبدال';
+  @override
+  String get removeImage => 'حذف';
+  @override
+  String get openImageFile => 'فتح الملف';
+  @override
+  String get confirmRemoveImage => 'هل أنت متأكد من رغبتك في حذف صورة هذا المنتج؟';
+  @override
+  String get confirmRemoveImageTitle => 'حذف الصورة';
+  @override
+  String get imageTooLarge => 'حجم الصورة كبير جداً. يرجى اختيار صورة أقل من 20 ميغابايت.';
+  @override
+  String get invalidImageFormat => 'صيغة الصورة غير مدعومة أو الملف تالف (الصيغ المقبولة: JPG, PNG, WebP).';
 
   // --- Formatting Helpers ---
   @override

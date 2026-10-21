@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:jazzpos/hardware/barcode_scanner/scanner_input_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/constants/app_constants.dart';
 import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
@@ -10,7 +12,9 @@ import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
 import 'package:jazzpos/providers/shift_provider.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:jazzpos/core/sound/sound_effect_service.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 import 'package:jazzpos/ui/widgets/numpad.dart';
 import 'receipt_preview_dialog.dart';
@@ -32,16 +36,56 @@ class PaymentDialog extends ConsumerStatefulWidget {
     required Money totalAmount,
     required String storeId,
     required String registerId,
+  }) async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final state = container.read(cartNotifierProvider);
+    if (state.isLocked || state.isProcessing) return;
+    final cart = container.read(cartNotifierProvider.notifier);
+    final session = cart.beginPaymentSession();
+    void resetScanner() {
+      if (!HardwareManager.instance.isInitialized) return;
+      final scanner = HardwareManager.instance.barcodeScanner;
+      if (scanner is ScannerInputService) scanner.reset();
+    }
+    resetScanner();
+    ({ReceiptDocument document, String? error})? result;
+    try {
+      result = await showDialog<({ReceiptDocument document, String? error})>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => PaymentDialog(
+          totalAmount: totalAmount, storeId: storeId, registerId: registerId,
+        ),
+      );
+    } finally {
+      resetScanner();
+      session.release();
+    }
+    if (result != null && context.mounted) {
+      if (result.error != null) {
+        _showHardwareFailureDialog(context, doc: result.document, errorMessage: result.error);
+      } else {
+        ReceiptPreviewDialog.show(context, document: result.document);
+      }
+    }
+  }
+
+  static void _showHardwareFailureDialog(BuildContext context, {
+    required ReceiptDocument doc, String? errorMessage,
   }) {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => PaymentDialog(
-        totalAmount: totalAmount,
-        storeId: storeId,
-        registerId: registerId,
+    showDialog<void>(context: context, builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) => AlertDialog(
+        title: const Text('Vente enregistrée'),
+        content: Text("L'impression du ticket a échoué.\nTicket ${doc.receiptNumber} — ${doc.total.format()}\n${errorMessage ?? ''}\nVérifiez le papier et la file Windows avant de réessayer : une impression peut être en attente."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fermer')),
+          TextButton(onPressed: () {
+            Navigator.pop(ctx);
+            if (context.mounted) ReceiptPreviewDialog.show(context, document: doc);
+          }, child: const Text('Aperçu / Réimprimer')),
+        ],
       ),
-    );
+    ));
   }
 
   @override
@@ -54,9 +98,84 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
   bool _isSubmitting = false;
   String? _error;
 
+  final FocusNode _keyboardFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent || _isSubmitting) return;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('0');
+    } else if (key == LogicalKeyboardKey.digit1 ||
+        key == LogicalKeyboardKey.numpad1) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('1');
+    } else if (key == LogicalKeyboardKey.digit2 ||
+        key == LogicalKeyboardKey.numpad2) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('2');
+    } else if (key == LogicalKeyboardKey.digit3 ||
+        key == LogicalKeyboardKey.numpad3) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('3');
+    } else if (key == LogicalKeyboardKey.digit4 ||
+        key == LogicalKeyboardKey.numpad4) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('4');
+    } else if (key == LogicalKeyboardKey.digit5 ||
+        key == LogicalKeyboardKey.numpad5) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('5');
+    } else if (key == LogicalKeyboardKey.digit6 ||
+        key == LogicalKeyboardKey.numpad6) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('6');
+    } else if (key == LogicalKeyboardKey.digit7 ||
+        key == LogicalKeyboardKey.numpad7) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('7');
+    } else if (key == LogicalKeyboardKey.digit8 ||
+        key == LogicalKeyboardKey.numpad8) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('8');
+    } else if (key == LogicalKeyboardKey.digit9 ||
+        key == LogicalKeyboardKey.numpad9) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('9');
+    } else if (key == LogicalKeyboardKey.period ||
+        key == LogicalKeyboardKey.comma ||
+        key == LogicalKeyboardKey.numpadDecimal) {
+      SoundEffectService.instance.playKeyTap();
+      _onNumpadPress('.');
+    } else if (key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.delete) {
+      SoundEffectService.instance.playBackspace();
+      _onNumpadBackspace();
+    } else if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      _submitCheckout();
+    }
+  }
+
+  /// Priority 3: Safe tendered money calculation. NEVER throws on invalid/incomplete input.
   Money get _tenderedAmount {
-    if (_tenderedBuffer.isEmpty) return widget.totalAmount;
-    return Money.parse(_tenderedBuffer.toString());
+    final text = _tenderedBuffer.toString().trim();
+    if (text.isEmpty) return widget.totalAmount;
+    final parsed = Money.tryParse(text);
+    if (parsed != null) return parsed;
+    // For trailing or lone separators, safely extract valid prefix
+    if (text == '.' || text == ',') return Money.zero;
+    if (text.endsWith('.') || text.endsWith(',')) {
+      final stripped = text.substring(0, text.length - 1);
+      return Money.tryParse(stripped) ?? Money.zero;
+    }
+    return Money.zero;
   }
 
   Money get _changeAmount {
@@ -64,14 +183,74 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     return _tenderedAmount - widget.totalAmount;
   }
 
+  /// Priority 3: Robust numpad handler rejecting repeated decimals, limiting decimals to 3 (TND millimes)
   void _onNumpadPress(String char) {
+    if (_isSubmitting) return;
     setState(() {
-      _tenderedBuffer.write(char);
       _error = null;
+      final cur = _tenderedBuffer.toString();
+      final normalized = char == ',' ? '.' : char;
+
+      // 1. Decimal point validation
+      if (normalized == '.') {
+        if (cur.contains('.')) {
+          // Reject repeated decimal point
+          return;
+        }
+        if (cur.isEmpty) {
+          _tenderedBuffer.write('0.');
+        } else {
+          _tenderedBuffer.write('.');
+        }
+        return;
+      }
+
+      // 2. Double-zero '00' validation
+      if (normalized == '00') {
+        if (cur.contains('.')) {
+          final parts = cur.split('.');
+          final decimals = parts.length > 1 ? parts[1] : '';
+          if (decimals.length >= 3) return;
+          if (decimals.length == 2) {
+            _tenderedBuffer.write('0');
+            return;
+          }
+          if (decimals.length <= 1) {
+            _tenderedBuffer.write('00');
+            return;
+          }
+        } else {
+          if (cur.isNotEmpty && cur != '0') {
+            _tenderedBuffer.write('00');
+          }
+        }
+        return;
+      }
+
+      // 3. Numeric digits (0-9)
+      if (RegExp(r'^[0-9]$').hasMatch(normalized)) {
+        if (cur == '0' && normalized != '0') {
+          _tenderedBuffer.clear();
+          _tenderedBuffer.write(normalized);
+          return;
+        }
+        if (cur == '0' && normalized == '0') {
+          return; // Prevent multiple leading zeros
+        }
+        if (cur.contains('.')) {
+          final parts = cur.split('.');
+          if (parts.length > 1 && parts[1].length >= 3) {
+            // TND supports at most 3 decimal places (millimes)
+            return;
+          }
+        }
+        _tenderedBuffer.write(normalized);
+      }
     });
   }
 
   void _onNumpadBackspace() {
+    if (_isSubmitting) return;
     if (_tenderedBuffer.isNotEmpty) {
       setState(() {
         final cur = _tenderedBuffer.toString();
@@ -82,12 +261,15 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
   }
 
   void _onNumpadClear() {
+    if (_isSubmitting) return;
     setState(() {
       _tenderedBuffer.clear();
     });
   }
 
   void _setPresetCash(Money amount) {
+    if (_isSubmitting) return;
+    SoundEffectService.instance.playKeyTap();
     setState(() {
       _tenderedBuffer.clear();
       _tenderedBuffer.write(
@@ -104,10 +286,12 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     final shift = ref.read(shiftNotifierProvider).activeShift;
 
     if (auth.user == null) {
+      SoundEffectService.instance.playError();
       setState(() => _error = loc.invalidUserSession);
       return;
     }
     if (shift == null) {
+      SoundEffectService.instance.playError();
       setState(() => _error = loc.noActiveShift);
       return;
     }
@@ -116,6 +300,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
     if (_selectedMethod == AppConstants.paymentCash) {
       if (_tenderedAmount < widget.totalAmount) {
+        SoundEffectService.instance.playError();
         setState(() => _error = loc.insufficientAmount);
         return;
       }
@@ -135,13 +320,12 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         ),
       );
     } else if (_selectedMethod == AppConstants.paymentMixed) {
-      // The visible numpad buffer is the card portion for a split payment.
-      // Previously a separate, unwritten buffer made every split invalid.
       final cardAmt = _tenderedBuffer.isEmpty
           ? Money.zero
-          : Money.parse(_tenderedBuffer.toString());
+          : (Money.tryParse(_tenderedBuffer.toString().trim()) ?? Money.zero);
       final cashAmt = widget.totalAmount - cardAmt;
       if (cardAmt <= Money.zero || cashAmt <= Money.zero) {
+        SoundEffectService.instance.playError();
         setState(() => _error = loc.invalidSplit);
         return;
       }
@@ -164,17 +348,11 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
     try {
       final cartNotifier = ref.read(cartNotifierProvider.notifier);
-      final result = await cartNotifier.checkout(
-        storeId: widget.storeId,
-        registerId: widget.registerId,
-        shiftId: shift.id,
-        cashierId: auth.user!.id,
-        payments: payments,
-      );
+      final db = ref.read(databaseProvider);
+
 
       // Receipts must show the client-configured business and register rather
       // than the development sample name or a fixed register code.
-      final db = ref.read(databaseProvider);
       final store = await (db.select(
         db.stores,
       )..where((tbl) => tbl.id.equals(widget.storeId))).getSingleOrNull();
@@ -187,17 +365,32 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                   ..where((tbl) => tbl.id.equals(store.companyId)))
                 .getSingleOrNull();
 
+      final result = await cartNotifier.checkout(
+        storeId: widget.storeId,
+        registerId: widget.registerId,
+        shiftId: shift.id,
+        cashierId: auth.user!.id,
+        payments: payments,
+      );
+
+      SoundEffectService.instance.playSuccess();
+
       // Trigger cash drawer kick on cash sale!
       if (_selectedMethod == AppConstants.paymentCash ||
           _selectedMethod == AppConstants.paymentMixed) {
         try {
           await HardwareManager.instance.cashDrawer.openDrawer();
-        } catch (_) {}
+        } catch (e) {
+          PosLogger.instance.warning(
+            'Hardware',
+            'Could not kick cash drawer: $e',
+          );
+        }
       }
 
       // Build receipt document and trigger printer
       final doc = ReceiptDocument(
-        storeName: company?.name ?? store?.name ?? 'JAZZ POS',
+        storeName: company?.name ?? store?.name ?? AppConstants.appName,
         storeAddress: store?.address ?? company?.address,
         storePhone: store?.phone ?? company?.phone,
         fiscalId: company?.fiscalId,
@@ -244,18 +437,12 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
-        if (!printSuccess) {
-          _showHardwareFailureDialog(
-            context,
-            doc: doc,
-            errorMessage: printErrorMessage,
-          );
-        } else {
-          ReceiptPreviewDialog.show(context, document: doc);
-        }
+        setState(() => _isSubmitting = false);
+        await WidgetsBinding.instance.endOfFrame;
+        if (mounted) Navigator.of(context).pop((document: doc, error: printSuccess ? null : printErrorMessage));
       }
     } catch (e) {
+      SoundEffectService.instance.playError();
       if (mounted) {
         setState(() {
           _isSubmitting = false;
@@ -265,132 +452,29 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     }
   }
 
-  void _showHardwareFailureDialog(
-    BuildContext context, {
-    required ReceiptDocument doc,
-    String? errorMessage,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppDesignTokens.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: AppDesignTokens.success, size: 28),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'VENTE ENREGISTRÉE AVEC SUCCÈS ✓',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppDesignTokens.successText,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppDesignTokens.warningBg,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppDesignTokens.warning),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.print_disabled,
-                    color: AppDesignTokens.warningText,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Imprimante indisponible',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppDesignTokens.warningText,
-                          ),
-                        ),
-                        if (errorMessage != null)
-                          Text(
-                            errorMessage,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppDesignTokens.warningText,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Ticket N° : ${doc.receiptNumber}\nMontant : ${doc.total.format()}\nLa vente, les stocks et les paiements ont été validés en base de données.',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppDesignTokens.textSecondary,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () async {
-              try {
-                await HardwareManager.instance.receiptPrinter.printReceipt(doc);
-                if (ctx.mounted) {
-                  Navigator.of(ctx).pop();
-                  ReceiptPreviewDialog.show(context, document: doc);
-                }
-              } catch (_) {}
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Réessayer'),
-          ),
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ReceiptPreviewDialog.show(context, document: doc);
-            },
-            icon: const Icon(Icons.remove_red_eye),
-            label: const Text('Aperçu ticket'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Continuer'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final loc = context.loc;
 
-    return Dialog(
+    return PopScope(
+      canPop: !_isSubmitting,
+      child: CallbackShortcuts(
+        bindings: {const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (!_isSubmitting) Navigator.of(context).pop();
+        }},
+        child: KeyboardListener(
+          focusNode: _keyboardFocusNode,
+          autofocus: true,
+          onKeyEvent: _handleKeyEvent,
+          child: Dialog(
       backgroundColor: AppDesignTokens.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
       ),
       child: Container(
-        width: 750,
+        width: 1000,
         padding: const EdgeInsets.all(AppDesignTokens.space24),
-        child: Column(
+        child: SingleChildScrollView(child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -493,8 +577,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                         ),
                         child: Column(
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              spacing: 12,
                               children: [
                                 Text(
                                   '${loc.total}:',
@@ -513,9 +598,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                             if (_selectedMethod ==
                                 AppConstants.paymentCash) ...[
                               const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                spacing: 12,
                                 children: [
                                   Text(
                                     '${loc.tenderedAmount}:',
@@ -535,9 +620,9 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                                 color: AppDesignTokens.border,
                                 height: 16,
                               ),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                spacing: 12,
                                 children: [
                                   Text(
                                     '${loc.changeDue}:',
@@ -673,19 +758,19 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
               ],
             ),
           ],
-        ),
+        )),
       ),
-    );
+    ))));
   }
 
   Widget _buildMethodButton(String method, String label, IconData icon) {
     final isSelected = _selectedMethod == method;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _selectedMethod = method),
+        onTap: _isSubmitting ? null : () => setState(() => _selectedMethod = method),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          height: 48,
+          height: 76,
           decoration: BoxDecoration(
             color: isSelected
                 ? AppDesignTokens.primary
@@ -697,7 +782,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                   : AppDesignTokens.border,
             ),
           ),
-          child: Row(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(

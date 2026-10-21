@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jazzpos/core/sound/sound_effect_service.dart';
 import '../../theme/app_design_tokens.dart';
 import '../../theme/app_theme.dart';
 
@@ -64,7 +65,14 @@ class AppButton extends StatelessWidget {
         break;
     }
 
-    final effectiveOnPressed = isLoading ? null : onPressed;
+    final effectiveOnPressed = isLoading
+        ? null
+        : (onPressed != null
+            ? () {
+                SoundEffectService.instance.playButtonTap();
+                onPressed!();
+              }
+            : null);
 
     Widget content = Row(
       mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,

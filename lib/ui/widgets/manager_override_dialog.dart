@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/localization/app_localizations.dart';
+import 'package:jazzpos/core/sound/sound_effect_service.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
@@ -89,9 +90,11 @@ class _ManagerOverrideDialogState extends ConsumerState<ManagerOverrideDialog> {
         requiredPermission: widget.requiredPermission,
       );
       if (mounted) {
+        SoundEffectService.instance.playSuccess();
         Navigator.of(context).pop(manager);
       }
     } catch (e) {
+      SoundEffectService.instance.playError();
       if (mounted) {
         setState(() {
           _isLoading = false;

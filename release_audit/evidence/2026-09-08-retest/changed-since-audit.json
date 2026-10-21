@@ -1,0 +1,10 @@
+[
+  "lib/hardware/barcode_scanner/scanner_input_service.dart",
+  "lib/hardware/hardware_manager.dart",
+  "lib/hardware/receipt_printer/printer_scorer.dart",
+  "lib/hardware/receipt_printer/windows_spooler_printer.dart",
+  "lib/providers/cart_provider.dart",
+  "lib/ui/screens/checkout/checkout_screen.dart",
+  "lib/ui/screens/checkout/widgets/payment_dialog.dart",
+  "windows/runner/main.cpp"
+]

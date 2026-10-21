@@ -1,0 +1,185 @@
+{
+  "traceposVersion": "1.0.0+1",
+  "jazzposVersion": "1.0.0+1",
+  "generatedAt": "2026-09-07T13:31:46.210189",
+  "system": {
+    "os": "windows",
+    "edition": "Windows 10 Home Single Language",
+    "version": "\"Windows 11 Famille Unilingue\" 10.0 (Build 26200)",
+    "build": "26200",
+    "architecture": "x64",
+    "cpu": "8 cores",
+    "ramTotalMb": null,
+    "ramFreeMb": null,
+    "diskTotalMb": null,
+    "diskFreeMb": null,
+    "isElevatedAdmin": false,
+    "hostname": "LAPTOP-4KGH5S68",
+    "locale": "en_US",
+    "language": "en",
+    "timeZone": "Afr. centrale Ouest",
+    "vcRuntimeAvailable": true,
+    "networkAvailable": true,
+    "isSupportedWindows": true
+  },
+  "storageAndDatabase": {
+    "appDirectory": "C:\\src\\flutter\\bin\\cache\\artifacts\\engine\\windows-x64",
+    "dataDirectory": "C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS",
+    "dataDirWritable": true,
+    "backupDirWritable": true,
+    "sqliteAccessible": true,
+    "sqliteIntegrityHealthy": true,
+    "sqliteDetails": null,
+    "schemaVersion": 2
+  },
+  "hardware": {
+    "receiptPrinter": {
+      "name": "Default Receipt Printer",
+      "connectionType": "WINDOWS_SPOOLER",
+      "status": "CONFIGURED",
+      "profile": "GENERIC_WINDOWS",
+      "fingerprint": "WINDOWS_SPOOLER::::"
+    },
+    "barcodeScanner": {
+      "name": "USB HID Universal Barcode Scanner",
+      "status": "READY",
+      "mode": "KEYBOARD_WEDGE"
+    },
+    "cashDrawer": {
+      "name": "Simulated Cash Drawer",
+      "mode": "THROUGH_PRINTER",
+      "status": "SIMULATED",
+      "isTested": true
+    },
+    "customerDisplay": {
+      "name": "Simulated 2x20 VFD Customer Display",
+      "mode": "SECOND_MONITOR",
+      "status": "SIMULATED"
+    }
+  },
+  "discoveredPeripherals": {
+    "printers": [
+      {
+        "name": "OneNote (Desktop)",
+        "driverName": "Send to Microsoft OneNote 16 Driver",
+        "portName": "nul:",
+        "isLocal": true,
+        "isNetwork": false,
+        "isDefault": false,
+        "isOnline": true,
+        "isPaused": false,
+        "queuedJobs": 0,
+        "paperCapabilities": "A4/Document",
+        "windowsPrinterStatus": "Ready",
+        "score": 0,
+        "confidence": "excluded",
+        "matchedEvidence": "Excluded virtual/document printer (ONENOTE)"
+      },
+      {
+        "name": "Microsoft Print to PDF",
+        "driverName": "Microsoft Print To PDF",
+        "portName": "PORTPROMPT:",
+        "isLocal": true,
+        "isNetwork": false,
+        "isDefault": true,
+        "isOnline": true,
+        "isPaused": false,
+        "queuedJobs": 0,
+        "paperCapabilities": "A4/Document",
+        "windowsPrinterStatus": "Ready",
+        "score": 0,
+        "confidence": "excluded",
+        "matchedEvidence": "Excluded virtual/document printer (MICROSOFT PRINT TO PDF)"
+      }
+    ],
+    "usbDevices": [
+      {
+        "name": "Hub USB racine (USB 3.0)",
+        "manufacturer": "(HUB USB standard)",
+        "vendorId": null,
+        "productId": null,
+        "serialNumber": null,
+        "deviceClass": "USBHUB3",
+        "port": null,
+        "isConnected": true
+      },
+      {
+        "name": "P‚riph‚rique USB composite",
+        "manufacturer": "(Contr“leur h“te USB standard)",
+        "vendorId": "13D3",
+        "productId": "54B1",
+        "serialNumber": null,
+        "deviceClass": "usbccgp",
+        "port": null,
+        "isConnected": true
+      },
+      {
+        "name": "Intel(R) Wireless Bluetooth(R)",
+        "manufacturer": "Intel Corporation",
+        "vendorId": "8087",
+        "productId": "0026",
+        "serialNumber": null,
+        "deviceClass": "BTHUSB",
+        "port": null,
+        "isConnected": true
+      },
+      {
+        "name": "Hub USB racine (USB 3.0)",
+        "manufacturer": "(HUB USB standard)",
+        "vendorId": null,
+        "productId": null,
+        "serialNumber": null,
+        "deviceClass": "USBHUB3",
+        "port": null,
+        "isConnected": true
+      },
+      {
+        "name": "Integrated Camera",
+        "manufacturer": "Sonix",
+        "vendorId": "13D3",
+        "productId": "54B1",
+        "serialNumber": null,
+        "deviceClass": "usbvideo",
+        "port": null,
+        "isConnected": true
+      }
+    ],
+    "serialPorts": [],
+    "displays": [
+      {
+        "id": 0,
+        "width": 2400,
+        "height": 1800,
+        "dpiScale": 3.0,
+        "isPrimary": true
+      }
+    ]
+  },
+  "recommendations": {
+    "receiptPrinter": null,
+    "barcodeScanner": {
+      "peripheralType": "SCANNER",
+      "recommendedName": "Lecteur Code-barres USB HID (Clavier)",
+      "transport": "KEYBOARD_WEDGE",
+      "details": "Détection automatique rapide sans pilote requis (Plug & Play)",
+      "confidence": "high",
+      "profile": null
+    },
+    "cashDrawer": {
+      "peripheralType": "DRAWER",
+      "recommendedName": "Désactivé",
+      "transport": "DISABLED",
+      "details": "Aucune imprimante avec port tiroir détectée",
+      "confidence": "low",
+      "profile": null
+    },
+    "customerDisplay": {
+      "peripheralType": "DISPLAY",
+      "recommendedName": "Désactivé",
+      "transport": "DISABLED",
+      "details": "Aucun écran secondaire détecté",
+      "confidence": "low",
+      "profile": null
+    }
+  }
+}

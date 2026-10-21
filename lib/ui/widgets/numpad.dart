@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:jazzpos/core/sound/sound_effect_service.dart';
 import '../theme/app_design_tokens.dart';
 
 class Numpad extends StatelessWidget {
@@ -93,7 +94,16 @@ class Numpad extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: () {
+            if (label == '⌫') {
+              SoundEffectService.instance.playBackspace();
+            } else if (label == 'C') {
+              SoundEffectService.instance.playClear();
+            } else {
+              SoundEffectService.instance.playKeyTap();
+            }
+            onTap();
+          },
           borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
           child: Center(
             child: Text(

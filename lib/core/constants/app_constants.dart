@@ -1,7 +1,8 @@
 /// Application-wide constants and enumerations.
 class AppConstants {
-  static const String appName = 'JazzPOS';
+  static const String appName = 'Trace POS';
   static const String appVersion = '1.0.0+1';
+  static const String buildCommit = String.fromEnvironment('TRACE_BUILD_COMMIT', defaultValue:'local-unversioned');
   static const String currencyCode = 'TND';
   static const int currencyDecimals = 3;
 
@@ -63,6 +64,7 @@ class AppConstants {
   static const String syncInProgress = 'IN_PROGRESS';
   static const String syncSynced = 'SYNCED';
   static const String syncFailed = 'FAILED';
+  static const String syncDeadLetter = 'DEAD_LETTER';
 
   // Device types
   static const String deviceReceiptPrinter = 'RECEIPT_PRINTER';

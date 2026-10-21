@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
 import 'package:jazzpos/hardware/receipt_printer/printer_candidate.dart';
 import 'package:jazzpos/hardware/receipt_printer/printer_scorer.dart';
@@ -185,7 +186,7 @@ class HardwareDiscoveryService {
         final psScript = '''
 Get-CimInstance Win32_Printer | Select-Object Name, DriverName, PortName, Local, Network, Default, WorkOffline | ConvertTo-Json -Compress
 ''';
-        final result = await Process.run('powershell', [
+        final result = await ProcessUtils.safeRun('powershell', [
           '-NoProfile',
           '-NonInteractive',
           '-Command',
@@ -224,6 +225,56 @@ Get-CimInstance Win32_Printer | Select-Object Name, DriverName, PortName, Local,
           'Printer discovery error on Windows: $e',
         );
       }
+    } else if (Platform.isMacOS) {
+      try {
+        final result = await ProcessUtils.safeRun(
+          'lpstat',
+          ['-p', '-d'],
+          timeout: const Duration(seconds: 4),
+        );
+        if (result.exitCode == 0 &&
+            (result.stdout as String).trim().isNotEmpty) {
+          final output = result.stdout as String;
+          final lines = output.split('\n');
+          String? defaultPrinter;
+          for (final line in lines) {
+            final lower = line.toLowerCase();
+            if (lower.contains('system default destination:')) {
+              defaultPrinter = line.split(':').last.trim();
+            }
+          }
+          final printerRegex = RegExp(
+            r'^printer\s+([^\s]+)\s+is\s+(\w+)',
+            caseSensitive: false,
+          );
+          for (final line in lines) {
+            final match = printerRegex.firstMatch(line.trim());
+            if (match != null) {
+              final queueName = match.group(1)!;
+              final state = match.group(2)!.toLowerCase();
+              final isOnline = state != 'disabled';
+              final isPaused = state == 'paused';
+              final isDefault = queueName == defaultPrinter;
+              candidates.add(
+                PrinterScorer.evaluate(
+                  name: queueName,
+                  driverName: 'CUPS Raw / Direct',
+                  portName: 'CUPS',
+                  isLocal: true,
+                  isDefault: isDefault,
+                  isOnline: isOnline,
+                  isPaused: isPaused,
+                ),
+              );
+            }
+          }
+        }
+      } catch (e) {
+        PosLogger.instance.warning(
+          'Discovery',
+          'Printer discovery error on macOS: $e',
+        );
+      }
     }
 
     // If no physical printers found (e.g. macOS / Linux / test environment),
@@ -254,7 +305,7 @@ Get-CimInstance Win32_Printer | Select-Object Name, DriverName, PortName, Local,
         final psScript = '''
 Get-CimInstance Win32_PnPEntity | Where-Object { \$_.DeviceID -like 'USB*' } | Select-Object Name, Manufacturer, DeviceID, Status, Service | ConvertTo-Json -Compress
 ''';
-        final result = await Process.run('powershell', [
+        final result = await ProcessUtils.safeRun('powershell', [
           '-NoProfile',
           '-NonInteractive',
           '-Command',
@@ -313,7 +364,7 @@ Get-CimInstance Win32_PnPEntity | Where-Object { \$_.DeviceID -like 'USB*' } | S
         final psScript = '''
 Get-CimInstance Win32_SerialPort | Select-Object DeviceID, Name, Description, PNPDeviceID | ConvertTo-Json -Compress
 ''';
-        final result = await Process.run('powershell', [
+        final result = await ProcessUtils.safeRun('powershell', [
           '-NoProfile',
           '-NonInteractive',
           '-Command',
@@ -358,6 +409,33 @@ Get-CimInstance Win32_SerialPort | Select-Object DeviceID, Name, Description, PN
         }
       } catch (e) {
         PosLogger.instance.warning('Discovery', 'Serial discovery error: $e');
+      }
+    } else if (Platform.isMacOS || Platform.isLinux) {
+      try {
+        final devDir = Directory('/dev');
+        if (devDir.existsSync()) {
+          final entities = devDir.listSync();
+          for (final entity in entities) {
+            final base = entity.path.split('/').last;
+            if (base.startsWith('cu.usbserial') ||
+                base.startsWith('cu.usbmodem') ||
+                base.startsWith('ttyUSB') ||
+                base.startsWith('ttyACM')) {
+              ports.add(
+                DiscoveredSerialPort(
+                  portName: entity.path,
+                  friendlyName: base,
+                  description: 'USB Serial Device ($base)',
+                ),
+              );
+            }
+          }
+        }
+      } catch (e) {
+        PosLogger.instance.warning(
+          'Discovery',
+          'Serial discovery error on macOS/Linux: $e',
+        );
       }
     }
 

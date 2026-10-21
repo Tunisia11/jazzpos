@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'printer_profile.dart';
@@ -69,8 +70,8 @@ class EscPosSerialPrinter implements ReceiptPrinter {
     }
 
     try {
-      // Check if COM port is present in Windows serial ports
-      final result = await Process.run('powershell', [
+      // Check if COM port is present in Windows serial ports with strict timeout
+      final result = await ProcessUtils.safeRun('powershell', [
         '-NoProfile',
         '-NonInteractive',
         '-Command',
@@ -121,15 +122,19 @@ class EscPosSerialPrinter implements ReceiptPrinter {
       );
       await tempFile.writeAsBytes(bytes);
       // Windows command to redirect binary file to COM port
-      await Process.run('cmd', [
+      await ProcessUtils.safeRun('cmd', [
         '/c',
         'mode',
         '$comPort:BAUD=$baudRate',
         'PARITY=N',
         'DATA=8',
         'STOP=1',
-      ]);
-      await Process.run('cmd', ['/c', 'copy', '/b', tempFile.path, comPort]);
+      ], timeout: const Duration(seconds: 3));
+      await ProcessUtils.safeRun(
+        'cmd',
+        ['/c', 'copy', '/b', tempFile.path, comPort],
+        timeout: const Duration(seconds: 4),
+      );
       try {
         await tempFile.delete();
       } catch (_) {}

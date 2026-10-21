@@ -94,12 +94,25 @@ class IdGenerator {
     final data =
         prefix +
         List.generate(12 - prefix.length, (_) => _random.nextInt(10)).join();
+    final checkDigit = computeEan13CheckDigit(data);
+    return '$data$checkDigit';
+  }
+
+  /// Compute GS1 standard Modulo-10 check digit for an input string of digits
+  static String computeEan13CheckDigit(String data) {
     int sum = 0;
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < data.length; i++) {
       final digit = int.parse(data[i]);
       sum += (i % 2 == 0) ? digit : digit * 3;
     }
-    final checkDigit = (10 - (sum % 10)) % 10;
-    return '$data$checkDigit';
+    return '${(10 - (sum % 10)) % 10}';
+  }
+
+  /// Check whether a 13-digit barcode has a valid Modulo-10 check digit
+  static bool isValidEan13(String barcode) {
+    if (barcode.length != 13 || !RegExp(r'^\d{13}$').hasMatch(barcode)) return false;
+    final data = barcode.substring(0, 12);
+    final expectedCheck = computeEan13CheckDigit(data);
+    return barcode[12] == expectedCheck;
   }
 }

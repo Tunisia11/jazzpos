@@ -7,6 +7,10 @@ enum HardwareStatus {
   detected('DETECTED'),
   configured('CONFIGURED'),
   connecting('CONNECTING'),
+  unknown('UNKNOWN'),
+  paused('PAUSED'),
+  missing('MISSING'),
+  queueExists('QUEUE_EXISTS'),
   ready('READY'),
   offline('OFFLINE'),
   error('ERROR'),
@@ -32,6 +36,14 @@ enum HardwareStatus {
 
   String get labelFr {
     switch (this) {
+      case HardwareStatus.unknown:
+        return 'État inconnu';
+      case HardwareStatus.paused:
+        return 'File en pause';
+      case HardwareStatus.missing:
+        return 'File absente';
+      case HardwareStatus.queueExists:
+        return 'File présente (état physique inconnu)';
       case HardwareStatus.notConfigured:
         return 'Non configuré';
       case HardwareStatus.scanning:
@@ -43,7 +55,7 @@ enum HardwareStatus {
       case HardwareStatus.connecting:
         return 'Connexion...';
       case HardwareStatus.ready:
-        return 'Prêt (Physique)';
+        return 'Prêt selon Windows';
       case HardwareStatus.offline:
         return 'Hors ligne';
       case HardwareStatus.error:
@@ -62,11 +74,15 @@ enum HardwareStatus {
       case HardwareStatus.detected:
       case HardwareStatus.configured:
         return const Color(0xFF2563EB); // Blue
+      case HardwareStatus.unknown:
+      case HardwareStatus.paused:
+      case HardwareStatus.queueExists:
       case HardwareStatus.connecting:
       case HardwareStatus.scanning:
         return const Color(0xFFD97706); // Amber
       case HardwareStatus.simulated:
         return const Color(0xFF9333EA); // Purple
+      case HardwareStatus.missing:
       case HardwareStatus.offline:
       case HardwareStatus.unsupported:
         return const Color(0xFF64748B); // Slate

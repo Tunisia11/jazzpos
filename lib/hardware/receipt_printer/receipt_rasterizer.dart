@@ -58,7 +58,7 @@ class ReceiptRasterizer {
   static img.Image createTestRasterPattern({
     int width = 576,
     int height = 120,
-    String text = 'JAZZ POS ARABIC / RASTER ENGINE',
+    String text = 'TRACE POS ARABIC / RASTER ENGINE',
   }) {
     final image = img.Image(width: width, height: height);
     // Fill white

@@ -126,6 +126,21 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_sale_lines_sale_id ON sale_lines(sale_id);',
         );
         await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_sale_payments_sale_id ON sale_payments(sale_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_sales_shift_id ON sales(shift_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_returns_shift_id ON returns(shift_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_cash_movements_shift_id ON cash_movements(shift_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_product_variants_product_id ON product_variants(product_id);',
+        );
+        await customStatement(
           'CREATE INDEX IF NOT EXISTS idx_sync_outbox_status ON sync_outbox(status);',
         );
       },
@@ -144,6 +159,96 @@ class AppDatabase extends _$AppDatabase {
       beforeOpen: (details) async {
         // Enforce foreign keys on every connection
         await customStatement('PRAGMA foreign_keys = ON;');
+
+        // Ensure high-performance indexes exist on existing databases
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_sale_payments_sale_id ON sale_payments(sale_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_sales_shift_id ON sales(shift_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_returns_shift_id ON returns(shift_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_cash_movements_shift_id ON cash_movements(shift_id);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_product_variants_product_id ON product_variants(product_id);',
+        );
+
+        // Auto-heal legacy or external text ISO strings once via migration check,
+        // avoiding 60 full table scans on every connection open.
+        final healed = await customSelect(
+          "SELECT value FROM app_settings WHERE key = 'legacy_dates_healed_v1' LIMIT 1;",
+        ).getSingleOrNull();
+
+        if (healed == null || healed.data['value'] != 'true') {
+          const tablesWithDates = [
+            ('companies', ['created_at', 'updated_at']),
+            ('stores', ['created_at', 'updated_at']),
+            ('registers', ['created_at', 'updated_at']),
+            ('users', ['created_at', 'updated_at']),
+            ('products', ['created_at', 'updated_at', 'deleted_at']),
+            ('product_variants', ['created_at', 'updated_at', 'deleted_at']),
+            ('stock_levels', ['updated_at']),
+            ('stock_movements', ['created_at']),
+            ('inventory_counts', ['created_at', 'approved_at']),
+            ('stock_transfers', ['created_at', 'received_at']),
+            ('shifts', ['opened_at', 'closed_at']),
+            ('customers', ['created_at']),
+            ('sales', ['created_at']),
+            ('sale_lines', ['created_at']),
+            ('sale_payments', ['created_at']),
+            ('returns', ['created_at']),
+            ('return_lines', ['created_at']),
+            ('exchanges', ['created_at']),
+            ('suspended_carts', ['created_at']),
+            ('reservations', ['created_at', 'expires_at']),
+            ('suppliers', ['created_at']),
+            ('purchase_orders', ['created_at', 'updated_at']),
+            ('goods_receipts', ['created_at']),
+            ('promotions', ['start_date', 'end_date']),
+            ('hardware_devices', ['created_at', 'updated_at']),
+            ('audit_events', ['created_at']),
+            ('sync_outbox', ['created_at', 'updated_at']),
+            ('backup_records', ['created_at']),
+            ('import_batches', ['created_at']),
+            ('import_errors', ['created_at']),
+          ];
+
+          for (final entry in tablesWithDates) {
+            final table = entry.$1;
+            final cols = entry.$2;
+            for (final col in cols) {
+              try {
+                await customStatement(
+                  "UPDATE $table SET $col = CAST(strftime('%s', $col) AS INTEGER) "
+                  "WHERE $col IS NOT NULL AND typeof($col) = 'text';",
+                );
+              } catch (_) {
+                // Safe skip if table or column does not exist yet during migration
+              }
+            }
+          }
+
+          try {
+            await customStatement(
+              "INSERT OR REPLACE INTO app_settings (key, value, updated_at) "
+              "VALUES ('legacy_dates_healed_v1', 'true', CAST(strftime('%s', 'now') AS INTEGER));",
+            );
+          } catch (_) {}
+        }
+
+        // Guarantee that if 'REG-01' is ever referenced, it exists in registers
+        // table, preventing foreign key constraint violations.
+        try {
+          await customStatement('''
+            INSERT OR IGNORE INTO registers (id, store_id, name, code, created_at, updated_at)
+            SELECT 'REG-01', s.id, 'Caisse 01', 'REG-01', CAST(strftime('%s', 'now') AS INTEGER), CAST(strftime('%s', 'now') AS INTEGER)
+            FROM stores s LIMIT 1;
+          ''');
+        } catch (_) {}
       },
     );
   }

@@ -76,6 +76,12 @@ class KeyboardBarcodeScanner implements BarcodeScanner {
     _listening = false;
   }
 
+  @override
+  void simulateScan(String barcode) {
+    PosLogger.instance.info('Scanner', 'Simulated barcode scan: $barcode');
+    _scanController.add(barcode.trim());
+  }
+
   bool _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
 

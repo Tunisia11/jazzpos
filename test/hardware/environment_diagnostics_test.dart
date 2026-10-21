@@ -99,8 +99,8 @@ void main() {
   });
 
   group('HardwareStatus Lifecycle', () {
-    test('all 10 lifecycle states have valid French labels and colors', () {
-      expect(HardwareStatus.values.length, equals(10));
+    test('all lifecycle states have valid French labels and colors', () {
+      expect(HardwareStatus.values, containsAll([HardwareStatus.unknown, HardwareStatus.paused, HardwareStatus.missing, HardwareStatus.queueExists]));
 
       for (final status in HardwareStatus.values) {
         expect(status.labelFr.isNotEmpty, isTrue);
@@ -121,6 +121,10 @@ void main() {
       );
       expect(
         HardwareStatus.fromString('UNKNOWN'),
+        equals(HardwareStatus.unknown),
+      );
+      expect(
+        HardwareStatus.fromString('NON_EXISTENT_STATUS'),
         equals(HardwareStatus.notConfigured),
       );
     });

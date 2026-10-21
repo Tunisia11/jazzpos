@@ -19,7 +19,8 @@ class ExportDiagnosticReportService {
         envReport ?? await EnvironmentDiagnosticsService().inspectEnvironment();
 
     return {
-      'jazzposVersion': '1.0.0+1',
+      'traceposVersion': '1.0.0+1',
+      'jazzposVersion': '1.0.0+1', // Legacy compatibility key
       'generatedAt': DateTime.now().toIso8601String(),
       'system': {
         'os': env.osName,
@@ -101,7 +102,7 @@ class ExportDiagnosticReportService {
       final jsonString = const JsonEncoder.withIndent('  ').convert(reportMap);
 
       final dateStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final fileName = 'jazzpos_diagnostic_report_$dateStr.json';
+      final fileName = 'tracepos_diagnostic_report_$dateStr.json';
 
       final location = await getSaveLocation(
         suggestedName: fileName,

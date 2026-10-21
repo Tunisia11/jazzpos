@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/constants/permissions.dart';
+import 'package:jazzpos/core/constants/roles.dart';
 import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
 import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
@@ -10,18 +11,19 @@ import '../screens/catalog/product_list_screen.dart';
 import '../screens/checkout/checkout_screen.dart';
 import '../screens/inventory/inventory_screen.dart';
 import '../screens/labels/label_studio_screen.dart';
-import '../screens/purchasing/purchase_orders_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../screens/returns/returns_exchanges_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/shifts/shift_management_screen.dart';
+import '../screens/mobile/owner_mobile_shell.dart';
+import '../screens/mobile/owner_dashboard_view.dart';
 import '../widgets/manager_override_dialog.dart';
 
 enum AppNavDestination {
   checkout,
+  dashboard,
   catalog,
   inventory,
-  purchasing,
   returns,
   labels,
   shifts,
@@ -43,12 +45,11 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   String? _permissionForDest(AppNavDestination dest) {
     switch (dest) {
-      case AppNavDestination.inventory:
-        return AppPermissions.manageInventory;
-      case AppNavDestination.purchasing:
-        return AppPermissions.manageSuppliers;
+      case AppNavDestination.dashboard:
       case AppNavDestination.reports:
         return AppPermissions.viewReports;
+      case AppNavDestination.inventory:
+        return AppPermissions.manageInventory;
       case AppNavDestination.settings:
         return AppPermissions.manageSettings;
       default:
@@ -84,6 +85,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // 1. If not authenticated -> Login Screen
     if (!authState.isAuthenticated) {
+      _temporaryOverrides.clear();
       return LoginScreen(
         onLoginSuccess: () {
           setState(() => _currentNav = AppNavDestination.checkout);
@@ -93,10 +95,19 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     // 2. If session is locked -> Lock Screen
     if (authState.isLocked) {
+      _temporaryOverrides.clear();
       return const LockScreen();
     }
 
     final isRtl = context.isRtl;
+
+    // Responsive Mobile check: on compact mobile screens, present the Owner Mobile Shell ONLY for Owner / Manager!
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isOwnerOrManager = authState.user?.role == AppRoles.owner ||
+        authState.user?.role == AppRoles.manager;
+    if (screenWidth < 768 && isOwnerOrManager) {
+      return const OwnerMobileShell();
+    }
 
     // 3. Authenticated and active -> Show Shell with Directional Navigation Rail
     return Scaffold(
@@ -137,17 +148,11 @@ class _AppShellState extends ConsumerState<AppShell> {
                       ),
                       if (_isDrawerOpen) ...[
                         const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppDesignTokens.primary,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Icon(
-                            Icons.storefront,
-                            size: 16,
-                            color: Colors.white,
-                          ),
+                        Image.asset(
+                          'assets/images/trace_logo_mark.png',
+                          width: 26,
+                          height: 26,
+                          fit: BoxFit.contain,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -181,6 +186,12 @@ class _AppShellState extends ConsumerState<AppShell> {
                         authState,
                       ),
                       _buildNavItem(
+                        AppNavDestination.dashboard,
+                        Icons.dashboard_outlined,
+                        'Tableau de bord',
+                        authState,
+                      ),
+                      _buildNavItem(
                         AppNavDestination.catalog,
                         Icons.checkroom,
                         context.loc.navCatalog,
@@ -190,12 +201,6 @@ class _AppShellState extends ConsumerState<AppShell> {
                         AppNavDestination.inventory,
                         Icons.inventory_2,
                         context.loc.navInventory,
-                        authState,
-                      ),
-                      _buildNavItem(
-                        AppNavDestination.purchasing,
-                        Icons.local_shipping,
-                        context.loc.navPurchasing,
                         authState,
                       ),
                       _buildNavItem(
@@ -509,27 +514,34 @@ class _AppShellState extends ConsumerState<AppShell> {
       );
     }
 
-    switch (_currentNav) {
-      case AppNavDestination.checkout:
-        return CheckoutScreen(
+    const destinations = [
+      AppNavDestination.checkout,
+      AppNavDestination.dashboard,
+      AppNavDestination.catalog,
+      AppNavDestination.inventory,
+      AppNavDestination.returns,
+      AppNavDestination.labels,
+      AppNavDestination.shifts,
+      AppNavDestination.reports,
+      AppNavDestination.settings,
+    ];
+
+    final index = destinations.indexOf(_currentNav);
+    return IndexedStack(
+      index: index >= 0 ? index : 0,
+      children: [
+        CheckoutScreen(
           onOpenMenu: () => setState(() => _isDrawerOpen = !_isDrawerOpen),
-        );
-      case AppNavDestination.catalog:
-        return const ProductListScreen();
-      case AppNavDestination.inventory:
-        return const InventoryScreen();
-      case AppNavDestination.purchasing:
-        return const PurchaseOrdersScreen();
-      case AppNavDestination.returns:
-        return const ReturnsExchangesScreen();
-      case AppNavDestination.labels:
-        return const LabelStudioScreen();
-      case AppNavDestination.shifts:
-        return const ShiftManagementScreen();
-      case AppNavDestination.reports:
-        return const ReportsScreen();
-      case AppNavDestination.settings:
-        return const SettingsScreen();
-    }
+        ),
+        const OwnerDashboardView(),
+        const ProductListScreen(),
+        const InventoryScreen(),
+        const ReturnsExchangesScreen(),
+        const LabelStudioScreen(),
+        const ShiftManagementScreen(),
+        const ReportsScreen(),
+        const SettingsScreen(),
+      ],
+    );
   }
 }

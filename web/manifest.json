@@ -1,6 +1,6 @@
 {
-    "name": "jazzpos",
-    "short_name": "jazzpos",
+    "name": "Trace POS",
+    "short_name": "Trace POS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

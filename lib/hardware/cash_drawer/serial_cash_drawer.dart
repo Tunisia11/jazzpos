@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:jazzpos/core/platform/process_utils.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'cash_drawer_interface.dart';
 
@@ -37,6 +38,42 @@ class SerialCashDrawer implements CashDrawer {
       );
     }
 
+    if (Platform.isMacOS || Platform.isLinux) {
+      final devPath = comPort.startsWith('/dev/')
+          ? comPort
+          : '/dev/cu.${comPort.replaceAll(RegExp(r'^/dev/(cu\.|tty\.)?'), '')}';
+      final devFile = File(devPath);
+      if (devFile.existsSync()) {
+        try {
+          final sink = devFile.openWrite();
+          sink.add([0x1B, 0x70, 0x00, 0x19, 0xFA]);
+          await sink.flush();
+          await sink.close();
+          _isTested = true;
+          PosLogger.instance.info(
+            'CashDrawer',
+            'Fired drawer kick pulse on POSIX serial port $devPath',
+          );
+          return;
+        } catch (e) {
+          PosLogger.instance.error(
+            'CashDrawer',
+            'Failed writing to POSIX serial port $devPath: $e',
+          );
+          throw Exception(
+            'Failed to trigger serial cash drawer on $devPath: $e',
+          );
+        }
+      } else {
+        PosLogger.instance.info(
+          'CashDrawer',
+          '[Simulated] Serial drawer kick on $comPort (device $devPath not attached)',
+        );
+        _isTested = true;
+        return;
+      }
+    }
+
     if (!Platform.isWindows) {
       PosLogger.instance.info(
         'CashDrawer',
@@ -52,7 +89,11 @@ class SerialCashDrawer implements CashDrawer {
         '${Directory.systemTemp.path}${Platform.pathSeparator}drawer_${DateTime.now().millisecondsSinceEpoch}.bin',
       );
       await temp.writeAsBytes([0x1B, 0x70, 0x00, 0x19, 0xFA]);
-      await Process.run('cmd', ['/c', 'copy', '/b', temp.path, comPort]);
+      await ProcessUtils.safeRun(
+        'cmd',
+        ['/c', 'copy', '/b', temp.path, comPort],
+        timeout: const Duration(seconds: 3),
+      );
       try {
         await temp.delete();
       } catch (_) {}

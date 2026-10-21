@@ -49,6 +49,17 @@ class EscPosNetworkPrinter implements ReceiptPrinter {
     status = HardwareStatus.connecting;
     try {
       _socket = await Socket.connect(ipAddress, port, timeout: timeout);
+      _socket!.listen(
+        (_) {},
+        onError: (e) {
+          PosLogger.instance.warning('NetworkPrinter', 'Socket error: $e');
+          disconnect();
+        },
+        onDone: () {
+          disconnect();
+        },
+        cancelOnError: true,
+      );
       status = HardwareStatus.ready;
       PosLogger.instance.info(
         'NetworkPrinter',
@@ -100,7 +111,7 @@ class EscPosNetworkPrinter implements ReceiptPrinter {
 
     try {
       _socket!.add(bytes);
-      await _socket!.flush();
+      await _socket!.flush().timeout(const Duration(seconds: 5));
     } catch (e) {
       status = HardwareStatus.error;
       await disconnect();
@@ -125,6 +136,7 @@ class EscPosNetworkPrinter implements ReceiptPrinter {
   @override
   Future<void> disconnect() async {
     try {
+      _socket?.destroy();
       await _socket?.close();
     } catch (_) {}
     _socket = null;

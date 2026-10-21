@@ -15,7 +15,7 @@
 | **Application Version** | `1.0.0+1` (RC1) | Semantic versioning |
 | **Windows Executable** | `jazzpos.exe` | Compiled via Flutter Windows engine + MSVC v143 |
 | **Raw Build Directory** | `build\windows\x64\runner\Release\` | Self-contained bundle including all DLLs and data folder |
-| **Production Installer** | `dist\JazzPOS_Setup_v1.0.0.exe` | Inno Setup 6 solid LZMA2 compressed single-file installer |
+| **Production Installer** | `dist\Trace-POS-Setup-x64.exe` | Inno Setup 6 solid LZMA2 compressed single-file installer |
 | **Database Schema Version** | `1` | Managed by Drift ORM (`schemaVersion = 1`) |
 | **Flutter SDK Version** | `3.38.7 • channel stable` | Dart SDK 3.10.7 |
 | **Supported Windows Architectures** | `x64` (AMD64 / Intel 64-bit) | Windows 10 1809+, Windows 11, Windows IoT Enterprise |
@@ -52,7 +52,7 @@ C:\Program Files\JAZZ POS\                <-- APPLICATION BINARIES (Read-Only)
 
 ## 3. CHECKSUMS & ARTIFACT IDENTIFIERS
 
-- **Installer Name**: `JazzPOS_Setup_v1.0.0.exe`
+- **Installer Name**: `Trace-POS-Setup-x64.exe`
 - **Inno Setup AppID**: `{D37F8E8A-B26C-49E2-8BCF-7519E8F3C92B}`
 - **Checksum Verification**: Computed in CI via PowerShell `Get-FileHash -Algorithm SHA256` and recorded in `dist/SHA256SUMS.txt`.
 

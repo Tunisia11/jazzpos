@@ -82,6 +82,310 @@ class CatalogService {
     return await aQuery.getSingleOrNull() == null;
   }
 
+  /// Find conflicting product or variant if barcode already in use
+  Future<String?> findConflictForBarcode(
+    String barcode, {
+    String? excludeVariantId,
+  }) async {
+    final clean = barcode.trim();
+    if (clean.isEmpty) return null;
+
+    final vQuery = db.select(db.productVariants).join([
+      innerJoin(
+        db.products,
+        db.products.id.equalsExp(db.productVariants.productId),
+      ),
+    ])..where(db.productVariants.barcode.equals(clean));
+    if (excludeVariantId != null) {
+      vQuery.where(db.productVariants.id.isNotValue(excludeVariantId));
+    }
+    final vRow = await vQuery.getSingleOrNull();
+    if (vRow != null) {
+      final p = vRow.readTable(db.products);
+      final v = vRow.readTable(db.productVariants);
+      return '${p.name} (${v.sku})';
+    }
+
+    final aQuery = db.select(db.barcodeAliases).join([
+      innerJoin(
+        db.productVariants,
+        db.productVariants.id.equalsExp(db.barcodeAliases.variantId),
+      ),
+      innerJoin(
+        db.products,
+        db.products.id.equalsExp(db.productVariants.productId),
+      ),
+    ])..where(db.barcodeAliases.barcode.equals(clean));
+    if (excludeVariantId != null) {
+      aQuery.where(db.barcodeAliases.variantId.isNotValue(excludeVariantId));
+    }
+    final aRow = await aQuery.getSingleOrNull();
+    if (aRow != null) {
+      final p = aRow.readTable(db.products);
+      final v = aRow.readTable(db.productVariants);
+      return '${p.name} (${v.sku})';
+    }
+
+    return null;
+  }
+
+  /// Generate a unique, deterministic, collision-safe product SKU
+  Future<String> generateNextProductSku({
+    String? categoryId,
+    String? prefix,
+  }) async {
+    String cleanPrefix = prefix?.trim().toUpperCase() ?? '';
+
+    if (cleanPrefix.isEmpty && categoryId != null) {
+      final cat = await (db.select(db.categories)
+            ..where((tbl) => tbl.id.equals(categoryId)))
+          .getSingleOrNull();
+      if (cat != null) {
+        if (cat.code != null && cat.code!.trim().isNotEmpty) {
+          cleanPrefix = cat.code!.trim().toUpperCase();
+        } else {
+          // Derive 3-4 char abbreviation from category name
+          final nameClean = cat.name
+              .toUpperCase()
+              .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+          cleanPrefix = nameClean.length >= 4
+              ? nameClean.substring(0, 4)
+              : (nameClean.isNotEmpty ? nameClean : 'ART');
+        }
+      }
+    }
+
+    if (cleanPrefix.isEmpty) {
+      cleanPrefix = 'ART';
+    }
+
+    cleanPrefix = cleanPrefix.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (cleanPrefix.isEmpty) cleanPrefix = 'ART';
+
+    // Find the max sequence number among existing variants starting with this prefix
+    final allVariants = await (db.select(db.productVariants)).get();
+    int maxSeq = 0;
+    final prefixPattern = RegExp('^$cleanPrefix-(\\d{6})');
+
+    for (final v in allVariants) {
+      final match = prefixPattern.firstMatch(v.sku);
+      if (match != null) {
+        final num = int.tryParse(match.group(1) ?? '0') ?? 0;
+        if (num > maxSeq) maxSeq = num;
+      }
+    }
+
+    int candidateSeq = maxSeq + 1;
+    String candidateSku =
+        '$cleanPrefix-${candidateSeq.toString().padLeft(6, '0')}';
+
+    while (!await isSkuUnique(candidateSku)) {
+      candidateSeq++;
+      candidateSku =
+          '$cleanPrefix-${candidateSeq.toString().padLeft(6, '0')}';
+    }
+
+    return candidateSku;
+  }
+
+  /// Generate a unique EAN-13 barcode with valid check digit and collision verification
+  Future<String> generateUniqueEan13({String prefix = '200'}) async {
+    int attempts = 0;
+    while (attempts < 100) {
+      attempts++;
+      final barcode = IdGenerator.generateEan13(prefix: prefix);
+      if (await isBarcodeUnique(barcode)) {
+        return barcode;
+      }
+    }
+    final ts = DateTime.now().millisecondsSinceEpoch.toString();
+    final data = prefix + ts.substring(ts.length - (12 - prefix.length));
+    int sum = 0;
+    for (int i = 0; i < 12; i++) {
+      final digit = int.parse(data[i]);
+      sum += (i % 2 == 0) ? digit : digit * 3;
+    }
+    final checkDigit = (10 - (sum % 10)) % 10;
+    return '$data$checkDigit';
+  }
+
+  /// Create a new category
+  Future<Category> createCategory({
+    required String name,
+    String? code,
+    String? parentId,
+    required String actorId,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.editProducts,
+    );
+    final id = IdGenerator.uuid();
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) {
+      throw const ValidationException('Le nom de la catégorie ne peut pas être vide.');
+    }
+    final cleanCode = code?.trim().toUpperCase();
+
+    await db.into(db.categories).insert(
+      CategoriesCompanion.insert(
+        id: id,
+        name: cleanName,
+        code: Value(cleanCode != null && cleanCode.isNotEmpty ? cleanCode : null),
+        parentId: Value(parentId),
+      ),
+    );
+
+    PosLogger.instance.info('Catalog', 'Created category "$cleanName" ($id)');
+    return (await (db.select(db.categories)..where((t) => t.id.equals(id))).getSingle());
+  }
+
+  /// Update an existing category
+  Future<void> updateCategory({
+    required String id,
+    required String name,
+    String? code,
+    required String actorId,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.editProducts,
+    );
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) {
+      throw const ValidationException('Le nom de la catégorie ne peut pas être vide.');
+    }
+    final cleanCode = code?.trim().toUpperCase();
+
+    await (db.update(db.categories)..where((t) => t.id.equals(id))).write(
+      CategoriesCompanion(
+        name: Value(cleanName),
+        code: Value(cleanCode != null && cleanCode.isNotEmpty ? cleanCode : null),
+      ),
+    );
+
+    PosLogger.instance.info('Catalog', 'Updated category $id -> "$cleanName"');
+  }
+
+  /// Delete or archive category safely without corrupting existing products
+  Future<void> deleteCategory({
+    required String id,
+    String? reassignToCategoryId,
+    required String actorId,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.editProducts,
+    );
+
+    await db.transaction(() async {
+      // 1. Safely reassign or unlink products referencing this category
+      if (reassignToCategoryId != null &&
+          reassignToCategoryId.isNotEmpty &&
+          reassignToCategoryId != id) {
+        await (db.update(db.products)..where((tbl) => tbl.categoryId.equals(id))).write(
+          ProductsCompanion(categoryId: Value(reassignToCategoryId)),
+        );
+      } else {
+        await (db.update(db.products)..where((tbl) => tbl.categoryId.equals(id))).write(
+          const ProductsCompanion(categoryId: Value(null)),
+        );
+      }
+
+      // 2. Unlink any child categories referencing this category
+      await (db.update(db.categories)..where((tbl) => tbl.parentId.equals(id))).write(
+        const CategoriesCompanion(parentId: Value(null)),
+      );
+
+      // 3. Delete category
+      await (db.delete(db.categories)..where((tbl) => tbl.id.equals(id))).go();
+    });
+
+    PosLogger.instance.info('Catalog', 'Deleted category $id safely');
+  }
+
+  /// STRICT SCANNER-SPECIFIC EXACT LOOKUP (Mandatory POS Safety).
+  ///
+  /// Barcode scanning MUST NEVER add the wrong product.
+  /// Evaluation order:
+  ///   1. Exact primary barcode (exact string match preserving leading zeros)
+  ///   2. Exact barcode alias
+  ///   3. Optional exact SKU (case-insensitive full equality only)
+  ///
+  /// NEVER falls back to partial SKU, partial barcode, product name,
+  /// or fuzzy search. Returns null if unknown.
+  Future<VariantSearchResult?> findVariantByExactBarcode(
+    String rawBarcode,
+  ) async {
+    final clean = rawBarcode.trim();
+    if (clean.isEmpty) return null;
+
+    // 1. Exact primary barcode in product_variants (active variant & active product)
+    final exactBarcodeQuery = await (db.select(db.productVariants).join([
+      innerJoin(
+        db.products,
+        db.products.id.equalsExp(db.productVariants.productId),
+      ),
+    ])..where(
+      db.productVariants.barcode.equals(clean) &
+          db.productVariants.isActive.equals(true) &
+          db.products.status.equals('ACTIVE'),
+    )..limit(1)).get();
+
+    if (exactBarcodeQuery.isNotEmpty) {
+      final v = exactBarcodeQuery.first.readTable(db.productVariants);
+      final p = exactBarcodeQuery.first.readTable(db.products);
+      return _buildSearchResult(v, product: p);
+    }
+
+    // 2. Exact barcode in barcode_aliases
+    final aliasQuery = await (db.select(db.barcodeAliases).join([
+      innerJoin(
+        db.productVariants,
+        db.productVariants.id.equalsExp(db.barcodeAliases.variantId),
+      ),
+      innerJoin(
+        db.products,
+        db.products.id.equalsExp(db.productVariants.productId),
+      ),
+    ])..where(
+      db.barcodeAliases.barcode.equals(clean) &
+          db.barcodeAliases.isActive.equals(true) &
+          db.productVariants.isActive.equals(true) &
+          db.products.status.equals('ACTIVE'),
+    )..limit(1)).get();
+
+    if (aliasQuery.isNotEmpty) {
+      final v = aliasQuery.first.readTable(db.productVariants);
+      final p = aliasQuery.first.readTable(db.products);
+      return _buildSearchResult(v, product: p);
+    }
+
+    // 3. Optional exact SKU match only (case-insensitive full equality)
+    final exactSkuQuery = await (db.select(db.productVariants).join([
+      innerJoin(
+        db.products,
+        db.products.id.equalsExp(db.productVariants.productId),
+      ),
+    ])..where(
+      db.productVariants.sku.equals(clean.toUpperCase()) &
+          db.productVariants.isActive.equals(true) &
+          db.products.status.equals('ACTIVE'),
+    )..limit(1)).get();
+
+    if (exactSkuQuery.isNotEmpty) {
+      final v = exactSkuQuery.first.readTable(db.productVariants);
+      final p = exactSkuQuery.first.readTable(db.products);
+      return _buildSearchResult(v, product: p);
+    }
+
+    // Unknown barcode: do NOT add anything.
+    return null;
+  }
+
   /// Multi-tier instant search: Barcode exact -> SKU exact -> Name -> Brand -> Category
   Future<List<VariantSearchResult>> searchVariants(
     String query, {
@@ -303,12 +607,14 @@ class CatalogService {
 
   /// Create product with variant matrix and initial stock movements
   Future<String> createProductWithMatrix({
+    String? productId,
     required String name,
     String? secondaryName,
     String? description,
     String? brandId,
     String? categoryId,
     String? collectionId,
+    String? imageUrl,
     required Money defaultCost,
     required Money defaultPrice,
     double taxRatePercent = 0.0,
@@ -321,7 +627,7 @@ class CatalogService {
       actorId,
       AppPermissions.editProducts,
     );
-    final productId = IdGenerator.uuid();
+    final effectiveProductId = productId ?? IdGenerator.uuid();
     final now = DateTime.now();
 
     await db.transaction(() async {
@@ -330,13 +636,14 @@ class CatalogService {
           .into(db.products)
           .insert(
             ProductsCompanion.insert(
-              id: productId,
+              id: effectiveProductId,
               name: name,
               secondaryName: Value(secondaryName),
               description: Value(description),
               brandId: Value(brandId),
               categoryId: Value(categoryId),
               collectionId: Value(collectionId),
+              imageUrl: Value(imageUrl),
               defaultCostMillimes: Value(defaultCost.millimes),
               defaultPriceMillimes: Value(defaultPrice.millimes),
               taxRatePercent: Value(taxRatePercent),
@@ -367,7 +674,7 @@ class CatalogService {
             .insert(
               ProductVariantsCompanion.insert(
                 id: item.id,
-                productId: productId,
+                productId: effectiveProductId,
                 sku: item.sku,
                 barcode: item.barcode,
                 costPriceOverrideMillimes: Value(
@@ -420,7 +727,7 @@ class CatalogService {
               id: IdGenerator.uuid(),
               action: 'PRODUCT_CREATED',
               entityType: 'PRODUCT',
-              entityId: Value(productId),
+              entityId: Value(effectiveProductId),
               userId: actorId,
               detailsJson: Value(
                 '{"name":"$name","variantsCount":${variants.length}}',
@@ -437,7 +744,7 @@ class CatalogService {
               id: IdGenerator.uuid(),
               entityType: 'PRODUCT',
               operation: 'INSERT',
-              payloadJson: '{"id":"$productId","name":"$name"}',
+              payloadJson: '{"id":"$effectiveProductId","name":"$name"}',
               createdAt: now,
               updatedAt: now,
             ),
@@ -446,9 +753,9 @@ class CatalogService {
 
     PosLogger.instance.info(
       'Catalog',
-      'Created product $name ($productId) with ${variants.length} variants',
+      'Created product $name ($effectiveProductId) with ${variants.length} variants',
     );
-    return productId;
+    return effectiveProductId;
   }
 
   /// Archive product (never physically delete products used in historical sales)

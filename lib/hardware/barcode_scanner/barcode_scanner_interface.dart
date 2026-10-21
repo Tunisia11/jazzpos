@@ -4,4 +4,5 @@ abstract class BarcodeScanner {
 
   Future<void> startListening();
   Future<void> stopListening();
+  void simulateScan(String barcode);
 }
