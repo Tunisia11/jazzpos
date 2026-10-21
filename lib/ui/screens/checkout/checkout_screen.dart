@@ -288,34 +288,56 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
                 child: Row(
                   children: [
-                    // Logo + brand
-                    Image.asset('assets/images/trace_logo_mark.png', width: 28, height: 28),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Trace POS',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: AppDesignTokens.textPrimary,
+                    // Menu toggle (sidebar), then register label
+                    if (widget.onOpenMenu != null) ...[
+                      InkWell(
+                        onTap: widget.onOpenMenu,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppDesignTokens.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppDesignTokens.border),
+                          ),
+                          child: const Icon(
+                            Icons.menu,
+                            color: AppDesignTokens.textSecondary,
+                            size: 20,
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 14),
+                      Container(
+                        width: 1,
+                        height: 30,
+                        color: AppDesignTokens.border,
+                      ),
+                      const SizedBox(width: 14),
+                    ],
+                    const Icon(
+                      Icons.desktop_windows_outlined,
+                      color: AppDesignTokens.info,
+                      size: 22,
                     ),
-                    const SizedBox(width: 16),
-                    // Menu toggle
-                    if (widget.onOpenMenu != null)
-                      IconButton(
-                        icon: const Icon(Icons.menu, color: AppDesignTokens.textSecondary, size: 20),
-                        onPressed: widget.onOpenMenu,
-                        tooltip: 'Menu',
+                    const SizedBox(width: 8),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          const TextSpan(text: 'Caisse: '),
+                          TextSpan(
+                            text: _effectiveRegisterCode,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppDesignTokens.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                    // Register label
-                    const Icon(Icons.desktop_windows_outlined, color: AppDesignTokens.primary, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Caisse: $_effectiveRegisterCode',
                       style: const TextStyle(
                         color: AppDesignTokens.textSecondary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
                       ),
                     ),
 
@@ -399,7 +421,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
                     // Cash drawer button
                     IconButton(
-                      icon: const Icon(Icons.point_of_sale, color: AppDesignTokens.textSecondary, size: 22),
+                      icon: const Icon(Icons.print_outlined, color: AppDesignTokens.textSecondary, size: 24),
                       onPressed: _kickDrawer,
                       tooltip: context.loc.openCashDrawer,
                     ),
@@ -423,7 +445,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           children: [
                             CircleAvatar(
                               radius: 14,
-                              backgroundColor: const Color(0xFFDBEAFE),
+                              backgroundColor: AppDesignTokens.primarySoft,
                               child: Text(
                                 auth.user?.displayName.isNotEmpty == true
                                     ? auth.user!.displayName.substring(0, 1).toUpperCase()

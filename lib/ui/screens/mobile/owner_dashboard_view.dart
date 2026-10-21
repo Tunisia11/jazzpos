@@ -96,14 +96,14 @@ class _OwnerDashboardViewState extends ConsumerState<OwnerDashboardView> {
             padding: const EdgeInsets.all(AppDesignTokens.space20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                colors: [Color(0xFF14663A), Color(0xFF1F9D55)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.3),
+                  color: const Color(0xFF1F9D55).withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -301,7 +301,7 @@ class _OwnerDashboardViewState extends ConsumerState<OwnerDashboardView> {
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(color: Color(0xFFBFDBFE), fontSize: 11)),
+          Text(label, style: const TextStyle(color: Color(0xFFCDE9D7), fontSize: 11)),
           const SizedBox(height: 2),
           Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
         ],

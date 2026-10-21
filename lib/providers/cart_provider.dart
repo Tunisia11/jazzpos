@@ -17,6 +17,7 @@ class CartState {
   final bool isProcessing;
   final bool isLocked;
   final String? lastError;
+  final String note;
 
   const CartState({
     this.items = const [],
@@ -25,7 +26,10 @@ class CartState {
     this.isProcessing = false,
     this.isLocked = false,
     this.lastError,
+    this.note = '',
   });
+
+  Money get tax => items.fold(Money.zero, (sum, i) => sum + i.taxAmount);
 
   Money get subtotal => items.fold(Money.zero, (sum, i) => sum + i.total);
   Money get total {
@@ -43,6 +47,7 @@ class CartState {
     bool? isProcessing,
     bool? isLocked,
     String? lastError,
+    String? note,
   }) {
     return CartState(
       items: items ?? this.items,
@@ -51,6 +56,7 @@ class CartState {
       isProcessing: isProcessing ?? this.isProcessing,
       isLocked: isLocked ?? this.isLocked,
       lastError: lastError,
+      note: note ?? this.note,
     );
   }
 }
@@ -119,6 +125,7 @@ class CartNotifier extends StateNotifier<CartState> {
         quantity: quantity,
         taxRatePercent: variant.taxRatePercent,
         unitCost: variant.costPrice,
+        imageUrl: variant.imageUrl,
       );
       state = state.copyWith(items: [...state.items, newItem]);
     }
@@ -191,6 +198,11 @@ class CartNotifier extends StateNotifier<CartState> {
   void setCustomer(Customer? customer) {
     if (state.isLocked || state.isProcessing) return;
     state = state.copyWith(customer: customer, clearCustomer: customer == null);
+  }
+
+  void setNote(String value) {
+    if (state.isProcessing) return;
+    state = state.copyWith(note: value);
   }
 
   void clearCart() {
@@ -274,7 +286,7 @@ class CartNotifier extends StateNotifier<CartState> {
         cartDiscount: state.cartDiscount,
         payments: payments,
         idempotencyKey: idempotencyKey ?? IdGenerator.uuid(),
-        notes: notes,
+        notes: notes ?? (state.note.trim().isEmpty ? null : state.note.trim()),
         managerOverrideId: managerOverrideId,
       );
 

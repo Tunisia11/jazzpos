@@ -51,9 +51,9 @@ class AppPageHeader extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppDesignTokens.space8),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF), // Soft primary blue tint
+                color: AppDesignTokens.primarySoft, // Soft primary blue tint
                 borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
-                border: Border.all(color: const Color(0xFFDBEAFE)),
+                border: Border.all(color: AppDesignTokens.primarySoft),
               ),
               child: Icon(icon, size: 20, color: AppTheme.primary),
             ),

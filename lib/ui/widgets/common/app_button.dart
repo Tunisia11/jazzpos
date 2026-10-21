@@ -43,7 +43,7 @@ class AppButton extends StatelessWidget {
         fg = Colors.white;
         break;
       case AppButtonVariant.cta:
-        bg = AppTheme.accentOrange;
+        bg = AppTheme.primary;
         fg = Colors.white;
         break;
       case AppButtonVariant.success:

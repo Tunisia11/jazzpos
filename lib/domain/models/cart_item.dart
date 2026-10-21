@@ -14,6 +14,7 @@ class CartItem {
   final Money lineDiscount;
   final double taxRatePercent;
   final Money unitCost;
+  final String? imageUrl;
 
   const CartItem({
     required this.variantId,
@@ -28,6 +29,7 @@ class CartItem {
     this.lineDiscount = Money.zero,
     this.taxRatePercent = 0.0,
     this.unitCost = Money.zero,
+    this.imageUrl,
   });
 
   Money get subtotal => unitPrice * quantity;
@@ -53,6 +55,7 @@ class CartItem {
     Money? lineDiscount,
     double? taxRatePercent,
     Money? unitCost,
+    String? imageUrl,
   }) {
     return CartItem(
       variantId: variantId ?? this.variantId,
@@ -67,6 +70,7 @@ class CartItem {
       lineDiscount: lineDiscount ?? this.lineDiscount,
       taxRatePercent: taxRatePercent ?? this.taxRatePercent,
       unitCost: unitCost ?? this.unitCost,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }

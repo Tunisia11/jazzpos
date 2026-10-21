@@ -708,7 +708,7 @@ class _HardwareDiagnosticsTabState extends ConsumerState<HardwareDiagnosticsTab>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: hw.scannerHasReceivedPhysicalScan ? AppDesignTokens.successBg : const Color(0xFFEFF6FF),
+                  color: hw.scannerHasReceivedPhysicalScan ? AppDesignTokens.successBg : AppDesignTokens.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: hw.scannerHasReceivedPhysicalScan

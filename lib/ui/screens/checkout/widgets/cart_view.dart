@@ -10,6 +10,7 @@ import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/theme/app_theme.dart';
 import 'package:jazzpos/ui/widgets/common/app_button.dart';
 import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
+import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
 import 'package:jazzpos/ui/widgets/money_display.dart';
 import 'payment_dialog.dart';
 import 'suspended_sales_dialog.dart';
@@ -29,71 +30,69 @@ class CartView extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppDesignTokens.surface,
-        borderRadius: BorderRadius.circular(AppDesignTokens.radiusLg),
+        borderRadius: BorderRadius.circular(AppDesignTokens.radiusXl),
         border: Border.all(color: AppDesignTokens.border),
         boxShadow: AppDesignTokens.shadowSm,
       ),
       child: Column(
         children: [
-          // Cart Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppDesignTokens.border)),
-            ),
+          // Cart header: icon, title, count chip, clear button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.shopping_cart_outlined,
-                      color: AppDesignTokens.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      context.loc.cart,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: AppDesignTokens.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        context.loc.itemsInCart(cartState.totalItemsCount),
-                        style: const TextStyle(
-                          color: AppDesignTokens.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+                const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: AppDesignTokens.info,
+                  size: 26,
                 ),
-                if (cartState.items.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: () => _confirmClearCart(context, cartNotifier),
-                    icon: const Icon(
-                      Icons.delete_sweep,
-                      size: 18,
-                      color: AppDesignTokens.danger,
+                const SizedBox(width: 10),
+                Text(
+                  context.loc.cart,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    color: AppDesignTokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F0FE),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    context.loc.itemsInCart(cartState.totalItemsCount),
+                    style: const TextStyle(
+                      color: AppDesignTokens.info,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
                     ),
-                    label: Text(
-                      context.loc.clearCart,
-                      style: const TextStyle(
-                        color: AppDesignTokens.danger,
-                        fontSize: 12,
+                  ),
+                ),
+                const Spacer(),
+                if (cartState.items.isNotEmpty)
+                  Tooltip(
+                    message: context.loc.clearCart,
+                    child: InkWell(
+                      onTap: () => _confirmClearCart(context, cartNotifier),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppDesignTokens.dangerBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          size: 20,
+                          color: AppDesignTokens.danger,
+                        ),
                       ),
                     ),
                   ),
@@ -101,13 +100,15 @@ class CartView extends ConsumerWidget {
             ),
           ),
 
-          // Customer Tag Bar if selected
+          // Customer tag bar if selected
           if (cartState.customer != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: const BoxDecoration(
-                color: Color(0xFFEFF6FF),
-                border: Border(bottom: BorderSide(color: Color(0xFFDBEAFE))),
+                color: AppDesignTokens.primarySoft,
+                border: Border(
+                  bottom: BorderSide(color: AppDesignTokens.primarySoftBorder),
+                ),
               ),
               child: Row(
                 children: [
@@ -142,7 +143,7 @@ class CartView extends ConsumerWidget {
               ),
             ),
 
-          // Cart Items List
+          // Items + note (scrolls together when the cart is long)
           Expanded(
             child: cartState.items.isEmpty
                 ? AppEmptyState(
@@ -150,197 +151,213 @@ class CartView extends ConsumerWidget {
                     title: context.loc.cartEmpty,
                     subtitle: context.loc.cartEmptySubtitle,
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    itemCount: cartState.items.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(color: AppDesignTokens.border, height: 1),
-                    itemBuilder: (context, index) {
-                      final item = cartState.items[index];
-                      return _CartItemTile(
-                        item: item,
-                        onQuantityChanged: (qty) =>
-                            cartNotifier.updateQuantity(item.variantId, qty),
-                        onRemove: () => cartNotifier.removeItem(item.variantId),
-                        onDiscount: () =>
-                            _showDiscountDialog(context, ref, item),
-                      );
-                    },
+                : ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      for (final item in cartState.items) ...[
+                        _CartItemTile(
+                          item: item,
+                          onQuantityChanged: (qty) =>
+                              cartNotifier.updateQuantity(item.variantId, qty),
+                          onRemove: () =>
+                              cartNotifier.removeItem(item.variantId),
+                          onDiscount: () =>
+                              _showDiscountDialog(context, ref, item),
+                        ),
+                        const Divider(
+                          color: AppDesignTokens.borderSubtle,
+                          height: 1,
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      _CartNoteField(
+                        value: cartState.note,
+                        onChanged: cartNotifier.setNote,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                   ),
           ),
 
-          // Cart Footer & Summary
+          // Summary
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             decoration: const BoxDecoration(
-              color: AppDesignTokens.surfaceSecondary,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(AppDesignTokens.radiusLg),
-                bottomRight: Radius.circular(AppDesignTokens.radiusLg),
-              ),
               border: Border(top: BorderSide(color: AppDesignTokens.border)),
             ),
             child: Column(
               children: [
-                // Totals breakdown
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${context.loc.subtotal}:',
-                      style: const TextStyle(
-                        color: AppDesignTokens.textSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                    MoneyDisplay(
-                      amount: cartState.subtotal,
-                      fontSize: 15,
-                      color: AppDesignTokens.textPrimary,
-                    ),
-                  ],
+                _SummaryRow(
+                  label: context.loc.subtotal,
+                  value: cartState.subtotal.format(),
                 ),
-                if (cartState.cartDiscount > Money.zero) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            '${context.loc.discount}:',
-                            style: const TextStyle(
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: cartState.items.isEmpty
+                      ? null
+                      : () => _showGlobalDiscountDialog(context, ref),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppDesignTokens.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.percent,
+                          size: 18,
+                          color: AppDesignTokens.textSecondary,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          context.loc.discount,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppDesignTokens.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          cartState.cartDiscount > Money.zero
+                              ? '-${cartState.cartDiscount.format()}'
+                              : cartState.cartDiscount.format(),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: cartState.cartDiscount > Money.zero
+                                ? AppDesignTokens.danger
+                                : AppDesignTokens.textPrimary,
+                          ),
+                        ),
+                        if (cartState.cartDiscount > Money.zero) ...[
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () =>
+                                cartNotifier.applyCartDiscount(Money.zero),
+                            child: const Icon(
+                              Icons.close,
+                              size: 16,
                               color: AppDesignTokens.danger,
-                              fontSize: 13,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 14,
-                              color: AppDesignTokens.danger,
+                        ] else
+                          const Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: AppDesignTokens.textSecondary,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (cartState.tax > Money.zero) ...[
+                  const SizedBox(height: 10),
+                  _SummaryRow(
+                    label: 'TVA incluse',
+                    value: cartState.tax.format(),
+                  ),
+                ],
+                const SizedBox(height: 12),
+
+                // Grand total panel
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppDesignTokens.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.loc.total,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: AppDesignTokens.textPrimary,
                             ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () =>
-                                cartNotifier.applyCartDiscount(Money.zero),
+                          ),
+                          const Text(
+                            'TTC inclus',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppDesignTokens.textSecondary,
+                            ),
                           ),
                         ],
                       ),
-                      Text(
-                        '-${cartState.cartDiscount.format()}',
-                        style: const TextStyle(
-                          color: AppDesignTokens.danger,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: MoneyDisplay(
+                            amount: cartState.total,
+                            fontSize: 26,
+                            color: AppDesignTokens.primary,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ],
-                const Divider(color: AppDesignTokens.border, height: 16),
-
-                // Grand Total
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.loc.total,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppDesignTokens.textPrimary,
-                          ),
-                        ),
-                        const Text(
-                          'TTC inclus',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppDesignTokens.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    MoneyDisplay(
-                      amount: cartState.total,
-                      fontSize: 26,
-                      color: AppDesignTokens.accentOrange,
-                    ),
-                  ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
-                // Quick buttons: Hold (F6) and Customer (F8)
+                // Hold (F6) and discount
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: _SecondaryAction(
+                        icon: Icons.pause,
+                        label: context.loc.holdSale.replaceAll(
+                          RegExp(r'\s*\(F6\)'),
+                          '',
+                        ),
+                        hint: 'F6',
                         onPressed: cartState.items.isEmpty
                             ? null
                             : () => _holdCart(context, ref),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 40),
-                          backgroundColor: AppDesignTokens.surface,
-                          side: const BorderSide(color: AppDesignTokens.border),
-                          foregroundColor: AppDesignTokens.textPrimary,
-                        ),
-                        icon: const Icon(
-                          Icons.pause,
-                          size: 16,
-                          color: AppDesignTokens.warning,
-                        ),
-                        label: Text(
-                          context.loc.holdSale,
-                          style: const TextStyle(fontSize: 12),
-                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: _SecondaryAction(
+                        icon: Icons.percent,
+                        label: context.loc.discount,
                         onPressed: cartState.items.isEmpty
                             ? null
                             : () => _showGlobalDiscountDialog(context, ref),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 40),
-                          backgroundColor: AppDesignTokens.surface,
-                          side: const BorderSide(color: AppDesignTokens.border),
-                          foregroundColor: AppDesignTokens.textPrimary,
-                        ),
-                        icon: const Icon(
-                          Icons.percent,
-                          size: 15,
-                          color: AppDesignTokens.warning,
-                        ),
-                        label: Text(
-                          context.loc.discount,
-                          style: const TextStyle(fontSize: 12),
-                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
 
-                // Pay Button (F12)
+                // Pay button (F12)
                 AppButton(
                   label: shift == null
                       ? context.loc.clickToOpenRegister
                       : context.loc.payAction,
-                  variant: shift == null ? AppButtonVariant.cta : AppButtonVariant.cta,
-                  height: 50,
+                  variant: AppButtonVariant.cta,
+                  height: 54,
                   isExpanded: true,
-                  icon: shift == null ? Icons.lock_open : Icons.payments_outlined,
+                  icon: shift == null ? Icons.lock_open : Icons.credit_card,
                   shortcutHint: shift == null ? null : 'F12',
                   onPressed: shift == null
                       ? () => _openShiftPrompt(context, ref)
                       : (cartState.items.isEmpty
-                          ? null
-                          : () => _openPaymentDialog(context, cartState.total)),
+                            ? null
+                            : () => _openPaymentDialog(context, cartState.total)),
                 ),
               ],
             ),
@@ -689,6 +706,174 @@ class CartView extends ConsumerWidget {
   }
 }
 
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _SummaryRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppDesignTokens.textSecondary,
+            fontSize: 14,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppDesignTokens.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SecondaryAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? hint;
+  final VoidCallback? onPressed;
+  const _SecondaryAction({
+    required this.icon,
+    required this.label,
+    this.hint,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        backgroundColor: AppDesignTokens.surface,
+        side: const BorderSide(color: AppDesignTokens.border),
+        foregroundColor: AppDesignTokens.textPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 16, color: AppDesignTokens.accentOrange),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (hint != null) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppDesignTokens.surfaceHighlight,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                hint!,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppDesignTokens.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Optional sale note; edits flow into [CartState.note].
+class _CartNoteField extends StatefulWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  const _CartNoteField({required this.value, required this.onChanged});
+
+  @override
+  State<_CartNoteField> createState() => _CartNoteFieldState();
+}
+
+class _CartNoteFieldState extends State<_CartNoteField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.value,
+  );
+
+  @override
+  void didUpdateWidget(covariant _CartNoteField old) {
+    super.didUpdateWidget(old);
+    // Cart was reset (after checkout / clear): mirror it.
+    if (widget.value != _controller.text) _controller.text = widget.value;
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(
+              Icons.edit_note,
+              size: 20,
+              color: AppDesignTokens.textSecondary,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Ajouter une note (optionnel)',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppDesignTokens.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _controller,
+          onChanged: widget.onChanged,
+          minLines: 2,
+          maxLines: 3,
+          maxLength: 200,
+          style: const TextStyle(fontSize: 13),
+          decoration: InputDecoration(
+            hintText: 'Note de vente, client, ...',
+            counterText: '',
+            filled: true,
+            fillColor: AppDesignTokens.surface,
+            contentPadding: const EdgeInsets.all(12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppDesignTokens.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppDesignTokens.border),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _CartItemTile extends StatelessWidget {
   final CartItem item;
   final ValueChanged<int> onQuantityChanged;
@@ -702,157 +887,193 @@ class _CartItemTile extends StatelessWidget {
     required this.onDiscount,
   });
 
+  Widget _stepButton(IconData icon, VoidCallback onTap, String tooltip) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Tooltip(
+        message: tooltip,
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: Icon(icon, size: 16, color: AppDesignTokens.textPrimary),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      color: Colors.transparent,
+    final detail = [
+      if (item.variantDescription.isNotEmpty &&
+          item.variantDescription != 'Standard')
+        item.variantDescription,
+      if (item.sku.isNotEmpty) item.sku,
+    ].join('  ·  ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Quantity Adjuster (+ / - / num)
-          Container(
-            decoration: BoxDecoration(
-              color: AppDesignTokens.surfaceSecondary,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppDesignTokens.border),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove, size: 14),
-                  onPressed: () => onQuantityChanged(item.quantity - 1),
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(
-                    minWidth: 30,
-                    minHeight: 30,
-                  ),
-                  tooltip: 'Diminuer',
-                  color: AppDesignTokens.textSecondary,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 64,
+              height: 72,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                clipBehavior: Clip.hardEdge,
+                child: ProductThumbnail(
+                  imageUrl: item.imageUrl,
+                  size: 72,
+                  borderRadius: 0,
                 ),
-                GestureDetector(
-                  onTap: () => _promptQuantity(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Text(
-                      '${item.quantity}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: AppDesignTokens.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add, size: 14),
-                  onPressed: () => onQuantityChanged(item.quantity + 1),
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(
-                    minWidth: 30,
-                    minHeight: 30,
-                  ),
-                  tooltip: 'Augmenter',
-                  color: AppDesignTokens.textSecondary,
-                ),
-              ],
+              ),
             ),
           ),
-          const SizedBox(width: 10),
-
-          // Product Description
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.productName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: AppDesignTokens.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.productName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: AppDesignTokens.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      item.total.format(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppDesignTokens.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                if (item.variantDescription.isNotEmpty)
+                if (detail.isNotEmpty) ...[
+                  const SizedBox(height: 2),
                   Text(
-                    item.variantDescription,
+                    detail,
                     style: const TextStyle(
                       color: AppDesignTokens.textSecondary,
                       fontSize: 12,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ],
+                if (item.lineDiscount > Money.zero)
+                  Text(
+                    'Remise -${item.lineDiscount.format()}',
+                    style: const TextStyle(
+                      color: AppDesignTokens.danger,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    Text(
-                      '${item.unitPrice.format()} /u',
-                      style: const TextStyle(
-                        color: AppDesignTokens.textSecondary,
-                        fontSize: 11,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppDesignTokens.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppDesignTokens.border),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _stepButton(
+                            Icons.remove,
+                            () => onQuantityChanged(item.quantity - 1),
+                            'Diminuer',
+                          ),
+                          GestureDetector(
+                            onTap: () => _promptQuantity(context),
+                            child: Container(
+                              constraints: const BoxConstraints(minWidth: 40),
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                border: Border.symmetric(
+                                  vertical: BorderSide(
+                                    color: AppDesignTokens.border,
+                                  ),
+                                ),
+                              ),
+                              height: 34,
+                              child: Text(
+                                '${item.quantity}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: AppDesignTokens.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          _stepButton(
+                            Icons.add,
+                            () => onQuantityChanged(item.quantity + 1),
+                            'Augmenter',
+                          ),
+                        ],
                       ),
                     ),
-                    if (item.lineDiscount > Money.zero) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        '(-${item.lineDiscount.format()})',
-                        style: const TextStyle(
-                          color: AppDesignTokens.danger,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                    const Spacer(),
+                    InkWell(
+                      onTap: onDiscount,
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Tooltip(
+                        message: 'Remise',
+                        child: SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: Icon(
+                            Icons.percent,
+                            size: 16,
+                            color: AppDesignTokens.textSecondary,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 4),
+                    InkWell(
+                      onTap: onRemove,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Tooltip(
+                        message: 'Supprimer',
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppDesignTokens.border),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            size: 17,
+                            color: AppDesignTokens.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
-          ),
-
-          // Total Price for this line
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              MoneyDisplay(
-                amount: item.total,
-                fontSize: 14,
-                color: AppDesignTokens.textPrimary,
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.percent,
-                      size: 14,
-                      color: AppDesignTokens.textSecondary,
-                    ),
-                    onPressed: onDiscount,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 26,
-                      minHeight: 26,
-                    ),
-                    tooltip: 'Remise',
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      size: 14,
-                      color: AppDesignTokens.danger,
-                    ),
-                    onPressed: onRemove,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 26,
-                      minHeight: 26,
-                    ),
-                    tooltip: 'Supprimer',
-                  ),
-                ],
-              ),
-            ],
           ),
         ],
       ),

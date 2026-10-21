@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
+import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/domain/services/catalog_service.dart';
 import 'package:jazzpos/providers/cart_provider.dart';
 import 'package:jazzpos/providers/catalog_provider.dart';
@@ -20,10 +21,14 @@ class ProductCatalogGrid extends ConsumerStatefulWidget {
 
 class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  bool _listMode = false;
+  _SortMode _sort = _SortMode.recent;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -64,6 +69,9 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
     return descriptions;
   }
 
+  int _minPrice(List<VariantSearchResult> v) =>
+      v.map((e) => e.salePrice.millimes).reduce((a, b) => a < b ? a : b);
+
   @override
   Widget build(BuildContext context) {
     final catalogState = ref.watch(catalogNotifierProvider);
@@ -75,6 +83,24 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
       groupedByProduct.putIfAbsent(v.productId, () => []).add(v);
     }
     final productGroups = groupedByProduct.entries.toList();
+    switch (_sort) {
+      case _SortMode.recent:
+        break;
+      case _SortMode.name:
+        productGroups.sort(
+          (a, b) => a.value.first.productName.toLowerCase().compareTo(
+            b.value.first.productName.toLowerCase(),
+          ),
+        );
+      case _SortMode.priceAsc:
+        productGroups.sort(
+          (a, b) => _minPrice(a.value).compareTo(_minPrice(b.value)),
+        );
+      case _SortMode.priceDesc:
+        productGroups.sort(
+          (a, b) => _minPrice(b.value).compareTo(_minPrice(a.value)),
+        );
+    }
 
     return Column(
       children: [
@@ -173,40 +199,87 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
           ),
           child: Column(
             children: [
-              // Search Input
-              TextField(
-                controller: _searchController,
-                style: const TextStyle(color: AppDesignTokens.textPrimary, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: context.loc.searchProductOrBarcode,
-                  hintStyle: const TextStyle(color: AppDesignTokens.textMuted),
-                  prefixIcon: const Icon(Icons.search, color: AppDesignTokens.primary),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: AppDesignTokens.textSecondary, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            catalogNotifier.search('');
-                          },
-                        )
-                      : Row(
+              // Search input + scanner shortcut
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocus,
+                      style: const TextStyle(
+                        color: AppDesignTokens.textPrimary,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: context.loc.searchProductOrBarcode,
+                        hintStyle: const TextStyle(
+                          color: AppDesignTokens.textMuted,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppDesignTokens.info,
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: AppDesignTokens.textSecondary,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  catalogNotifier.search('');
+                                  setState(() {});
+                                },
+                              )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setState(() {});
+                        catalogNotifier.search(val);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    message: 'Scannez un code-barres',
+                    child: InkWell(
+                      onTap: () => _searchFocus.requestFocus(),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F0FE),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.qr_code_scanner, color: AppDesignTokens.textSecondary, size: 20),
-                            SizedBox(width: 4),
-                            Text(
-                              'Scanner',
-                              style: TextStyle(fontSize: 11, color: AppDesignTokens.textSecondary),
+                          children: [
+                            Icon(
+                              Icons.qr_code_scanner,
+                              color: AppDesignTokens.info,
+                              size: 22,
                             ),
                             SizedBox(width: 8),
+                            Text(
+                              'Scanner',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppDesignTokens.info,
+                              ),
+                            ),
                           ],
                         ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                ),
-                onChanged: (val) {
-                  setState(() {});
-                  catalogNotifier.search(val);
-                },
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               // Category Filter Chips
@@ -257,23 +330,62 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
               style: const TextStyle(fontSize: 13, color: AppDesignTokens.textSecondary),
             ),
             const Spacer(),
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.sort, size: 14),
-              label: const Text('Trier par : Plus récents', style: TextStyle(fontSize: 11)),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                side: const BorderSide(color: AppDesignTokens.border),
-                foregroundColor: AppDesignTokens.textSecondary,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            PopupMenuButton<_SortMode>(
+              tooltip: 'Trier',
+              initialValue: _sort,
+              onSelected: (v) => setState(() => _sort = v),
+              itemBuilder: (_) => [
+                for (final m in _SortMode.values)
+                  PopupMenuItem(value: m, child: Text(m.label)),
+              ],
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppDesignTokens.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppDesignTokens.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.sort,
+                      size: 16,
+                      color: AppDesignTokens.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Trier par : ${_sort.label}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppDesignTokens.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 16,
+                      color: AppDesignTokens.textSecondary,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 10),
-            const Icon(Icons.grid_view, size: 18, color: AppDesignTokens.primary),
-            const SizedBox(width: 8),
-            const Icon(Icons.view_list, size: 18, color: AppDesignTokens.textSecondary),
+            _ViewToggle(
+              icon: Icons.grid_view_rounded,
+              selected: !_listMode,
+              onTap: () => setState(() => _listMode = false),
+            ),
+            const SizedBox(width: 6),
+            _ViewToggle(
+              icon: Icons.view_list_rounded,
+              selected: _listMode,
+              onTap: () => setState(() => _listMode = true),
+            ),
           ],
         ),
 
@@ -288,6 +400,97 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
                   icon: Icons.inventory_2_outlined,
                   title: context.loc.none,
                   subtitle: context.loc.searchProductOrBarcode,
+                )
+              : _listMode
+              ? ListView.separated(
+                  padding: EdgeInsets.zero,
+                  itemCount: productGroups.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final variants = productGroups[index].value;
+                    final first = variants.first;
+                    final stock = variants.fold(0, (sum, v) => sum + v.stock);
+                    final min = _minPrice(variants);
+                    return InkWell(
+                      onTap: () =>
+                          _onProductTap(context, first.productName, variants),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppDesignTokens.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppDesignTokens.border),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: ProductThumbnail(
+                                imageUrl: first.imageUrl,
+                                size: 56,
+                                borderRadius: 0,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    first.productName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    [
+                                      _sizesSummary(variants),
+                                      first.sku.isNotEmpty
+                                          ? first.sku
+                                          : first.barcode,
+                                    ].where((e) => e.isNotEmpty).join('  ·  '),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppDesignTokens.textSecondary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            AppStatusBadge.forStock(
+                              stock: stock,
+                              isCompact: true,
+                              loc: context.loc,
+                            ),
+                            const SizedBox(width: 16),
+                            PriceText(
+                              money: Money.fromMillimes(min),
+                              fontSize: 13,
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppDesignTokens.primary,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.shopping_cart_outlined,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 )
               : LayoutBuilder(
                   builder: (context, constraints) {
@@ -389,7 +592,7 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
                                             decoration: BoxDecoration(
                                               color: Colors.white.withValues(alpha: 0.9),
                                               borderRadius: BorderRadius.circular(4),
-                                              border: Border.all(color: const Color(0xFFBFDBFE), width: 0.5),
+                                              border: Border.all(color: AppDesignTokens.primarySoftBorder, width: 0.5),
                                             ),
                                             child: Text(
                                               '${variants.length} var.',
@@ -550,6 +753,52 @@ class _CategoryChip extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+enum _SortMode {
+  recent('Plus récents'),
+  name('Nom A-Z'),
+  priceAsc('Prix croissant'),
+  priceDesc('Prix décroissant');
+
+  final String label;
+  const _SortMode(this.label);
+}
+
+class _ViewToggle extends StatelessWidget {
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ViewToggle({
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 36,
+        height: 34,
+        decoration: BoxDecoration(
+          color: selected ? AppDesignTokens.primary : AppDesignTokens.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? AppDesignTokens.primary : AppDesignTokens.border,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: selected ? Colors.white : AppDesignTokens.textSecondary,
         ),
       ),
     );

@@ -274,7 +274,7 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
 
                                 return ListTile(
                                   selected: isSelected,
-                                  selectedTileColor: const Color(0xFFEFF6FF),
+                                  selectedTileColor: AppDesignTokens.primarySoft,
                                   title: Text(
                                     cart.referenceName.isEmpty
                                         ? loc.unnamedSale
@@ -413,7 +413,7 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: AppDesignTokens.primarySoft,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(

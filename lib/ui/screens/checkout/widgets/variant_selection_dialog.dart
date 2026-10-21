@@ -117,10 +117,10 @@ class VariantSelectionDialog extends ConsumerWidget {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color: AppDesignTokens.primarySoft,
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: const Color(0xFFBFDBFE),
+                                color: AppDesignTokens.primarySoftBorder,
                               ),
                             ),
                             child: Text(

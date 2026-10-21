@@ -126,43 +126,40 @@ class _AppShellState extends ConsumerState<AppShell> {
             ),
             child: Column(
               children: [
-                // Top Brand & Toggle
+                // Brand (the checkout top bar owns the menu toggle there)
                 Container(
-                  height: 60,
+                  height: 68,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   alignment: AlignmentDirectional.centerStart,
                   child: Row(
                     children: [
-                      IconButton(
-                        icon: Icon(
-                          _isDrawerOpen
-                              ? (isRtl ? Icons.menu : Icons.menu_open)
-                              : Icons.menu,
-                          color: AppDesignTokens.textSecondary,
-                        ),
-                        onPressed: () =>
-                            setState(() => _isDrawerOpen = !_isDrawerOpen),
-                        tooltip: _isDrawerOpen
-                            ? context.loc.collapseMenu
-                            : context.loc.expandMenu,
-                      ),
-                      if (_isDrawerOpen) ...[
-                        const SizedBox(width: 8),
+                      if (!_isDrawerOpen)
+                        Expanded(
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/trace_logo_mark.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        )
+                      else ...[
+                        const SizedBox(width: 6),
                         Image.asset(
                           'assets/images/trace_logo_mark.png',
-                          width: 26,
-                          height: 26,
+                          width: 34,
+                          height: 34,
                           fit: BoxFit.contain,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             context.loc.appTitle,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 21,
                               color: AppDesignTokens.textPrimary,
-                              letterSpacing: 0.5,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -171,8 +168,23 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ],
                   ),
                 ),
-
-                const Divider(color: AppDesignTokens.border, height: 1),
+                if (_currentNav != AppNavDestination.checkout)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: IconButton(
+                      icon: Icon(
+                        _isDrawerOpen
+                            ? (isRtl ? Icons.menu : Icons.menu_open)
+                            : Icons.menu,
+                        color: AppDesignTokens.textSecondary,
+                      ),
+                      onPressed: () =>
+                          setState(() => _isDrawerOpen = !_isDrawerOpen),
+                      tooltip: _isDrawerOpen
+                          ? context.loc.collapseMenu
+                          : context.loc.expandMenu,
+                    ),
+                  ),
 
                 // Navigation Items
                 Expanded(
@@ -237,102 +249,126 @@ class _AppShellState extends ConsumerState<AppShell> {
                   ),
                 ),
 
-                const Divider(color: AppDesignTokens.border, height: 1),
-
-                // Cashier info & Lock/Logout controls
+                // Cashier card + sign out
                 Container(
                   padding: const EdgeInsets.all(AppDesignTokens.space12),
                   child: Column(
                     children: [
                       if (_isDrawerOpen)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(AppDesignTokens.space8),
-                          decoration: BoxDecoration(
-                            color: AppDesignTokens.surfaceSecondary,
-                            borderRadius: BorderRadius.circular(
-                              AppDesignTokens.radiusMd,
-                            ),
-                            border: Border.all(color: AppDesignTokens.border),
+                        InkWell(
+                          onTap: () =>
+                              ref.read(authNotifierProvider.notifier).lock(),
+                          borderRadius: BorderRadius.circular(
+                            AppDesignTokens.radiusLg,
                           ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 15,
-                                backgroundColor: const Color(0xFFDBEAFE),
-                                child: Text(
-                                  authState.user?.displayName.isNotEmpty == true
-                                      ? authState.user!.displayName
-                                            .substring(0, 1)
-                                            .toUpperCase()
-                                      : 'U',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppDesignTokens.primary,
-                                    fontWeight: FontWeight.bold,
+                          child: Tooltip(
+                            message: context.loc.lockRegister,
+                            child: Container(
+                              padding: const EdgeInsets.all(
+                                AppDesignTokens.space12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppDesignTokens.surface,
+                                borderRadius: BorderRadius.circular(
+                                  AppDesignTokens.radiusLg,
+                                ),
+                                border: Border.all(
+                                  color: AppDesignTokens.border,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  _userAvatar(authState, 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          authState.user?.displayName ?? '',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                AppDesignTokens.textPrimary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          _formatRole(
+                                            authState.user?.role,
+                                            context,
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color:
+                                                AppDesignTokens.textSecondary,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    size: 20,
+                                    color: AppDesignTokens.textSecondary,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      authState.user?.displayName ?? '',
+                            ),
+                          ),
+                        )
+                      else
+                        IconButton(
+                          onPressed: () =>
+                              ref.read(authNotifierProvider.notifier).lock(),
+                          tooltip: context.loc.lockRegister,
+                          icon: _userAvatar(authState, 16),
+                        ),
+                      const SizedBox(height: 6),
+                      InkWell(
+                        onTap: () =>
+                            ref.read(authNotifierProvider.notifier).logout(),
+                        borderRadius: BorderRadius.circular(
+                          AppDesignTokens.radiusMd,
+                        ),
+                        child: Tooltip(
+                          message: context.loc.logoutSession,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: _isDrawerOpen
+                                  ? MainAxisAlignment.start
+                                  : MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.logout,
+                                  size: 20,
+                                  color: AppDesignTokens.danger,
+                                ),
+                                if (_isDrawerOpen) ...[
+                                  const SizedBox(width: 12),
+                                  Flexible(
+                                    child: Text(
+                                      context.loc.logoutSession,
                                       style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppDesignTokens.textPrimary,
+                                        fontSize: 14,
+                                        color: AppDesignTokens.danger,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    Text(
-                                      _formatRole(
-                                        authState.user?.role,
-                                        context,
-                                      ),
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: AppDesignTokens.textSecondary,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
-                      Flex(
-                        direction: _isDrawerOpen
-                            ? Axis.horizontal
-                            : Axis.vertical,
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.lock_outline,
-                              size: 19,
-                              color: AppDesignTokens.textSecondary,
-                            ),
-                            onPressed: () =>
-                                ref.read(authNotifierProvider.notifier).lock(),
-                            tooltip: context.loc.lockRegister,
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.logout,
-                              size: 19,
-                              color: AppDesignTokens.danger,
-                            ),
-                            onPressed: () => ref
-                                .read(authNotifierProvider.notifier)
-                                .logout(),
-                            tooltip: context.loc.logoutSession,
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -348,6 +384,22 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
+  Widget _userAvatar(AuthState authState, double radius) {
+    final name = authState.user?.displayName ?? '';
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: AppDesignTokens.primarySoft,
+      child: Text(
+        name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U',
+        style: TextStyle(
+          fontSize: radius * 0.8,
+          color: AppDesignTokens.primary,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem(
     AppNavDestination dest,
     IconData icon,
@@ -359,11 +411,11 @@ class _AppShellState extends ConsumerState<AppShell> {
     final requiredPerm = _permissionForDest(dest);
 
     Widget navContent = Container(
-      height: 44,
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      height: 48,
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFFEFF6FF) : Colors.transparent,
+        color: isSelected ? AppDesignTokens.primarySoft : Colors.transparent,
         borderRadius: BorderRadius.circular(AppDesignTokens.radiusMd),
         border: BorderDirectional(
           start: isSelected
@@ -380,15 +432,15 @@ class _AppShellState extends ConsumerState<AppShell> {
                 : (!isAllowed
                       ? AppDesignTokens.textMuted
                       : AppDesignTokens.textSecondary),
-            size: 20,
+            size: 22,
           ),
           if (_isDrawerOpen) ...[
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
                       ? AppDesignTokens.primary

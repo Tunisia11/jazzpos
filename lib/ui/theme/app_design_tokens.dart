@@ -14,13 +14,16 @@ class AppDesignTokens {
   // Borders
   static const Color border = Color(0xFFE5E7EB);
   static const Color borderSubtle = Color(0xFFF3F4F6);
-  static const Color borderFocused = Color(0xFF2563EB);
+  static const Color borderFocused = Color(0xFF1F9D55);
 
   // Brand & Action Accents
-  static const Color primary = Color(0xFF2563EB); // Modern cobalt blue
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryHover = Color(0xFF1D4ED8);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color primary = Color(0xFF1F9D55); // Trace POS green
+  static const Color primaryLight = Color(0xFF34B56B);
+  static const Color primaryHover = Color(0xFF178046);
+  static const Color primaryDark = Color(0xFF178046);
+  static const Color primarySoft = Color(0xFFE8F5EC); // tinted backgrounds
+  static const Color primarySoftBorder = Color(0xFFCDE9D7);
+  static const Color info = Color(0xFF2563EB); // neutral blue for icons/links
   static const Color accentOrange = Color(
     0xFFF97316,
   ); // High-priority CTA (e.g. final payment)
