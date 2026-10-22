@@ -4,6 +4,7 @@ import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/localization/app_localizations.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class SetupWizardScreen extends ConsumerStatefulWidget {
   const SetupWizardScreen({super.key});
@@ -60,7 +61,8 @@ class _SetupWizardScreenState extends ConsumerState<SetupWizardScreen> {
           }
         });
       }
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('setup_wizard_screen', 'Ignored error: $e');
       if (mounted) {
         setState(() {
           if (_registerCodeCtrl.text.isEmpty) {

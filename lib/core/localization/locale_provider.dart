@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../platform/app_paths.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 final localeProvider = StateNotifierProvider<LocaleNotifier, Locale>((ref) {
   return LocaleNotifier();
@@ -45,6 +46,6 @@ class LocaleNotifier extends StateNotifier<Locale> {
       }
       data['languageCode'] = newLocale.languageCode;
       await file.writeAsString(jsonEncode(data));
-    } catch (_) {}
+    } catch (e) { PosLogger.instance.warning('locale_provider', 'Ignored error: $e'); }
   }
 }

@@ -7,6 +7,7 @@ import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class OwnerCatalogView extends ConsumerStatefulWidget {
   const OwnerCatalogView({super.key});
@@ -59,7 +60,8 @@ class _OwnerCatalogViewState extends ConsumerState<OwnerCatalogView> {
           _isLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('owner_catalog_view', 'Ignored error: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

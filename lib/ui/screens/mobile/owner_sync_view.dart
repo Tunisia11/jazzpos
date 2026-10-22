@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/common/app_card.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class OwnerSyncView extends ConsumerStatefulWidget {
   const OwnerSyncView({super.key});
@@ -47,7 +48,8 @@ class _OwnerSyncViewState extends ConsumerState<OwnerSyncView> {
           _isLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('owner_sync_view', 'Ignored error: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

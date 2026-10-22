@@ -358,6 +358,7 @@ void main() {
       expect(initial.name, isNotEmpty);
 
       await boutiqueService.saveSettings(
+        actorId: adminId,
         initial.copyWith(
           name: 'La Parisienne Boutique',
           address: 'Avenue Habib Bourguiba, Tunis',

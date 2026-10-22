@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:jazzpos/core/constants/roles.dart';
 import 'package:jazzpos/core/constants/permissions.dart';
@@ -35,8 +36,57 @@ class AuthService {
   AuthService(this.db, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
 
+  static const String _lockoutSettingKey = 'auth_lockout_state';
+  bool _attemptsLoaded = false;
+
+  /// Lockout state is persisted so restarting the app does not reset it.
+  Future<void> _ensureLoaded() async {
+    if (_attemptsLoaded) return;
+    _attemptsLoaded = true;
+    try {
+      final row = await (db.select(db.appSettings)
+            ..where((t) => t.key.equals(_lockoutSettingKey)))
+          .getSingleOrNull();
+      if (row == null) return;
+      final map = jsonDecode(row.value) as Map<String, dynamic>;
+      for (final e in map.entries) {
+        final v = e.value as Map<String, dynamic>;
+        _attempts[e.key] = _AttemptTracker()
+          ..failures = v['f'] as int? ?? 0
+          ..lockedUntil = DateTime.tryParse(v['u'] as String? ?? '');
+      }
+    } catch (e) {
+      PosLogger.instance.warning('Auth', 'Could not load lockout state: $e');
+    }
+  }
+
+  Future<void> _persistAttempts() async {
+    try {
+      final now = _clock();
+      final map = <String, dynamic>{
+        for (final e in _attempts.entries)
+          if (e.value.failures > 0)
+            e.key: {
+              'f': e.value.failures,
+              if (e.value.lockedUntil != null)
+                'u': e.value.lockedUntil!.toIso8601String(),
+            },
+      };
+      await db.into(db.appSettings).insertOnConflictUpdate(
+            AppSettingsCompanion.insert(
+              key: _lockoutSettingKey,
+              value: jsonEncode(map),
+              updatedAt: now,
+            ),
+          );
+    } catch (e) {
+      PosLogger.instance.warning('Auth', 'Could not save lockout state: $e');
+    }
+  }
+
   /// Throws if [key] is locked out; otherwise returns normally.
-  void _ensureNotLocked(String key) {
+  Future<void> _ensureNotLocked(String key) async {
+    await _ensureLoaded();
     final until = _attempts[key]?.lockedUntil;
     if (until != null && _clock().isBefore(until)) {
       final secs = until.difference(_clock()).inSeconds + 1;
@@ -46,7 +96,8 @@ class AuthService {
     }
   }
 
-  void _recordFailure(String key) {
+  Future<void> _recordFailure(String key) async {
+    await _ensureLoaded();
     final t = _attempts.putIfAbsent(key, _AttemptTracker.new);
     t.failures++;
     if (t.failures >= _AttemptTracker.freeAttempts) {
@@ -55,9 +106,13 @@ class AuthService {
       final secs = (30 * (1 << (steps > 5 ? 5 : steps))).clamp(30, 900);
       t.lockedUntil = _clock().add(Duration(seconds: secs));
     }
+    await _persistAttempts();
   }
 
-  void _clearFailures(String key) => _attempts.remove(key);
+  Future<void> _clearFailures(String key) async {
+    await _ensureLoaded();
+    if (_attempts.remove(key) != null) await _persistAttempts();
+  }
 
   /// Re-hash a PIN with the current scheme after a successful verification.
   Future<User> _upgradeHashIfNeeded(User user, String pin) async {
@@ -79,7 +134,7 @@ class AuthService {
     required String pin,
   }) async {
     final lockKey = 'login:${username.trim().toLowerCase()}';
-    _ensureNotLocked(lockKey);
+    await _ensureNotLocked(lockKey);
 
     final found =
         await (db.select(db.users)..where(
@@ -90,7 +145,7 @@ class AuthService {
             .getSingleOrNull();
 
     if (found == null) {
-      _recordFailure(lockKey);
+      await _recordFailure(lockKey);
       throw const AuthException('Invalid username or PIN');
     }
 
@@ -101,14 +156,14 @@ class AuthService {
     );
 
     if (!isValid) {
-      _recordFailure(lockKey);
+      await _recordFailure(lockKey);
       PosLogger.instance.warning(
         'Auth',
         'Failed login attempt for user: $username',
       );
       throw const AuthException('Invalid username or PIN');
     }
-    _clearFailures(lockKey);
+    await _clearFailures(lockKey);
     final user = await _upgradeHashIfNeeded(found, pin);
 
     // Load permissions
@@ -132,16 +187,16 @@ class AuthService {
     if (_currentSession == null) return false;
     final user = _currentSession!.user;
     final lockKey = 'unlock:${user.id}';
-    _ensureNotLocked(lockKey);
+    await _ensureNotLocked(lockKey);
     final ok = PasswordHasher.verifyPin(
       pin: pin,
       saltHex: user.pinSalt,
       expectedHashHex: user.pinHash,
     );
     if (ok) {
-      _clearFailures(lockKey);
+      await _clearFailures(lockKey);
     } else {
-      _recordFailure(lockKey);
+      await _recordFailure(lockKey);
     }
     return ok;
   }
@@ -153,7 +208,7 @@ class AuthService {
     String requiredPermission = '',
   }) async {
     const lockKey = 'manager-override';
-    _ensureNotLocked(lockKey);
+    await _ensureNotLocked(lockKey);
     final managers =
         await (db.select(db.users)..where(
               (tbl) =>
@@ -181,7 +236,7 @@ class AuthService {
             continue;
           }
         }
-        _clearFailures(lockKey);
+        await _clearFailures(lockKey);
         PosLogger.instance.info(
           'Auth',
           'Manager override approved by: ${mgr.displayName} (${mgr.role})',
@@ -190,7 +245,7 @@ class AuthService {
       }
     }
 
-    _recordFailure(lockKey);
+    await _recordFailure(lockKey);
     throw const AuthException(
       'Invalid Manager PIN. Override authorization denied.',
     );

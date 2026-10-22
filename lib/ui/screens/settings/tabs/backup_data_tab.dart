@@ -201,11 +201,49 @@ class _BackupDataTabState extends ConsumerState<BackupDataTab> {
     }
   }
 
+  /// Returns null if cancelled, '' for an unencrypted backup, else the passphrase.
+  Future<String?> _askBackupPassphrase() {
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chiffrer la sauvegarde ?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'La sauvegarde contient les ventes, clients et codes PIN. '
+              'Saisissez un mot de passe (8 caractères min.) pour la chiffrer. '
+              'Il n’est enregistré nulle part : s’il est perdu, la sauvegarde '
+              'est irrécupérable. Laissez vide pour ne pas chiffrer.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Mot de passe'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            child: const Text('Sauvegarder'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _createBackup() async {
+    final passphrase = await _askBackupPassphrase();
+    if (passphrase == null) return;
     setState(() => _isBackingUp = true);
     try {
       final backupService = ref.read(backupServiceProvider);
-      await backupService.createLocalBackup();
+      await backupService.createLocalBackup(passphrase: passphrase);
       await _loadBackups();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

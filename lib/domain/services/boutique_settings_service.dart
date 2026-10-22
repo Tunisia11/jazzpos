@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:drift/drift.dart' as drift;
 import 'package:path/path.dart' as p;
+import 'package:jazzpos/core/constants/permissions.dart';
+import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/platform/app_paths.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
+import 'package:jazzpos/domain/services/permission_guard.dart';
 
 class BoutiqueSettings {
   final String name;
@@ -124,7 +127,15 @@ class BoutiqueSettingsService {
   }
 
   /// Save settings to JSON config and synchronize with SQLite Company and Store
-  Future<void> saveSettings(BoutiqueSettings settings) async {
+  Future<void> saveSettings(
+    BoutiqueSettings settings, {
+    required String actorId,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.manageSettings,
+    );
     // 1. Persist to JSON config
     try {
       final file = _configFile;
@@ -132,6 +143,7 @@ class BoutiqueSettingsService {
       await file.writeAsString(jsonEncode(settings.toJson()));
     } catch (e) {
       PosLogger.instance.error('BoutiqueSettings', 'Failed to write boutique_config.json: $e');
+      throw PosException('Could not save store settings to disk: $e');
     }
 
     // 2. Synchronize SQLite Company & Store

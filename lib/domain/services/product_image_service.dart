@@ -330,7 +330,7 @@ class ProductImageService {
             entity.path != thumbTarget.path) {
           try {
             await entity.delete();
-          } catch (_) {}
+          } catch (e) { PosLogger.instance.warning('product_image_service', 'Ignored error: $e'); }
         }
       }
 
@@ -342,7 +342,7 @@ class ProductImageService {
             await File(resolvedPrev).exists()) {
           try {
             await File(resolvedPrev).delete();
-          } catch (_) {}
+          } catch (e) { PosLogger.instance.warning('product_image_service', 'Ignored error: $e'); }
         }
       }
 

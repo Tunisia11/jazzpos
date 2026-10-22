@@ -1307,7 +1307,7 @@ class _BarcodeScanDialogState extends State<_BarcodeScanDialog> {
           Navigator.of(context).pop(scanned.trim());
         }
       });
-    } catch (_) {}
+    } catch (e) { PosLogger.instance.warning('product_edit_screen', 'Ignored error: $e'); }
   }
 
   @override

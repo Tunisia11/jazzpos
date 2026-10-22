@@ -79,7 +79,8 @@ class EscPosUsbPrinter implements ReceiptPrinter {
           result.exitCode == 0 && (result.stdout as String).trim().isNotEmpty;
       status = isFound ? HardwareStatus.ready : HardwareStatus.offline;
       return isFound;
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('esc_pos_usb_printer', 'Ignored error: $e');
       status = HardwareStatus.offline;
       return false;
     }

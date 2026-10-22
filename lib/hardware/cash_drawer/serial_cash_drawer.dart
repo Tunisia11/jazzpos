@@ -96,7 +96,7 @@ class SerialCashDrawer implements CashDrawer {
       );
       try {
         await temp.delete();
-      } catch (_) {}
+      } catch (e) { PosLogger.instance.warning('serial_cash_drawer', 'Ignored error: $e'); }
       _isTested = true;
       PosLogger.instance.info(
         'CashDrawer',

@@ -104,7 +104,7 @@ class StartupTracker {
       if (_startupLogFile != null) {
         _startupLogFile!.writeAsStringSync(text, mode: FileMode.append, flush: true);
       }
-    } catch (_) {}
+    } catch (e) { PosLogger.instance.warning('startup_tracker', 'Ignored error: $e'); }
   }
 
   String getDiagnosticSummary() {

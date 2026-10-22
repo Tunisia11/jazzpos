@@ -7,6 +7,7 @@ import 'owner_dashboard_view.dart';
 import 'owner_catalog_view.dart';
 import 'owner_stock_alerts_view.dart';
 import 'owner_sync_view.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class OwnerMobileShell extends ConsumerStatefulWidget {
   const OwnerMobileShell({super.key});
@@ -32,7 +33,7 @@ class _OwnerMobileShellState extends ConsumerState<OwnerMobileShell> {
       if (mounted && settings.name.isNotEmpty) {
         setState(() => _storeName = settings.name);
       }
-    } catch (_) {}
+    } catch (e) { PosLogger.instance.warning('owner_mobile_shell', 'Ignored error: $e'); }
   }
 
   @override

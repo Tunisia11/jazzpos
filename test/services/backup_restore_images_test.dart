@@ -5,7 +5,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:jazzpos/core/utils/backup_crypto.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/backup_service.dart';
 
@@ -17,6 +19,8 @@ void main() {
   late File databaseFile;
   late AppDatabase liveDb;
   late BackupService service;
+
+  setUpAll(() => BackupCrypto.iterations = 1000);
 
   setUp(() async {
     rootDir = await Directory.systemTemp.createTemp('jazzpos_pkg_backup_');
@@ -154,6 +158,30 @@ void main() {
     } finally {
       await restoredDb.close();
     }
+  });
+
+  test('Encrypted backup needs the passphrase to validate and restore', () async {
+    final record = await service.createLocalBackup(passphrase: 'secret-pass-1');
+    expect(record.filePath.endsWith('.zip.enc'), isTrue);
+
+    final raw = await File(record.filePath).readAsBytes();
+    expect(BackupCrypto.isEncrypted(raw), isTrue);
+    expect(() => ZipDecoder().decodeBytes(raw), throwsA(anything));
+
+    await expectLater(service.validateBackupFile(record.filePath), throwsA(isA<ValidationException>()));
+    await expectLater(
+      service.validateBackupFile(record.filePath, passphrase: 'wrong-pass'),
+      throwsA(isA<ValidationException>()),
+    );
+    expect(await service.validateBackupFile(record.filePath, passphrase: 'secret-pass-1'), isTrue);
+
+    final rollback = await service.restoreBackup(
+      record.filePath,
+      'test_admin',
+      confirmed: true,
+      passphrase: 'secret-pass-1',
+    );
+    expect(await File(rollback).exists(), isTrue);
   });
 
   test('Supports restoring legacy single-file .sqlite backups seamlessly', () async {

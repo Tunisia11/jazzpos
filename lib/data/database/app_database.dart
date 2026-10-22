@@ -149,11 +149,32 @@ class AppDatabase extends _$AppDatabase {
           'Database',
           'Upgrading database from $from to $to',
         );
+        // Each step is idempotent so a half-applied upgrade can be re-run.
+        Future<void> addIfMissing(
+          TableInfo table,
+          String column,
+          GeneratedColumn Function() col,
+        ) async {
+          final cols = await customSelect(
+            'PRAGMA table_info(${table.actualTableName});',
+          ).get();
+          if (cols.any((r) => r.data['name'] == column)) return;
+          await m.addColumn(table, col());
+        }
+
         if (from < 2) {
-          await m.addColumn(products, products.imageUrl);
-          await m.addColumn(products, products.deletedAt);
-          await m.addColumn(productVariants, productVariants.imageUrl);
-          await m.addColumn(productVariants, productVariants.deletedAt);
+          await addIfMissing(products, 'image_url', () => products.imageUrl);
+          await addIfMissing(products, 'deleted_at', () => products.deletedAt);
+          await addIfMissing(
+            productVariants,
+            'image_url',
+            () => productVariants.imageUrl,
+          );
+          await addIfMissing(
+            productVariants,
+            'deleted_at',
+            () => productVariants.deletedAt,
+          );
         }
       },
       beforeOpen: (details) async {

@@ -7,6 +7,7 @@ import 'package:jazzpos/core/money/money.dart';
 import 'package:jazzpos/core/platform/export_diagnostic_report_service.dart';
 import 'package:jazzpos/hardware/hardware_manager.dart';
 import 'package:jazzpos/hardware/label_printer/label_document.dart';
+import 'package:jazzpos/hardware/label_printer/raw_label_printer.dart';
 import 'package:jazzpos/hardware/models/hardware_status.dart';
 import 'package:jazzpos/hardware/receipt_printer/printer_candidate.dart';
 import 'package:jazzpos/hardware/receipt_printer/printer_profile.dart';
@@ -16,6 +17,7 @@ import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/screens/settings/hardware_setup_wizard.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/common/app_card.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class HardwareDiagnosticsTab extends ConsumerStatefulWidget {
   const HardwareDiagnosticsTab({super.key});
@@ -111,7 +113,8 @@ class _HardwareDiagnosticsTabState extends ConsumerState<HardwareDiagnosticsTab>
           }
         });
       }
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('hardware_diagnostics_tab', 'Ignored error: $e');
       // Ignored
     } finally {
       if (mounted) setState(() => _isLoadingPrinters = false);
@@ -293,6 +296,69 @@ class _HardwareDiagnosticsTabState extends ConsumerState<HardwareDiagnosticsTab>
       if (mounted) {
         setState(() => _hardwareStatusMsg = 'Erreur ticket: $e');
       }
+    }
+  }
+
+  Future<void> _configureLabelPrinter() async {
+    var transport = Platform.isWindows
+        ? LabelTransport.windowsSpooler
+        : Platform.isMacOS
+            ? LabelTransport.macCups
+            : LabelTransport.network;
+    final nameCtrl = TextEditingController();
+    final ipCtrl = TextEditingController();
+    final portCtrl = TextEditingController(text: '9100');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Configurer l’étiqueteuse'),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<LabelTransport>(
+                  initialValue: transport,
+                  decoration: const InputDecoration(labelText: 'Connexion'),
+                  items: const [
+                    DropdownMenuItem(value: LabelTransport.windowsSpooler, child: Text('Windows (file d’impression)')),
+                    DropdownMenuItem(value: LabelTransport.network, child: Text('Réseau (IP)')),
+                    DropdownMenuItem(value: LabelTransport.macCups, child: Text('macOS (CUPS)')),
+                  ],
+                  onChanged: (v) => setLocal(() => transport = v ?? transport),
+                ),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    labelText: transport == LabelTransport.network ? 'Nom' : 'Nom de la file d’impression',
+                  ),
+                ),
+                if (transport == LabelTransport.network) ...[
+                  TextField(controller: ipCtrl, decoration: const InputDecoration(labelText: 'Adresse IP')),
+                  TextField(controller: portCtrl, decoration: const InputDecoration(labelText: 'Port')),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enregistrer')),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await HardwareManager.instance.saveLabelPrinter(
+        nameCtrl.text,
+        transport: transport,
+        ipAddress: ipCtrl.text,
+        port: int.tryParse(portCtrl.text.trim()),
+      );
+      if (mounted) setState(() => _hardwareStatusMsg = 'Étiqueteuse enregistrée.');
+    } catch (e) {
+      if (mounted) setState(() => _hardwareStatusMsg = 'Erreur étiqueteuse: $e');
     }
   }
 
@@ -624,6 +690,15 @@ class _HardwareDiagnosticsTabState extends ConsumerState<HardwareDiagnosticsTab>
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppDesignTokens.textPrimary),
           ),
           const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _configureLabelPrinter,
+              icon: const Icon(Icons.settings, size: 18),
+              label: const Text('Configurer l’étiqueteuse (TSPL)'),
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               _buildDeviceCard(

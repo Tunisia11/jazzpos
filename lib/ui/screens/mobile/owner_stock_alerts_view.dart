@@ -8,6 +8,7 @@ import 'package:jazzpos/domain/services/report_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/common/app_card.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class OwnerStockAlertsView extends ConsumerStatefulWidget {
   const OwnerStockAlertsView({super.key});
@@ -92,7 +93,8 @@ class _OwnerStockAlertsViewState extends ConsumerState<OwnerStockAlertsView> {
           _isLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('owner_stock_alerts_view', 'Ignored error: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

@@ -6,6 +6,7 @@ import 'package:jazzpos/core/errors/failure.dart';
 import 'package:jazzpos/core/utils/password_hasher.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/auth_service.dart';
+import 'package:jazzpos/domain/services/boutique_settings_service.dart';
 
 void main() {
   late AppDatabase db;
@@ -63,6 +64,33 @@ void main() {
     final row = await (db.select(db.users)..where((t) => t.id.equals('u1'))).getSingle();
     expect(row.pinHash, startsWith('pbkdf2\$'));
     expect(PasswordHasher.verifyPin(pin: '1234', saltHex: row.pinSalt, expectedHashHex: row.pinHash), isTrue);
+  });
+
+  test('lockout survives an app restart (new AuthService, same database)', () async {
+    final salt = PasswordHasher.generateSalt();
+    await insertUser('u3', 'resto', 'CASHIER', PasswordHasher.hashPin('2222', salt), salt);
+    for (var i = 0; i < 5; i++) {
+      await expectLater(auth.login(username: 'resto', pin: '0000'), throwsA(isA<AuthException>()));
+    }
+    final restarted = AuthService(db, clock: () => now);
+    await expectLater(
+      restarted.login(username: 'resto', pin: '2222'),
+      throwsA(isA<AuthException>().having((e) => e.message, 'message', contains('Too many'))),
+    );
+    now = now.add(const Duration(seconds: 31));
+    expect((await restarted.login(username: 'resto', pin: '2222')).user.id, 'u3');
+  });
+
+  test('a cashier cannot save store settings', () async {
+    final salt = PasswordHasher.generateSalt();
+    await insertUser('c1', 'cashier1', 'CASHIER', PasswordHasher.hashPin('3333', salt), salt);
+    await expectLater(
+      BoutiqueSettingsService(db).saveSettings(
+        const BoutiqueSettings(name: 'Hacked'),
+        actorId: 'c1',
+      ),
+      throwsA(isA<AuthException>()),
+    );
   });
 
   test('login locks out after 5 wrong PINs and recovers after the delay', () async {

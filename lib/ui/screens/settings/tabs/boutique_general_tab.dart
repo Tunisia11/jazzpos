@@ -9,6 +9,7 @@ import 'package:jazzpos/core/platform/windows_startup.dart';
 import 'package:jazzpos/core/sound/sound_effect_service.dart';
 import 'package:jazzpos/domain/services/boutique_settings_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
+import 'package:jazzpos/providers/auth_provider.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/common/app_card.dart';
 
@@ -102,7 +103,10 @@ class _BoutiqueGeneralTabState extends ConsumerState<BoutiqueGeneralTab> {
         receiptHeader: _receiptHeaderCtrl.text.trim().isEmpty ? null : _receiptHeaderCtrl.text.trim(),
         receiptFooter: _receiptFooterCtrl.text.trim().isEmpty ? null : _receiptFooterCtrl.text.trim(),
       );
-      await service.saveSettings(updated);
+      await service.saveSettings(
+        updated,
+        actorId: ref.read(authNotifierProvider).user?.id ?? '',
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

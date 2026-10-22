@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jazzpos/data/database/app_database.dart';
 import 'package:jazzpos/domain/services/auth_service.dart';
 import 'app_providers.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class AuthState {
   final UserSession? session;
@@ -91,7 +92,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<User?> verifyManagerOverride(String managerPin) async {
     try {
       return await authService.verifyManagerOverride(managerPin);
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('auth_provider', 'Ignored error: $e');
       return null;
     }
   }

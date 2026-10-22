@@ -91,7 +91,8 @@ class MacCupsPrinter implements ReceiptPrinter {
           status = HardwareStatus.offline;
         }
       }
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('mac_cups_printer', 'Ignored error: $e');
       status = HardwareStatus.unknown;
     }
 
@@ -176,7 +177,7 @@ class MacCupsPrinter implements ReceiptPrinter {
     } finally {
       try {
         await jobDir.delete(recursive: true);
-      } catch (_) {}
+      } catch (e) { PosLogger.instance.warning('mac_cups_printer', 'Ignored error: $e'); }
     }
   }
 

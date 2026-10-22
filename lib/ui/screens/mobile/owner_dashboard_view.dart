@@ -10,6 +10,7 @@ import 'package:jazzpos/domain/services/report_service.dart';
 import 'package:jazzpos/providers/app_providers.dart';
 import 'package:jazzpos/ui/theme/app_design_tokens.dart';
 import 'package:jazzpos/ui/widgets/common/app_card.dart';
+import 'package:jazzpos/core/logging/pos_logger.dart';
 
 class OwnerDashboardView extends ConsumerStatefulWidget {
   const OwnerDashboardView({super.key});
@@ -64,7 +65,8 @@ class _OwnerDashboardViewState extends ConsumerState<OwnerDashboardView> {
           _isLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('owner_dashboard_view', 'Ignored error: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }

@@ -81,7 +81,8 @@ class EscPosSerialPrinter implements ReceiptPrinter {
           (result.stdout as String).trim().toLowerCase() == 'true';
       status = isPresent ? HardwareStatus.ready : HardwareStatus.offline;
       return isPresent;
-    } catch (_) {
+    } catch (e) {
+      PosLogger.instance.warning('esc_pos_serial_printer', 'Ignored error: $e');
       status = HardwareStatus.offline;
       return false;
     }

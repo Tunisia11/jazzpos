@@ -70,7 +70,7 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
         status = HardwareStatus.values.where((s)=>s.value == value['status']).firstOrNull ?? HardwareStatus.unknown;
         if (value['exists'] == false) status = HardwareStatus.missing;
       }
-    } catch (_) { status = HardwareStatus.unknown; }
+    } catch (e) { PosLogger.instance.warning('windows_spooler_printer', 'Ignored error: $e'); status = HardwareStatus.unknown; }
     return status == HardwareStatus.ready;
   }
 
@@ -98,7 +98,7 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
       await tempFile.writeAsBytes(bytes, flush:true);
       final result = await _run('powershell', WindowsRawPrintBridge.arguments({'queueName':name, 'filePath':tempFile.path}, print:true), timeout:const Duration(seconds:15));
       Map? value;
-      try { final decoded = jsonDecode(result.stdout.toString().trim()); if (decoded is Map) value=decoded; } catch (_) {}
+      try { final decoded = jsonDecode(result.stdout.toString().trim()); if (decoded is Map) value=decoded; } catch (e) { PosLogger.instance.warning('windows_spooler_printer', 'Ignored error: $e'); }
       if (result.exitCode != 0 || value?['success'] != true || value?['jobId'] is! int ||
           (value!['jobId'] as int) <= 0 || value['bytesWritten'] != bytes.length || value['queueName'] != name || value['delivery'] != 'queued') {
         status = HardwareStatus.error;
@@ -109,7 +109,7 @@ class WindowsSpoolerPrinter implements ReceiptPrinter {
       if (lastSpoolJobs.length > 10) lastSpoolJobs.removeAt(0);
       PosLogger.instance.info('WindowsSpooler', 'Queued job $lastJobId ($name), ${bytes.length} bytes. Paper output unverified.');
     } finally {
-      try { await jobDir.delete(recursive:true); } catch (_) {}
+      try { await jobDir.delete(recursive:true); } catch (e) { PosLogger.instance.warning('windows_spooler_printer', 'Ignored error: $e'); }
     }
   }
 

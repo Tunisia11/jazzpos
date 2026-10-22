@@ -9,6 +9,7 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 import 'package:jazzpos/core/constants/permissions.dart';
 import 'package:jazzpos/core/platform/app_paths.dart';
 import 'package:jazzpos/core/errors/failure.dart';
+import 'package:jazzpos/core/utils/backup_crypto.dart';
 import 'package:jazzpos/core/logging/pos_logger.dart';
 import 'package:jazzpos/core/utils/id_generator.dart';
 import 'package:jazzpos/data/database/app_database.dart';
@@ -53,7 +54,11 @@ class BackupService {
   /// - database.sqlite (consistent VACUUM INTO snapshot)
   /// - manifest.json (metadata, db checksum, images stats)
   /// - images/products/... (all managed product images)
-  Future<BackupRecord> createLocalBackup() async {
+  ///
+  /// With a [passphrase] the package is encrypted (AES-256-GCM) and saved as
+  /// `.zip.enc`; the passphrase is not stored anywhere.
+  Future<BackupRecord> createLocalBackup({String? passphrase}) async {
+    final encrypt = passphrase != null && passphrase.isNotEmpty;
     await _ensureInitialized();
     final backupDir = _backupDirectoryOverride;
     if (backupDir != null && !await backupDir.exists()) {
@@ -68,7 +73,8 @@ class BackupService {
       resolvedBackupDir.path,
       'temp_snapshot_$timestampStr.sqlite',
     );
-    final backupZipFileName = 'jazzpos_backup_$timestampStr.zip';
+    final backupZipFileName =
+        'jazzpos_backup_$timestampStr.zip${encrypt ? '.enc' : ''}';
     final backupZipFilePath = p.join(resolvedBackupDir.path, backupZipFileName);
 
     try {
@@ -122,10 +128,13 @@ class BackupService {
         archive.addFile(ArchiveFile(rel, bytes.length, bytes));
       }
 
-      final zipBytes = ZipEncoder().encode(archive);
-      if (zipBytes == null) {
+      final plainZip = ZipEncoder().encode(archive);
+      if (plainZip == null) {
         throw const PosException('Failed to compress backup package');
       }
+      final zipBytes = encrypt
+          ? await BackupCrypto.encrypt(plainZip, passphrase)
+          : plainZip;
 
       final zipFile = File(backupZipFilePath);
       await zipFile.writeAsBytes(zipBytes);
@@ -169,7 +178,7 @@ class BackupService {
       try {
         final tempDbFile = File(tempDbSnapshotPath);
         if (await tempDbFile.exists()) await tempDbFile.delete();
-      } catch (_) {}
+      } catch (e) { PosLogger.instance.warning('backup_service', 'Ignored error: $e'); }
       throw PosException('Failed to create atomic backup: $e');
     }
   }
@@ -184,7 +193,9 @@ class BackupService {
           .where(
             (e) =>
                 e is File &&
-                (e.path.endsWith('.zip') || e.path.endsWith('.sqlite')),
+                (e.path.endsWith('.zip') ||
+                    e.path.endsWith('.zip.enc') ||
+                    e.path.endsWith('.sqlite')),
           )
           .toList();
       if (files.length > maxBackups) {
@@ -203,7 +214,7 @@ class BackupService {
   }
 
   /// Validate a backup file before restoring (.zip package or legacy .sqlite)
-  Future<bool> validateBackupFile(String filePath) async {
+  Future<bool> validateBackupFile(String filePath, {String? passphrase}) async {
     final file = File(filePath);
     try {
       if (!await file.exists()) {
@@ -216,15 +227,27 @@ class BackupService {
       throw ValidationException('Cannot access backup file: ${e.message}');
     }
 
-    if (filePath.endsWith('.zip')) {
-      return _validateZipBackup(file);
+    if (filePath.endsWith('.zip') || filePath.endsWith('.zip.enc')) {
+      return _validateZipBackup(file, passphrase);
     } else {
       return _validateSqliteFile(filePath);
     }
   }
 
-  Future<bool> _validateZipBackup(File zipFile) async {
-    final bytes = await zipFile.readAsBytes();
+  /// Reads a package, decrypting it when it is a `.enc` backup.
+  Future<List<int>> _readPackageBytes(File file, String? passphrase) async {
+    final raw = await file.readAsBytes();
+    if (!BackupCrypto.isEncrypted(raw)) return raw;
+    if (passphrase == null || passphrase.isEmpty) {
+      throw const ValidationException(
+        'This backup is encrypted. A passphrase is required.',
+      );
+    }
+    return BackupCrypto.decrypt(raw, passphrase);
+  }
+
+  Future<bool> _validateZipBackup(File zipFile, String? passphrase) async {
+    final bytes = await _readPackageBytes(zipFile, passphrase);
     Archive archive;
     try {
       archive = ZipDecoder().decodeBytes(bytes);
@@ -279,7 +302,7 @@ class BackupService {
       if (await tempDbFile.exists()) {
         try {
           await tempDbFile.delete();
-        } catch (_) {}
+        } catch (e) { PosLogger.instance.warning('backup_service', 'Ignored error: $e'); }
       }
     }
 
@@ -354,6 +377,7 @@ class BackupService {
     String filePath,
     String actorId, {
     required bool confirmed,
+    String? passphrase,
   }) async {
     if (!confirmed) {
       throw const ValidationException(
@@ -366,7 +390,7 @@ class BackupService {
       AppPermissions.backupRestore,
     );
     await _ensureInitialized();
-    await validateBackupFile(filePath);
+    await validateBackupFile(filePath, passphrase: passphrase);
 
     final targetDbPath =
         _databaseFilePathOverride ?? AppPaths.instance.databaseFilePath;
@@ -401,11 +425,11 @@ class BackupService {
     );
 
     try {
-      final isZip = filePath.endsWith('.zip');
+      final isZip = filePath.endsWith('.zip') || filePath.endsWith('.zip.enc');
 
       if (isZip) {
         // Unpack zip
-        final zipBytes = await File(filePath).readAsBytes();
+        final zipBytes = await _readPackageBytes(File(filePath), passphrase);
         final archive = ZipDecoder().decodeBytes(zipBytes);
 
         final dbArchiveFile = archive.findFile('database.sqlite');

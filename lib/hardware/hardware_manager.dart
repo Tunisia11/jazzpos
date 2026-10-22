@@ -19,6 +19,7 @@ import 'customer_display/second_monitor_customer_display.dart';
 import 'label_printer/fake_label_printer.dart';
 import 'label_printer/label_document.dart';
 import 'label_printer/label_printer_interface.dart';
+import 'label_printer/raw_label_printer.dart';
 import 'models/hardware_status.dart';
 import 'receipt_printer/esc_pos_network_printer.dart';
 import 'receipt_printer/fake_receipt_printer.dart';
@@ -60,6 +61,7 @@ class HardwareManager {
   HardwareRecommendationBundle? latestRecommendations;
 
   String? _configuredReceiptPrinterName;
+  Map<String, dynamic>? _configuredLabelPrinter;
   String? _configuredTransport;
   String? _configuredNetworkIp;
   int? _configuredNetworkPort;
@@ -170,6 +172,8 @@ class HardwareManager {
         final content = file.readAsStringSync();
         final json = jsonDecode(content) as Map<String, dynamic>;
         final saved = json['receiptPrinter'] as Map<String, dynamic>?;
+        final label = json['labelPrinter'];
+        if (label is Map) _configuredLabelPrinter = Map<String, dynamic>.from(label);
         final name = saved?['queueName'] as String? ?? json['receiptPrinterName'] as String?;
         if (saved != null) {
           final transport = saved['transport'] as String? ?? (Platform.isMacOS ? 'MACOS_CUPS' : 'WINDOWS_SPOOLER');
@@ -222,6 +226,7 @@ class HardwareManager {
         'drawerEnabled':drawerEnabled && selected.hasDrawerPort,
         'drawerPin':selected.drawerKickCommand.length >= 3 ? selected.drawerKickCommand[2] : null,
       },
+      if (_configuredLabelPrinter != null) 'labelPrinter': _configuredLabelPrinter,
       'updatedAt':DateTime.now().toUtc().toIso8601String(),
     });
     // Save before activation; a failed write must reach Settings as an error.
@@ -255,6 +260,64 @@ class HardwareManager {
     }
     cashDrawer = _drawerEnabled ? PrinterKickCashDrawer(printer:receiptPrinter) : const DisabledCashDrawer();
     await receiptPrinter.connect();
+  }
+
+  LabelPrinter _restoreLabelPrinter() {
+    final saved = _configuredLabelPrinter;
+    final transport = LabelTransportKey.fromKey(saved?['transport'] as String?);
+    final queue = (saved?['queueName'] as String?)?.trim() ?? '';
+    if (saved == null || transport == null || queue.isEmpty) {
+      return FakeLabelPrinter();
+    }
+    return RawLabelPrinter(
+      queueName: queue,
+      transport: transport,
+      ipAddress: saved['ipAddress'] as String?,
+      port: saved['port'] as int? ?? 9100,
+    );
+  }
+
+  /// Persist and activate the label printer (TSPL over network, spooler or CUPS).
+  Future<void> saveLabelPrinter(
+    String queueName, {
+    required LabelTransport transport,
+    String? ipAddress,
+    int? port,
+  }) async {
+    final clean = queueName.trim();
+    if (clean.isEmpty) throw ArgumentError('Label printer name is required');
+    if (transport == LabelTransport.network &&
+        (ipAddress == null || ipAddress.trim().isEmpty)) {
+      throw ArgumentError('Label printer IP address is required');
+    }
+    final file = _configFile;
+    Map<String, dynamic> json = {};
+    if (file.existsSync()) {
+      try {
+        json = Map<String, dynamic>.from(jsonDecode(file.readAsStringSync()) as Map);
+      } catch (e) {
+        PosLogger.instance.warning('Hardware', 'Config unreadable, rewriting: $e');
+      }
+    }
+    final entry = <String, dynamic>{
+      'queueName': clean,
+      'transport': transport.key,
+      if (transport == LabelTransport.network) ...{
+        'ipAddress': ipAddress!.trim(),
+        'port': port ?? 9100,
+      },
+    };
+    json['labelPrinter'] = entry;
+    json['updatedAt'] = DateTime.now().toUtc().toIso8601String();
+    final staged = File('${file.path}.tmp');
+    try {
+      await staged.writeAsString(jsonEncode(json), flush: true);
+      await staged.rename(file.path);
+    } finally {
+      if (await staged.exists()) await staged.delete();
+    }
+    _configuredLabelPrinter = entry;
+    labelPrinter = _restoreLabelPrinter();
   }
 
   /// Initialize hardware manager on app startup.
@@ -301,7 +364,7 @@ class HardwareManager {
     }
 
     // 2. Label printer
-    labelPrinter = customLabelPrinter ?? FakeLabelPrinter();
+    labelPrinter = customLabelPrinter ?? _restoreLabelPrinter();
 
     // 3. Barcode scanner
     barcodeScanner = customBarcodeScanner ?? ScannerInputService();
