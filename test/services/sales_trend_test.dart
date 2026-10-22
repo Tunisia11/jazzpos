@@ -77,6 +77,46 @@ void main() {
     expect(trend.last.start, DateTime(2026, 10, 21));
   });
 
+  test('size performance uses the SIZE attribute, not the colour', () async {
+    await db.into(db.attributeTypes).insert(AttributeTypesCompanion.insert(id: 't-size', name: 'Taille', code: 'SIZE'));
+    await db.into(db.attributeTypes).insert(AttributeTypesCompanion.insert(id: 't-color', name: 'Couleur', code: 'COLOR'));
+    await db.into(db.attributeValues).insert(AttributeValuesCompanion.insert(id: 'm', attributeTypeId: 't-size', value: 'M', code: 'M'));
+    await db.into(db.attributeValues).insert(AttributeValuesCompanion.insert(id: 'noir', attributeTypeId: 't-color', value: 'Noir', code: 'N'));
+    for (final v in ['v1', 'v2']) {
+      await db.into(db.variantAttributeValues).insert(
+          VariantAttributeValuesCompanion.insert(variantId: v, attributeValueId: 'noir'));
+    }
+    await db.into(db.variantAttributeValues).insert(
+        VariantAttributeValuesCompanion.insert(variantId: 'v1', attributeValueId: 'm'));
+
+    Future<void> line(String sale, String variant, String desc, int total) async {
+      await db.into(db.sales).insert(SalesCompanion.insert(
+          id: sale, receiptNumber: 'R$sale', storeId: 'st', registerId: 'rg',
+          shiftId: 'sh', cashierId: 'owner', subtotalMillimes: total,
+          totalMillimes: total, idempotencyKey: 'k$sale',
+          createdAt: DateTime(2026, 10, 21, 10)));
+      await db.into(db.saleLines).insert(SaleLinesCompanion.insert(
+          id: 'l$sale', saleId: sale, variantId: variant, productName: 'x',
+          variantDescription: desc, sku: 's$sale', barcode: 'b$sale', quantity: 1,
+          unitPriceMillimes: total, originalPriceMillimes: total, totalMillimes: total));
+    }
+
+    await line('a', 'v1', 'M / Noir', 69000);
+    await line('b', 'v2', 'Noir', 50000); // colour only: no size
+    await line('c', 'v3', 'Standard', 30000); // no attributes at all
+
+    final sizes = await ReportService(db).getSizePerformance(
+      actorId: 'owner',
+      startDate: DateTime(2026, 10, 21),
+      endDate: DateTime(2026, 10, 22),
+    );
+    final byName = {for (final s in sizes) s.size: s.unitsSold};
+    expect(byName['M'], 1);
+    expect(byName['Sans taille'], 2);
+    expect(byName.containsKey('Noir'), isFalse);
+    expect(byName.containsKey('Standard'), isFalse);
+  });
+
   test('requires the view-reports permission', () {
     expect(
       ReportService(db).getSalesTrend(

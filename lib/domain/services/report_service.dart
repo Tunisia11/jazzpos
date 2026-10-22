@@ -648,14 +648,38 @@ class ReportService {
       db.saleLines,
     )..where((tbl) => tbl.saleId.isIn(saleIds))).get();
 
+    // The size is the variant's SIZE attribute. Parsing the text description
+    // is unreliable ("M / Noir" has the colour last), so look it up properly.
+    final variantIds = lines.map((l) => l.variantId).toSet().toList();
+    final sizeByVariant = <String, String>{};
+    if (variantIds.isNotEmpty) {
+      final rows = await (db.select(db.variantAttributeValues).join([
+        innerJoin(
+          db.attributeValues,
+          db.attributeValues.id.equalsExp(
+            db.variantAttributeValues.attributeValueId,
+          ),
+        ),
+        innerJoin(
+          db.attributeTypes,
+          db.attributeTypes.id.equalsExp(db.attributeValues.attributeTypeId),
+        ),
+      ])
+            ..where(
+              db.variantAttributeValues.variantId.isIn(variantIds) &
+                  db.attributeTypes.code.equals('SIZE'),
+            ))
+          .get();
+      for (final r in rows) {
+        sizeByVariant[r.readTable(db.variantAttributeValues).variantId] =
+            r.readTable(db.attributeValues).value;
+      }
+    }
+
     final sizeMap = <String, ({int qty, int rev})>{};
 
     for (final l in lines) {
-      // Extract size from variant description (e.g. "Noir / M" -> "M")
-      final parts = l.variantDescription.split('/');
-      final size = parts.length > 1
-          ? parts.last.trim()
-          : l.variantDescription.trim();
+      final size = sizeByVariant[l.variantId] ?? 'Sans taille';
 
       final current = sizeMap[size] ?? (qty: 0, rev: 0);
       sizeMap[size] = (

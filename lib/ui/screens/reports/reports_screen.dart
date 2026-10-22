@@ -1143,107 +1143,280 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
+  static const _sizePalette = [
+    AppDesignTokens.primary,
+    AppDesignTokens.info,
+    Color(0xFFF59E0B),
+    Color(0xFF8B5CF6),
+    Color(0xFF64748B),
+  ];
+
   Widget _buildSizePerformanceView(AppLocalizations loc) {
-    if (_sizes.isEmpty) {
-      return Center(
-        child: Text(
-          loc.noSalesForSizeAnalysis,
-          style: const TextStyle(color: AppDesignTokens.textSecondary),
+    final sizes = [..._sizes]..sort((a, b) => b.unitsSold.compareTo(a.unitsSold));
+    if (sizes.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 70, horizontal: 24),
+        decoration: _cardDeco(),
+        child: Column(
+          children: [
+            _iconBadge(Icons.straighten, size: 64),
+            const SizedBox(height: 16),
+            Text(
+              loc.noSalesForSizeAnalysis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: AppDesignTokens.textSecondary),
+            ),
+          ],
         ),
       );
     }
+    final totalUnits = sizes.fold<int>(0, (a, s) => a + s.unitsSold);
+    final totalRevenue = sizes.fold<int>(0, (a, s) => a + s.revenue.millimes);
+    final best = sizes.first;
+    int pct(int units) => totalUnits == 0 ? 0 : (units / totalUnits * 100).round();
 
-    final maxSold = _sizes
-        .map((s) => s.unitsSold)
-        .reduce((a, b) => a > b ? a : b);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppDesignTokens.surface,
-          borderRadius: BorderRadius.circular(AppDesignTokens.radiusCard),
-          border: Border.all(color: AppDesignTokens.border),
-          boxShadow: AppDesignTokens.shadowSm,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              loc.salesByGarmentSize,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppDesignTokens.textPrimary,
-              ),
+    Widget stat(IconData icon, Color color, String label, String value, [String? hint]) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: _cardDeco(),
+            child: Row(
+              children: [
+                _iconBadge(icon, color: color, size: 46),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, color: AppDesignTokens.textSecondary)),
+                      const SizedBox(height: 3),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                      ),
+                      if (hint != null)
+                        Text(hint, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              loc.sizeDemandInsight,
-              style: const TextStyle(
-                color: AppDesignTokens.textSecondary,
-                fontSize: 13,
-              ),
+          ),
+        );
+
+    final stats = IntrinsicHeight(
+      child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        stat(Icons.checkroom_rounded, AppDesignTokens.primary, 'Pièces vendues', '$totalUnits'),
+        const SizedBox(width: 14),
+        stat(Icons.payments_outlined, AppDesignTokens.info, "Chiffre d'affaires", Money.fromMillimes(totalRevenue).format()),
+        const SizedBox(width: 14),
+        stat(Icons.emoji_events_outlined, const Color(0xFFF59E0B), 'Taille la plus vendue', best.size.isEmpty ? '—' : best.size,
+            '${pct(best.unitsSold)}% des ventes'),
+      ],
+      ),
+    );
+
+    Widget headerCell(String t, {TextAlign align = TextAlign.left}) => Text(
+          t,
+          textAlign: align,
+          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: AppDesignTokens.textSecondary),
+        );
+
+    final list = Container(
+      padding: const EdgeInsets.all(22),
+      decoration: _cardDeco(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _cardTitle(Icons.straighten, loc.salesByGarmentSize),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 34),
+            child: Text(loc.sizeDemandInsight, style: const TextStyle(fontSize: 13, color: AppDesignTokens.textSecondary)),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              children: [
+                const SizedBox(width: 42),
+                SizedBox(width: 120, child: headerCell('TAILLE')),
+                Expanded(child: headerCell('VOLUME')),
+                SizedBox(width: 110, child: headerCell('PIÈCES', align: TextAlign.right)),
+                SizedBox(width: 120, child: headerCell("CA", align: TextAlign.right)),
+              ],
             ),
-            const SizedBox(height: 20),
-
-            ..._sizes.map((s) {
-              final ratio = maxSold > 0 ? (s.unitsSold / maxSold) : 0.0;
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 60,
-                      child: Text(
-                        s.size,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: AppDesignTokens.textPrimary,
-                        ),
+          ),
+          const SizedBox(height: 6),
+          for (var i = 0; i < sizes.length; i++)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                border: i == sizes.length - 1 ? null : const Border(bottom: BorderSide(color: Color(0xFFF1F3F5))),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: i == 0 ? AppDesignTokens.primary : AppDesignTokens.primarySoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${i + 1}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: i == 0 ? Colors.white : AppDesignTokens.primary,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 6,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: ratio,
-                          minHeight: 24,
-                          backgroundColor: AppDesignTokens.surfaceElevated,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppDesignTokens.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 120,
+                    child: Text(
+                      sizes[i].size.isEmpty ? '—' : sizes[i].size,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: LinearProgressIndicator(
+                              value: sizes[i].unitsSold / best.unitsSold,
+                              minHeight: 12,
+                              backgroundColor: const Color(0xFFEEF2F6),
+                              valueColor: AlwaysStoppedAnimation(
+                                i == 0 ? AppDesignTokens.primary : AppDesignTokens.primary.withValues(alpha: 0.55),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        loc.nPieces(s.unitsSold),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: AppDesignTokens.textPrimary,
+                        SizedBox(
+                          width: 48,
+                          child: Text('${pct(sizes[i].unitsSold)}%', textAlign: TextAlign.right,
+                              style: const TextStyle(fontSize: 12.5, color: AppDesignTokens.textSecondary)),
                         ),
-                      ),
+                      ],
                     ),
-                    SizedBox(
-                      width: 120,
-                      child: MoneyDisplay(amount: s.revenue, fontSize: 14),
-                    ),
+                  ),
+                  SizedBox(
+                    width: 110,
+                    child: Text(loc.nPieces(sizes[i].unitsSold), textAlign: TextAlign.right,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                  SizedBox(
+                    width: 120,
+                    child: Text(sizes[i].revenue.format(), textAlign: TextAlign.right,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+
+    // Share of pieces: top four sizes, the rest grouped as "Autres".
+    final top = sizes.take(4).toList();
+    final restUnits = sizes.skip(4).fold<int>(0, (a, s) => a + s.unitsSold);
+    final slices = [
+      for (var i = 0; i < top.length; i++) (top[i].size.isEmpty ? '—' : top[i].size, top[i].unitsSold, _sizePalette[i]),
+      if (restUnits > 0) ('Autres', restUnits, _sizePalette[4]),
+    ];
+    final share = Container(
+      padding: const EdgeInsets.all(22),
+      decoration: _cardDeco(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _cardTitle(Icons.pie_chart_outline_rounded, 'Répartition des pièces'),
+          const SizedBox(height: 18),
+          Center(
+            child: SizedBox(
+              width: 170,
+              height: 170,
+              child: DonutChart(
+                thickness: 24,
+                slices: [for (final x in slices) DonutSlice(x.$2.toDouble(), x.$3)],
+                center: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('$totalUnits', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+                    const Text('pièces', style: TextStyle(fontSize: 12, color: AppDesignTokens.textSecondary)),
                   ],
                 ),
-              );
-            }),
-          ],
-        ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          for (final x in slices)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Row(
+                children: [
+                  Container(width: 11, height: 11, decoration: BoxDecoration(color: x.$3, shape: BoxShape.circle)),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(x.$1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14))),
+                  Text('${x.$2}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  SizedBox(
+                    width: 50,
+                    child: Text('${pct(x.$2)}%', textAlign: TextAlign.right,
+                        style: const TextStyle(fontSize: 13, color: AppDesignTokens.textSecondary)),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        final wide = c.maxWidth >= 1000;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (wide) stats else Wrap(
+              spacing: 14,
+              runSpacing: 14,
+              children: [
+                for (final w in [
+                  (Icons.checkroom_rounded, AppDesignTokens.primary, 'Pièces vendues', '$totalUnits', null),
+                  (Icons.payments_outlined, AppDesignTokens.info, "Chiffre d'affaires", Money.fromMillimes(totalRevenue).format(), null),
+                  (Icons.emoji_events_outlined, const Color(0xFFF59E0B), 'Taille la plus vendue', best.size, '${pct(best.unitsSold)}% des ventes'),
+                ])
+                  SizedBox(
+                    width: c.maxWidth,
+                    child: Row(children: [stat(w.$1, w.$2, w.$3, w.$4, w.$5)]),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 7, child: list),
+                  const SizedBox(width: 16),
+                  Expanded(flex: 3, child: share),
+                ],
+              )
+            else ...[list, const SizedBox(height: 16), share],
+          ],
+        );
+      },
     );
   }
 
