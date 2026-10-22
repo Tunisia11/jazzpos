@@ -10,6 +10,7 @@ import 'package:tracepos/hardware/hardware_manager.dart';
 import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
 import 'package:tracepos/providers/auth_provider.dart';
 import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/providers/catalog_provider.dart';
 import 'package:tracepos/providers/cart_provider.dart';
 import 'package:tracepos/providers/shift_provider.dart';
 import 'package:tracepos/core/logging/pos_logger.dart';
@@ -376,6 +377,8 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
         cashierId: auth.user!.id,
         payments: payments,
       );
+      // Stock changed: reload the catalog so the POS grid shows new counts.
+      if (mounted) ref.read(catalogNotifierProvider.notifier).refresh();
 
       SoundEffectService.instance.playSuccess();
 

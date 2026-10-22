@@ -390,10 +390,11 @@ class CatalogService {
   Future<List<VariantSearchResult>> searchVariants(
     String query, {
     int limit = 50,
+    String? categoryId,
   }) async {
     final q = query.trim();
     if (q.isEmpty) {
-      return getAllActiveVariants(limit: limit);
+      return getAllActiveVariants(limit: limit, categoryId: categoryId);
     }
 
     final results = <VariantSearchResult>[];
@@ -517,11 +518,15 @@ class CatalogService {
       }
     }
 
+    if (categoryId != null) {
+      return results.where((r) => r.categoryId == categoryId).toList();
+    }
     return results;
   }
 
   Future<List<VariantSearchResult>> getAllActiveVariants({
     int limit = 50,
+    String? categoryId,
   }) async {
     final query =
         db.select(db.productVariants).join([
@@ -532,8 +537,12 @@ class CatalogService {
           ])
           ..where(
             db.productVariants.isActive.equals(true) &
-                db.products.status.equals('ACTIVE'),
+                db.products.status.equals('ACTIVE') &
+                (categoryId == null
+                    ? const Constant(true)
+                    : db.products.categoryId.equals(categoryId)),
           )
+          ..orderBy([OrderingTerm.desc(db.products.createdAt)])
           ..limit(limit);
 
     final rows = await query.get();

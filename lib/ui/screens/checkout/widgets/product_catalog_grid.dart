@@ -326,7 +326,7 @@ class _ProductCatalogGridState extends ConsumerState<ProductCatalogGrid> {
         Row(
           children: [
             Text(
-              '${productGroups.length} ${productGroups.length == 1 ? 'article' : 'articles'}',
+              '${productGroups.length}${catalogState.isTruncated ? '+' : ''} ${productGroups.length == 1 ? 'article' : 'articles'}',
               style: const TextStyle(fontSize: 13, color: AppDesignTokens.textSecondary),
             ),
             const Spacer(),

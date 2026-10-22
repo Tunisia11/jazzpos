@@ -41,6 +41,7 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   AppNavDestination _currentNav = AppNavDestination.checkout;
+  AppNavDestination? _lastBuiltNav;
   bool _isDrawerOpen = true;
   final Set<AppNavDestination> _temporaryOverrides = {};
 
@@ -597,6 +598,26 @@ class _AppShellState extends ConsumerState<AppShell> {
     ];
 
     final index = destinations.indexOf(_currentNav);
+    // Screens stay alive inside the IndexedStack, so reload the shared
+    // catalog (stock, prices, new items) whenever the user switches screen.
+    if (_lastBuiltNav != _currentNav) {
+      final previous = _lastBuiltNav;
+      _lastBuiltNav = _currentNav;
+      if (previous != null) {
+        // The category filter belongs to the POS grid; other screens that
+        // share the catalog must see every item.
+        final leavingPos = previous == AppNavDestination.checkout;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final catalog = ref.read(catalogNotifierProvider.notifier);
+          if (leavingPos) {
+            catalog.selectCategory(null);
+          } else {
+            catalog.refresh();
+          }
+        });
+      }
+    }
     return IndexedStack(
       index: index >= 0 ? index : 0,
       children: [
