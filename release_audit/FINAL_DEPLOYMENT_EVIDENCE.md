@@ -1,9 +1,9 @@
-# JAZZ POS — Rapport d'Audit Pré-Déploiement & Preuves Techniques
+# Trace POS — Rapport d'Audit Pré-Déploiement & Preuves Techniques
 
 **Document de Référence & Matrice d'Éléments de Preuve d'Ingénierie**  
 **Date d'évaluation :** 06 Septembre 2026  
-**Système :** JAZZ POS (Point de Vente Prêt-à-Porter & Commerce de Détail)  
-**Auteur :** Antigravity Engine / JAZZ POS Core Engineering Team  
+**Système :** Trace POS (Point de Vente Prêt-à-Porter & Commerce de Détail)  
+**Auteur :** Antigravity Engine / Trace POS Core Engineering Team  
 
 ---
 
@@ -70,7 +70,7 @@ pie title Répartition des 97 Tests Automatisés
 
 ### Classification : `BLOCKED (GITHUB ACCOUNT BILLING LOCK) / IMPLEMENTED_NOT_RUNTIME_VERIFIED`
 
-* **Visibilité du Dépôt :** Passé avec succès de `private` à **`public`** (`https://github.com/Tunisia11/jazzpos`).
+* **Visibilité du Dépôt :** Passé avec succès de `private` à **`public`** (`https://github.com/Tunisia11/tracepos`).
 * **Fichier de Workflow :** `.github/workflows/windows_release.yml` (Syntaxe 100% valide, vérifiée via `actionlint` avec 0 erreur).
 * **Investigation Médico-Légale & Découverte de la Cause Racine Finale :**
   1. Le passage du dépôt en mode public a immédiatement permis de dépasser l'erreur générique `startup_failure` et d'instancier un vrai job d'exécution :
@@ -85,7 +85,7 @@ pie title Répartition des 97 Tests Automatisés
      - **Option 2 (Compilation Windows Autonome / Hors-CI) :** Cloner le dépôt public sur n'importe quel poste physique Windows 10/11 x64 et exécuter directement :
        ```powershell
        flutter build windows --release
-       & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "windows\installer\jazzpos_setup.iss"
+       & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "windows\installer\tracepos_setup.iss"
        ```
 
 ---
@@ -95,17 +95,17 @@ pie title Répartition des 97 Tests Automatisés
 ### Classification : `IMPLEMENTED_NOT_RUNTIME_VERIFIED`
 
 L'archive attendue en sortie de compilation Windows est :  
-**`JAZZ-POS-Windows-x64.zip`**
+**`Trace-POS-Windows-x64.zip`**
 
 Conformément aux exigences de production Flutter Desktop, cet artefact doit constituer un paquetage autonome complet incluant obligatoirement :
-1. `jazzpos.exe` (Exécutable principal compilé en mode Release x64).
+1. `tracepos.exe` (Exécutable principal compilé en mode Release x64).
 2. `flutter_windows.dll` (Moteur d'exécution Flutter Desktop).
 3. `data/` (Arborescence des assets applicatifs, icônes et polices).
 4. `sqlite3.dll` (Moteur de base de données FFI).
 5. `screen_retriever_plugin.dll` & `window_manager_plugin.dll` (Extensions Win32 natives de gestion d'affichage multi-écrans).
 
 > [!CAUTION]
-> L'exécutable `jazzpos.exe` isolé ne constitue en aucun cas un livrable fonctionnel. La présence conjointe des bibliothèques dynamiques et du dossier `data/` est indispensable pour prévenir tout plantage au démarrage.
+> L'exécutable `tracepos.exe` isolé ne constitue en aucun cas un livrable fonctionnel. La présence conjointe des bibliothèques dynamiques et du dossier `data/` est indispensable pour prévenir tout plantage au démarrage.
 
 ---
 
@@ -113,21 +113,21 @@ Conformément aux exigences de production Flutter Desktop, cet artefact doit con
 
 ### Classification : `IMPLEMENTED_NOT_RUNTIME_VERIFIED`
 
-* **Script source :** `windows/installer/jazzpos_setup.iss`
-* **Nom de l'installateur généré :** `JAZZ-POS-Setup-x64.exe`
+* **Script source :** `windows/installer/tracepos_setup.iss`
+* **Nom de l'installateur généré :** `Trace-POS-Setup-x64.exe`
 * **Privilèges d'exécution :** `PrivilegesRequired=admin`
 * **Architecture cible :** `ArchitecturesAllowed=x64compatible`
 
 ### Sémantique d'Installation, Mise à Niveau et Désinstallation :
 * **Détection du Runtime Microsoft Visual C++ :** Fonction Pascal `VCRedistNeedsInstall` inspectant la clé de registre `HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64`. Si absent, exécution silencieuse de `vc_redist.x64.exe /install /passive /norestart`.
-* **Mise à niveau sans perte :** Écrase les binaires applicatifs sous `{autopf}\JAZZ POS` sans toucher aux données locales.
+* **Mise à niveau sans perte :** Écrase les binaires applicatifs sous `{autopf}\Trace POS` sans toucher aux données locales.
 * **Désinstallation Sécurisée (Sanctuaire des Données) :**  
   La procédure `CurUninstallStepChanged(usPostUninstall)` préserve expressément :
-  * Le répertoire utilisateur `%APPDATA%\JazzPOS`.
-  * La base de données de production SQLite (`jazzpos.db`).
+  * Le répertoire utilisateur `%APPDATA%\TracePOS`.
+  * La base de données de production SQLite (`tracepos.db`).
   * Les sauvegardes comptables (`backups/`).
   * Les journaux d'audit et fichiers de configuration (`config.json`).
-  * Tout répertoire personnalisé défini par la variable d'environnement `JAZZPOS_DATA_DIR`.
+  * Tout répertoire personnalisé défini par la variable d'environnement `TRACEPOS_DATA_DIR`.
 
 ---
 
@@ -138,7 +138,7 @@ Conformément aux exigences de production Flutter Desktop, cet artefact doit con
 * **Génération automatique :** Le workflow CI génère le fichier `dist/SHA256SUMS.txt` via PowerShell `Get-FileHash -Algorithm SHA256`.
 * **Empreinte de Référence de l'Exécutable macOS :**  
   `4999af1bd2e7b86ab1631c10189223112440e43d41ab0205bec35c97a0b45ce7` (Validé par signature `codesign --verify --deep --strict`).
-* **Statut Windows :** Les sommes de contrôle SHA-256 finales de `JAZZ-POS-Setup-x64.exe` et `JAZZ-POS-Windows-x64.zip` seront produites dès la première compilation sur machine Windows dédiée.
+* **Statut Windows :** Les sommes de contrôle SHA-256 finales de `Trace-POS-Setup-x64.exe` et `Trace-POS-Windows-x64.zip` seront produites dès la première compilation sur machine Windows dédiée.
 
 ---
 
@@ -167,7 +167,7 @@ Conformément aux exigences de production Flutter Desktop, cet artefact doit con
 ### Classification : `EXPERIMENTAL / NOT VERIFIED`
 
 > [!WARNING]
-> La compatibilité de JAZZ POS sous Windows ARM64 ne doit pas être qualifiée de prête pour la production. Aucun binaire ARM64 natif n'a été produit, et les extensions natives FFI (`sqlite3.dll`, pilotes série et spooler) n'ont fait l'objet d'aucune validation sous émulation ou exécution native ARM64. Le statut officiel est maintenu à **EXPÉRIMENTAL / NON VÉRIFIÉ**.
+> La compatibilité de Trace POS sous Windows ARM64 ne doit pas être qualifiée de prête pour la production. Aucun binaire ARM64 natif n'a été produit, et les extensions natives FFI (`sqlite3.dll`, pilotes série et spooler) n'ont fait l'objet d'aucune validation sous émulation ou exécution native ARM64. Le statut officiel est maintenu à **EXPÉRIMENTAL / NON VÉRIFIÉ**.
 
 ---
 
@@ -205,7 +205,7 @@ Conformément aux exigences de production Flutter Desktop, cet artefact doit con
 
 * **Composant :** `PrinterScorer` (`lib/hardware/receipt_printer/printer_scorer.dart`)
 * **Règle absolue d'exclusion des imprimantes virtuelles :**  
-  Les périphériques logiciels d'émulation documentaire (*Microsoft Print to PDF, Microsoft XPS Document Writer, OneNote, Fax, Foxit PDF Creator*) se voient attribuer la note éliminatoire de **0 point** et la classification `PrinterConfidence.excluded`. Ils ne sont jamais sélectionnés automatiquement par JAZZ POS.
+  Les périphériques logiciels d'émulation documentaire (*Microsoft Print to PDF, Microsoft XPS Document Writer, OneNote, Fax, Foxit PDF Creator*) se voient attribuer la note éliminatoire de **0 point** et la classification `PrinterConfidence.excluded`. Ils ne sont jamais sélectionnés automatiquement par Trace POS.
 * **Pondération des marques spécialisées POS :**  
   Les pilotes correspondant aux marques thermiques reconnues obtiennent des scores préférentiels élevés :
   * *POSBANK* (Apexa, A7, A10) : Score >= 85
@@ -300,7 +300,7 @@ Conformément aux exigences de production Flutter Desktop, cet artefact doit con
 ### Classification : `VERIFIED_AUTOMATED` (Rendu Raster Logiciel) / `NOT YET PHYSICALLY VERIFIED` (Impression Thermique Réelle)
 
 * **Défi technique :** Les imprimantes thermiques de caisse bon marché ne possèdent généralement pas de polices arabes vectorielles en ROM, ou utilisent des tables de codes DOS incompatibles avec les ligatures arabes cursives modernes.
-* **Solution d'Ingénierie JAZZ POS :**  
+* **Solution d'Ingénierie Trace POS :**  
   Le moteur autonome `ReceiptRasterizer` (`lib/hardware/receipt_printer/receipt_rasterizer.dart`) restitue les textes arabes, logos et en-têtes fiscaux sous forme de bitmap monochrome 1-bit haute netteté, transmis via la commande standard ESC/POS `GS v 0`.
 * **Validation par tests automatisés :**
   * La mise en forme droite-à-gauche (RTL) est respectée.
@@ -313,7 +313,7 @@ Conformément aux exigences de production Flutter Desktop, cet artefact doit con
 
 ### Classification : `VERIFIED_AUTOMATED`
 
-* **Objectif Opérationnel :** Permettre le déploiement immédiat de JAZZ POS chez le commerçant même si **aucun périphérique physique** n'est encore installé, branché ou configuré.
+* **Objectif Opérationnel :** Permettre le déploiement immédiat de Trace POS chez le commerçant même si **aucun périphérique physique** n'est encore installé, branché ou configuré.
 * **Capacités validées en mode Zéro-Matériel pur :**
   1. Authentification de l'opérateur par code PIN.
   2. Ouverture d'un shift de caisse avec fond de caisse en dinars tunisiens.
@@ -372,7 +372,7 @@ Avant de déclarer l'installation pleinement achevée en boutique, les équipeme
 ## 23. Procédure Exacte de Réception sur Site
 
 La liste de contrôle pratique pas-à-pas à destination du technicien est consignée dans le document dédié :  
-👉 **[`release_audit/ONSITE_HARDWARE_ACCEPTANCE.md`](file:///Users/macbookair/jazzpos/release_audit/ONSITE_HARDWARE_ACCEPTANCE.md)**
+👉 **[`release_audit/ONSITE_HARDWARE_ACCEPTANCE.md`](file:///Users/macbookair/tracepos/release_audit/ONSITE_HARDWARE_ACCEPTANCE.md)**
 
 Elle comprend les 23 étapes obligatoires de vérification en caisse, avec cases à cocher `[ ] PASS` / `[ ] FAIL` et zones de consignation des numéros de série et modèles rencontrés.
 

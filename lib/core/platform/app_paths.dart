@@ -2,8 +2,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:tracepos/core/platform/legacy_names.dart';
 
-/// Centralized file and directory path resolver for JAZZ POS.
+/// Centralized file and directory path resolver for Trace POS.
 /// Guarantees writable storage locations on Windows 10/11 IoT and macOS.
 class AppPaths {
   static final AppPaths instance = AppPaths._();
@@ -30,8 +31,8 @@ class AppPaths {
   Directory get stagedImagesDir =>
       Directory(p.join(tempDir.path, 'staged_images'));
 
-  String get databaseFilePath => p.join(_databaseDir.path, 'jazzpos.sqlite');
-  String get logFilePath => p.join(_logsDir.path, 'jazzpos.log');
+  String get databaseFilePath => p.join(_databaseDir.path, 'tracepos.sqlite');
+  String get logFilePath => p.join(_logsDir.path, 'tracepos.log');
   String get startupLogFilePath => p.join(_logsDir.path, 'startup.log');
 
   /// Safely resolve a managed relative or legacy absolute image path to an absolute filesystem path.
@@ -85,19 +86,26 @@ class AppPaths {
     } else {
         // Check environment override (e.g. TRACEPOS_DATA_DIR=D:\TracePOS_Data)
         final envPath = Platform.environment['TRACEPOS_DATA_DIR'] ??
-            Platform.environment['JAZZPOS_DATA_DIR'];
+            Platform.environment[LegacyNames.dataDirEnv];
         if (envPath != null && envPath.trim().isNotEmpty) {
           _baseDir = Directory(envPath.trim());
         } else {
           final supportDir = await getApplicationSupportDirectory();
           if (Platform.isWindows) {
             final traceDir = Directory(p.join(supportDir.path, 'TracePOS'));
-            final legacyJazzDir = Directory(p.join(supportDir.path, 'JazzPOS'));
-            // If legacy JazzPOS directory exists with database, preserve it for existing customer data safety
-            if (!traceDir.existsSync() && legacyJazzDir.existsSync()) {
-              _baseDir = legacyJazzDir;
-            } else if (!supportDir.path.toLowerCase().contains('tracepos') &&
-                !supportDir.path.toLowerCase().contains('jazzpos')) {
+            final legacyDir = Directory(
+              p.join(supportDir.path, LegacyNames.dataDir),
+            );
+            if (!traceDir.existsSync() && legacyDir.existsSync()) {
+              // Upgrade from a pre-rename install: move the data folder, or
+              // keep using it in place if it cannot be moved.
+              try {
+                legacyDir.renameSync(traceDir.path);
+                _baseDir = traceDir;
+              } catch (_) {
+                _baseDir = legacyDir;
+              }
+            } else if (!supportDir.path.toLowerCase().contains('tracepos')) {
               _baseDir = traceDir;
             } else {
               _baseDir = supportDir;
@@ -115,6 +123,7 @@ class AppPaths {
     _imagesDir = Directory(p.join(_baseDir.path, 'product_images'));
 
     await _ensureDirectoryExists(_baseDir);
+    await _migrateLegacyDatabaseFile();
     await _ensureDirectoryExists(_databaseDir);
     await _ensureDirectoryExists(_logsDir);
     await _ensureDirectoryExists(_backupsDir);
@@ -124,6 +133,17 @@ class AppPaths {
     await _ensureDirectoryExists(stagedImagesDir);
 
     _initialized = true;
+  }
+
+  /// Renames a pre-rename database (and its WAL files) to the current name.
+  Future<void> _migrateLegacyDatabaseFile() async {
+    final current = File(databaseFilePath);
+    final legacy = File(p.join(_databaseDir.path, LegacyNames.databaseFile));
+    if (await current.exists() || !await legacy.exists()) return;
+    for (final suffix in ['', '-wal', '-shm']) {
+      final from = File('${legacy.path}$suffix');
+      if (await from.exists()) await from.rename('${current.path}$suffix');
+    }
   }
 
   Future<void> _ensureDirectoryExists(Directory dir) async {

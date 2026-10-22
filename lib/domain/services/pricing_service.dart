@@ -1,7 +1,7 @@
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/data/database/app_database.dart';
 import '../models/cart_item.dart';
 
 class PricingService {

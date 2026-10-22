@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
-import 'package:jazzpos/core/platform/export_diagnostic_report_service.dart';
-import 'package:jazzpos/hardware/barcode_scanner/scanner_input_service.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/platform/environment_diagnostics_service.dart';
+import 'package:tracepos/core/platform/export_diagnostic_report_service.dart';
+import 'package:tracepos/hardware/barcode_scanner/scanner_input_service.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
 
 /// Interactive Hardware Setup Wizard enabling 1-click peripheral discovery,
 /// recommendations, and testing.

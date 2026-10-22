@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/core/platform/process_utils.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/core/platform/process_utils.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 import 'customer_display_interface.dart';
 
 /// 2x20 VFD Line Pole Customer Display communicating over serial COM port (ESC/POS / CD5220).

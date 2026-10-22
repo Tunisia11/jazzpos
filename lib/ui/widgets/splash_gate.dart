@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
 
 /// Shows the Trace POS logo on a white screen for a moment at launch, then
 /// fades into [child]. The app keeps initialising underneath, so this adds no

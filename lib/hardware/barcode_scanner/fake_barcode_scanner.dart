@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import 'barcode_scanner_interface.dart';
 
 class FakeBarcodeScanner implements BarcodeScanner {

@@ -5,11 +5,11 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/utils/backup_crypto.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/backup_service.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/utils/backup_crypto.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/backup_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ void main() {
   setUpAll(() => BackupCrypto.iterations = 1000);
 
   setUp(() async {
-    rootDir = await Directory.systemTemp.createTemp('jazzpos_pkg_backup_');
+    rootDir = await Directory.systemTemp.createTemp('tracepos_pkg_backup_');
     await AppPaths.instance.initialize(customBaseDir: rootDir);
 
     backupDir = Directory(p.join(rootDir.path, 'backups'));

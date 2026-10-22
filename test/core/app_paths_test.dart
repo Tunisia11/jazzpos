@@ -1,14 +1,14 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/platform/windows_startup.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/platform/windows_startup.dart';
 
 void main() {
   group('AppPaths & Platform Storage', () {
     late Directory tempDir;
 
     setUp(() async {
-      tempDir = await Directory.systemTemp.createTemp('jazzpos_path_test_');
+      tempDir = await Directory.systemTemp.createTemp('tracepos_path_test_');
     });
 
     tearDown(() async {

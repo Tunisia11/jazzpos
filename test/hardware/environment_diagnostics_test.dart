@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
-import 'package:jazzpos/core/platform/export_diagnostic_report_service.dart';
-import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/platform/environment_diagnostics_service.dart';
+import 'package:tracepos/core/platform/export_diagnostic_report_service.dart';
+import 'package:tracepos/hardware/models/hardware_fingerprint.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final temp = await Directory.systemTemp.createTemp('jazzpos_env_test_');
+    final temp = await Directory.systemTemp.createTemp('tracepos_env_test_');
     await AppPaths.instance.initialize(customBaseDir: temp);
   });
 
@@ -49,8 +49,8 @@ void main() {
         displayDpiScale: 1.0,
         displayCount: 1,
         isElevatedAdmin: false,
-        appDirectory: r'C:\Program Files\JAZZ POS',
-        dataDirectory: r'C:\Users\POS\AppData\Roaming\JazzPOS',
+        appDirectory: r'C:\Program Files\Trace POS',
+        dataDirectory: r'C:\Users\POS\AppData\Roaming\TracePOS',
         dataDirWritable: true,
         backupDirWritable: true,
         sqliteAccessible: true,
@@ -80,7 +80,7 @@ void main() {
         final jsonString = jsonEncode(reportMap);
 
         // Verify required technical fields exist
-        expect(reportMap.containsKey('jazzposVersion'), isTrue);
+        expect(reportMap.containsKey('traceposVersion'), isTrue);
         expect(reportMap.containsKey('system'), isTrue);
         expect(reportMap.containsKey('storageAndDatabase'), isTrue);
         expect(reportMap.containsKey('hardware'), isTrue);

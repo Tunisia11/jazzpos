@@ -12,9 +12,9 @@ void main() {
   }
 
   final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
-      'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
-  final liveDbPath = Platform.environment['JAZZPOS_LIVE_DB_PATH'] ??
-      'C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\database\\jazzpos.sqlite';
+      'C:\\Users\\nourm\\Desktop\\tracepos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
+  final liveDbPath = Platform.environment['TRACEPOS_LIVE_DB_PATH'] ??
+      'C:\\Users\\nourm\\AppData\\Roaming\\TracePOS\\Trace POS\\database\\tracepos.sqlite';
   final shouldRun = Platform.isWindows && File(liveDbPath).existsSync() && File(dllPath).existsSync();
 
   test(

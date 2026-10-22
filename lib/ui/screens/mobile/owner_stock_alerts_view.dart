@@ -1,14 +1,14 @@
-import 'package:jazzpos/providers/auth_provider.dart';
+import 'package:tracepos/providers/auth_provider.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/report_service.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/common/app_card.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/report_service.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/common/app_card.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 
 class OwnerStockAlertsView extends ConsumerStatefulWidget {
   const OwnerStockAlertsView({super.key});

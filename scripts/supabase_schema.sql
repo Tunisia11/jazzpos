@@ -10,7 +10,7 @@
 -- ==============================================================================
 
 -- ==============================================================================
--- JazzPOS - Supabase Cloud Synchronization Schema
+-- TracePOS - Supabase Cloud Synchronization Schema
 -- Execute this script in the Supabase Dashboard SQL Editor
 -- ==============================================================================
 

@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/constants/roles.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/auth_service.dart';
-import 'package:jazzpos/domain/services/pos_initialization_service.dart';
+import 'package:tracepos/core/constants/roles.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/auth_service.dart';
+import 'package:tracepos/domain/services/pos_initialization_service.dart';
 
 void main() {
   if (Platform.environment['RUN_LIVE_DB_TESTS'] != 'true') {
@@ -14,7 +14,7 @@ void main() {
 
   final appData = Platform.environment['APPDATA'];
   final liveDbFile = (appData != null && Platform.isWindows)
-      ? File('$appData/JazzPOS/JAZZ POS/database/jazzpos.sqlite')
+      ? File('$appData/TracePOS/Trace POS/database/tracepos.sqlite')
       : null;
   final shouldRun = liveDbFile != null && liveDbFile.existsSync();
 
@@ -25,7 +25,7 @@ void main() {
 
     // Make a temporary copy so we do not mutate the live file during testing
     final tempDir = Directory.systemTemp.createTempSync('live_db_test_');
-    final tempDbFile = File('${tempDir.path}/jazzpos_copy.sqlite');
+    final tempDbFile = File('${tempDir.path}/tracepos_copy.sqlite');
     liveDb.copySync(tempDbFile.path);
 
     final db = AppDatabase(NativeDatabase(tempDbFile));

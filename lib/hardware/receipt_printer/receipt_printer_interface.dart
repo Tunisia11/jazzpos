@@ -1,6 +1,6 @@
 import 'dart:typed_data';
-import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/hardware/models/hardware_fingerprint.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 import 'printer_profile.dart';
 import 'receipt_document.dart';
 

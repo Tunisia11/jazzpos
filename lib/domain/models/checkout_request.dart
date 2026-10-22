@@ -1,4 +1,4 @@
-import 'package:jazzpos/core/money/money.dart';
+import 'package:tracepos/core/money/money.dart';
 import 'cart_item.dart';
 
 class PaymentSplit {

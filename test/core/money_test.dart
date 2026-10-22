@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/money/money.dart';
+import 'package:tracepos/core/money/money.dart';
 
 void main() {
   group('Money Value Object Tests', () {

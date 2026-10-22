@@ -6,10 +6,10 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/product_image_service.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/product_image_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +19,7 @@ void main() {
   late AppDatabase db;
 
   setUp(() async {
-    tempBaseDir = await Directory.systemTemp.createTemp('jazzpos_img_test_');
+    tempBaseDir = await Directory.systemTemp.createTemp('tracepos_img_test_');
     await AppPaths.instance.initialize(customBaseDir: tempBaseDir);
     service = ProductImageService();
     db = AppDatabase(NativeDatabase.memory());

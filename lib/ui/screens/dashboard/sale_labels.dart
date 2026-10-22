@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
 
 /// Shared display text/colours for payment methods and sale statuses.
 String paymentMethodLabel(String m) {

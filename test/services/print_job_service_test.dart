@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/print_job_service.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/print_job_service.dart';
 
 void main() {
   late AppDatabase db;

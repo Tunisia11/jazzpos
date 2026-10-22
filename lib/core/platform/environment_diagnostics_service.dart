@@ -1,11 +1,11 @@
 import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/widgets.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/platform/process_utils.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/database_integrity_service.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/platform/process_utils.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/database_integrity_service.dart';
 
 /// Structured environment diagnostics result.
 class EnvironmentDiagnosticReport {

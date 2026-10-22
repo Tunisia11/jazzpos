@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import 'barcode_scanner_interface.dart';
 
 /// Separates scanner-speed bursts from ordinary keyboard typing.

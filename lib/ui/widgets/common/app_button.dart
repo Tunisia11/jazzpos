@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jazzpos/core/sound/sound_effect_service.dart';
+import 'package:tracepos/core/sound/sound_effect_service.dart';
 import '../../theme/app_design_tokens.dart';
 import '../../theme/app_theme.dart';
 

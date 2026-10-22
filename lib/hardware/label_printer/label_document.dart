@@ -1,4 +1,4 @@
-import 'package:jazzpos/core/money/money.dart';
+import 'package:tracepos/core/money/money.dart';
 
 class LabelDocument {
   final String storeName;

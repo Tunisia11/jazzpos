@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
 
 /// Wraps an application subtree and listens to hardware barcode scanner events.
 class BarcodeScannerListener extends StatefulWidget {

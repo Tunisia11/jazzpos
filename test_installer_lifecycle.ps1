@@ -1,11 +1,11 @@
 # Real Windows Installer Lifecycle Test
 $ErrorActionPreference = "Stop"
 
-$appDataDir = "$env:APPDATA\JazzPOS\JAZZ POS"
-$dbPath = "$appDataDir\database\jazzpos.sqlite"
-$setupExe = "C:\Users\nourm\Desktop\jazzpos\dist\Trace-POS-Setup-x64.exe"
-$installedDir = "$env:LOCALAPPDATA\Programs\JAZZ POS"
-$installedExe = "$installedDir\jazzpos.exe"
+$appDataDir = "$env:APPDATA\TracePOS\Trace POS"
+$dbPath = "$appDataDir\database\tracepos.sqlite"
+$setupExe = "C:\Users\nourm\Desktop\tracepos\dist\Trace-POS-Setup-x64.exe"
+$installedDir = "$env:LOCALAPPDATA\Programs\Trace POS"
+$installedExe = "$installedDir\tracepos.exe"
 $uninstaller = "$installedDir\unins000.exe"
 
 Write-Host "=== STEP 1 & 2: CREATE CONTROLLED TEST DATA IN LIVE DB ===" -ForegroundColor Cyan
@@ -21,7 +21,7 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3/open.dart';
 
 void main() {
-  final dllPath = 'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
+  final dllPath = 'C:\\Users\\nourm\\Desktop\\tracepos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
   open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
   final db = sqlite3.open('$($dbPath.Replace('\', '\\'))');
 
@@ -51,8 +51,8 @@ Set-Content -Path $tempSeedScript -Value $seedScript
 $dartOutput = dart run $tempSeedScript
 Write-Host "Seeding Result: $dartOutput" -ForegroundColor Green
 
-Write-Host "`n=== STEP 3: ENSURE NO JAZZ POS PROCESS IS RUNNING ===" -ForegroundColor Cyan
-Get-Process -Name "jazzpos" -ErrorAction SilentlyContinue | Stop-Process -Force
+Write-Host "`n=== STEP 3: ENSURE NO Trace POS PROCESS IS RUNNING ===" -ForegroundColor Cyan
+Get-Process -Name "tracepos" -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
 
 Write-Host "`n=== STEP 4: INSTALL USING REAL INSTALLER ===" -ForegroundColor Cyan
@@ -79,7 +79,7 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3/open.dart';
 
 void main() {
-  final dllPath = 'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
+  final dllPath = 'C:\\Users\\nourm\\Desktop\\tracepos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
   open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
   final db = sqlite3.open('$($dbPath.Replace('\', '\\'))');
 
@@ -106,8 +106,8 @@ Set-Content -Path $tempVerifyScript -Value $verifyScript
 $verifyOutput = dart run $tempVerifyScript
 Write-Host "Verification Output: $verifyOutput" -ForegroundColor Green
 
-Write-Host "`n=== STEP 7: CLOSE INSTALLED JAZZ POS ===" -ForegroundColor Cyan
-Get-Process -Name "jazzpos" -ErrorAction SilentlyContinue | Stop-Process -Force
+Write-Host "`n=== STEP 7: CLOSE INSTALLED Trace POS ===" -ForegroundColor Cyan
+Get-Process -Name "tracepos" -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 2
 
 Write-Host "`n=== STEP 8 & 9: RUN INSTALLER AGAIN (UPGRADE/REINSTALL) & VERIFY DATA ===" -ForegroundColor Cyan
@@ -150,7 +150,7 @@ if (-not $pFinal.HasExited) {
 }
 
 # Check desktop shortcut
-$desktopShortcut = "$env:USERPROFILE\Desktop\JAZZ POS.lnk"
+$desktopShortcut = "$env:USERPROFILE\Desktop\Trace POS.lnk"
 Write-Host "Desktop shortcut exists: $(Test-Path $desktopShortcut)" -ForegroundColor Green
 
 Write-Host "`n=======================================================" -ForegroundColor Green

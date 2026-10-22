@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/data/database/app_database.dart';
 
 class IntegrityReport {
   final bool isHealthy;

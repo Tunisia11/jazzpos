@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../platform/app_paths.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 
 final localeProvider = StateNotifierProvider<LocaleNotifier, Locale>((ref) {
   return LocaleNotifier();

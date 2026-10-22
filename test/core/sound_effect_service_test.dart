@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/sound/sound_effect_service.dart';
-import 'package:jazzpos/ui/widgets/numpad.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/sound/sound_effect_service.dart';
+import 'package:tracepos/ui/widgets/numpad.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

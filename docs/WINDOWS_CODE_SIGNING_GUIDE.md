@@ -1,6 +1,6 @@
-# JAZZ POS (Trace POS) — Windows Code Signing & SmartScreen Guide
+# Trace POS (Trace POS) — Windows Code Signing & SmartScreen Guide
 
-This guide details the production code-signing architecture for **JAZZ POS (Trace POS)** on Windows 10 and 11.
+This guide details the production code-signing architecture for **Trace POS (Trace POS)** on Windows 10 and 11.
 
 ---
 
@@ -104,7 +104,7 @@ Since June 2023, the CA/Browser Forum mandates that private keys must reside on 
 
 ## 4. Pipeline Usage & Execution
 
-The orchestrator script is [`scripts/build_and_sign_release.ps1`](file:///C:/Users/nourm/Desktop/jazzpos/scripts/build_and_sign_release.ps1).
+The orchestrator script is [`scripts/build_and_sign_release.ps1`](file:///C:/Users/nourm/Desktop/tracepos/scripts/build_and_sign_release.ps1).
 
 ### Execution Commands:
 
@@ -135,15 +135,15 @@ flutter build windows --release
 
 ## 5. Security & Git Safeguards
 
-- **Never Commit Secrets**: Private keys (`*.pfx`, `*.p12`, `*.key`), certificate passwords, and cloud tokens are strictly excluded in [`.gitignore`](file:///C:/Users/nourm/Desktop/jazzpos/.gitignore).
+- **Never Commit Secrets**: Private keys (`*.pfx`, `*.p12`, `*.key`), certificate passwords, and cloud tokens are strictly excluded in [`.gitignore`](file:///C:/Users/nourm/Desktop/tracepos/.gitignore).
 - **Environment Variables Supported**:
-  - `JAZZPOS_SIGN_MODE`
-  - `JAZZPOS_SIGN_PFX_PATH`
-  - `JAZZPOS_SIGN_PFX_PASSWORD`
-  - `JAZZPOS_SIGN_CERT_SHA1`
+  - `TRACEPOS_SIGN_MODE`
+  - `TRACEPOS_SIGN_PFX_PATH`
+  - `TRACEPOS_SIGN_PFX_PASSWORD`
+  - `TRACEPOS_SIGN_CERT_SHA1`
   - `AZURE_TRUSTED_SIGNING_DLIB_PATH`
   - `AZURE_TRUSTED_SIGNING_METADATA_PATH`
-  - `JAZZPOS_REQUIRE_SIGNING`
+  - `TRACEPOS_REQUIRE_SIGNING`
 
 ---
 

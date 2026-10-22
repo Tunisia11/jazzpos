@@ -34,7 +34,7 @@ The entire unfiltered test directory was deliberately not executed: `test/instal
 
 ### S1 — P1: unknown scan can silently add the wrong garment
 
-Evidence: [cart_provider.dart](/Users/macbookair/jazzpos/lib/providers/cart_provider.dart:90), [catalog_service.dart](/Users/macbookair/jazzpos/lib/domain/services/catalog_service.dart:86).
+Evidence: [cart_provider.dart](/Users/macbookair/tracepos/lib/providers/cart_provider.dart:90), [catalog_service.dart](/Users/macbookair/tracepos/lib/domain/services/catalog_service.dart:86).
 
 `addItemByBarcode()` invokes the general catalog search and adds its first result. Search tries exact barcodes and aliases, then exact/partial SKU and product text. An unmatched barcode is therefore not reliably rejected.
 
@@ -42,7 +42,7 @@ Reproduced with an in-memory catalog: a product has SKU `SKU-123-OTHER` and barc
 
 ### S2 — P1: scans continue behind payment and other dialogs
 
-Evidence: [barcode_scanner_listener.dart](/Users/macbookair/jazzpos/lib/ui/widgets/barcode_scanner_listener.dart:26), [checkout_screen.dart](/Users/macbookair/jazzpos/lib/ui/screens/checkout/checkout_screen.dart:152), [payment_dialog.dart](/Users/macbookair/jazzpos/lib/ui/screens/checkout/widgets/payment_dialog.dart:19).
+Evidence: [barcode_scanner_listener.dart](/Users/macbookair/tracepos/lib/ui/widgets/barcode_scanner_listener.dart:26), [checkout_screen.dart](/Users/macbookair/tracepos/lib/ui/screens/checkout/checkout_screen.dart:152), [payment_dialog.dart](/Users/macbookair/tracepos/lib/ui/screens/checkout/widgets/payment_dialog.dart:19).
 
 The scanner subscription dispatches whenever its widget is mounted. Checkout's keyboard shortcuts check whether the route is current, but the barcode callback does not. The audit probe opened a modal and confirmed delivery to the underlying listener. Checkout connects that callback directly to cart mutation.
 
@@ -50,7 +50,7 @@ Payment displays the total captured when the dialog opened, while submission rea
 
 ### S3 — P2: stale input and suffix handling cause false or missed scans
 
-Evidence: [scanner_input_service.dart](/Users/macbookair/jazzpos/lib/hardware/barcode_scanner/scanner_input_service.dart:80).
+Evidence: [scanner_input_service.dart](/Users/macbookair/tracepos/lib/hardware/barcode_scanner/scanner_input_service.dart:80).
 
 The active service accepts Enter/numpad Enter and a minimum of three characters. It checks timing between characters, but not the delay between the final character and Enter. A 250 ms delayed Enter still emitted `123` in the probe. Stop/restart retained and completed the previous unfinished burst. A Tab suffix produced no scan. Keyboard characters also return `false` from the handler, so focused text fields are not isolated from scanner input. Fast human typing is indistinguishable from scanner input in this design.
 
@@ -60,7 +60,7 @@ Operational requirement today: configure the scanner as a keyboard wedge with En
 
 ### S4 — P2: inventory and returns scanning need separate acceptance
 
-Evidence: [inventory_count_service.dart](/Users/macbookair/jazzpos/lib/domain/services/inventory_count_service.dart:97), [returns_exchanges_screen.dart](/Users/macbookair/jazzpos/lib/ui/screens/returns/returns_exchanges_screen.dart:255).
+Evidence: [inventory_count_service.dart](/Users/macbookair/tracepos/lib/domain/services/inventory_count_service.dart:97), [returns_exchanges_screen.dart](/Users/macbookair/tracepos/lib/ui/screens/returns/returns_exchanges_screen.dart:255).
 
 Stock count searches exact primary barcode or SKU, but does not search barcode aliases used by checkout. A label may work at checkout and fail during stock count. Counting also reads the old quantity and writes old-plus-one without a surrounding transaction/atomic increment; concurrent callbacks can lose increments. This race is a source finding, not reproduced by the eight probes. Count scans should be serialized or updated atomically.
 
@@ -70,17 +70,17 @@ Returns scanning always searches a receipt number; scanning a replacement garmen
 
 ### P1 — P1: Windows receipt transport can report success without printing
 
-Evidence: [windows_spooler_printer.dart](/Users/macbookair/jazzpos/lib/hardware/receipt_printer/windows_spooler_printer.dart:102).
+Evidence: [windows_spooler_printer.dart](/Users/macbookair/tracepos/lib/hardware/receipt_printer/windows_spooler_printer.dart:102).
 
 The active adapter writes a `.bin` file and runs `cmd /c copy /b file printerName` through PowerShell. The destination is a friendly installed printer name, not an opened Windows printer handle. A bare name is normally interpreted as a file destination; this can create/overwrite a file in a writable working directory or fail in a protected one. The script neither captures a spool job ID nor checks bytes accepted by the print queue, and does not explicitly propagate the nested command's exit status. Physical symptoms depend on the Windows installation; no Windows print was performed here.
 
 Microsoft documents raw queue submission through `OpenPrinter`, `StartDocPrinter` with RAW data, `WritePrinter`, and matching completion/cleanup calls, including verification of the byte count. Implement that supported path and distinguish “queued” from “physically printed.” [Microsoft raw printing reference](https://learn.microsoft.com/en-us/windows/win32/printdocs/sending-data-directly-to-a-printer).
 
-Related failures: an empty successful printer-status query is interpreted as online; the default name `Default Receipt Printer` is not resolved to the actual system default queue. USB/serial adapters ignore process failure results, and `ProcessUtils.safeRun` returns a timeout result without terminating the underlying process. A timeout is not proof that nothing can print later. See [process_utils.dart](/Users/macbookair/jazzpos/lib/core/platform/process_utils.dart:15), [esc_pos_usb_printer.dart](/Users/macbookair/jazzpos/lib/hardware/receipt_printer/esc_pos_usb_printer.dart:128), and [esc_pos_serial_printer.dart](/Users/macbookair/jazzpos/lib/hardware/receipt_printer/esc_pos_serial_printer.dart:139).
+Related failures: an empty successful printer-status query is interpreted as online; the default name `Default Receipt Printer` is not resolved to the actual system default queue. USB/serial adapters ignore process failure results, and `ProcessUtils.safeRun` returns a timeout result without terminating the underlying process. A timeout is not proof that nothing can print later. See [process_utils.dart](/Users/macbookair/tracepos/lib/core/platform/process_utils.dart:15), [esc_pos_usb_printer.dart](/Users/macbookair/tracepos/lib/hardware/receipt_printer/esc_pos_usb_printer.dart:128), and [esc_pos_serial_printer.dart](/Users/macbookair/tracepos/lib/hardware/receipt_printer/esc_pos_serial_printer.dart:139).
 
 ### P2 — P1: garment-label printing is simulated
 
-Evidence: [hardware_manager.dart](/Users/macbookair/jazzpos/lib/hardware/hardware_manager.dart:121), [fake_label_printer.dart](/Users/macbookair/jazzpos/lib/hardware/label_printer/fake_label_printer.dart:34), [label_studio_screen.dart](/Users/macbookair/jazzpos/lib/ui/screens/labels/label_studio_screen.dart:83).
+Evidence: [hardware_manager.dart](/Users/macbookair/tracepos/lib/hardware/hardware_manager.dart:121), [fake_label_printer.dart](/Users/macbookair/tracepos/lib/hardware/label_printer/fake_label_printer.dart:34), [label_studio_screen.dart](/Users/macbookair/tracepos/lib/ui/screens/labels/label_studio_screen.dart:83).
 
 The only concrete `LabelPrinter` implementation is `FakeLabelPrinter`. It generates TSPL text and stores documents in memory; it sends no bytes to a device. `LabelStudioScreen` still reports that labels were sent. ZPL and TSPL generators exist, but a generator is not a printer connection. There is no label-printer selection in the recommendation bundle.
 
@@ -88,7 +88,7 @@ For this shop, this is a release blocker if in-app price/variant labels are prom
 
 ### P3 — P1: printer selection and restart persistence are incomplete
 
-Evidence: [hardware_manager.dart](/Users/macbookair/jazzpos/lib/hardware/hardware_manager.dart:189), [hardware_setup_wizard.dart](/Users/macbookair/jazzpos/lib/ui/screens/settings/hardware_setup_wizard.dart:78), [hardware_recommendation_engine.dart](/Users/macbookair/jazzpos/lib/hardware/services/hardware_recommendation_engine.dart:75).
+Evidence: [hardware_manager.dart](/Users/macbookair/tracepos/lib/hardware/hardware_manager.dart:189), [hardware_setup_wizard.dart](/Users/macbookair/tracepos/lib/ui/screens/settings/hardware_setup_wizard.dart:78), [hardware_recommendation_engine.dart](/Users/macbookair/tracepos/lib/hardware/services/hardware_recommendation_engine.dart:75).
 
 Applying recommendations creates a `WindowsSpoolerPrinter` in memory. There is no connected save/load path for hardware configuration: the `HardwareDevices` table has no application consumer, and the claimed `config.json` persistence is absent. Startup reruns heuristics. There is no usable manual IP/port/COM/queue/profile editor in this flow. Standalone TCP, USB and serial receipt adapter classes are not selected by the application setup.
 
@@ -96,7 +96,7 @@ The scorer can also mistake a label printer for the receipt printer. Reproduced:
 
 ### P4 — P1: failed-print recovery and historical reprinting are incomplete
 
-Evidence: [sale_service.dart](/Users/macbookair/jazzpos/lib/domain/services/sale_service.dart:410), [shift_service.dart](/Users/macbookair/jazzpos/lib/domain/services/shift_service.dart:377), [receipt_preview_dialog.dart](/Users/macbookair/jazzpos/lib/ui/screens/checkout/widgets/receipt_preview_dialog.dart:39).
+Evidence: [sale_service.dart](/Users/macbookair/tracepos/lib/domain/services/sale_service.dart:410), [shift_service.dart](/Users/macbookair/tracepos/lib/domain/services/shift_service.dart:377), [receipt_preview_dialog.dart](/Users/macbookair/tracepos/lib/ui/screens/checkout/widgets/receipt_preview_dialog.dart:39).
 
 Sales and shift closure insert `PENDING` print jobs, but no application code consumes them or updates their statuses. Receipt printing is separately invoked from the payment dialog; shift report jobs have no equivalent physical print consumer. `checkReconnection()` exists but has no caller.
 
@@ -104,13 +104,13 @@ Reprinting the current preview builds a duplicate document and records an audit 
 
 ### P5 — P1 for Arabic receipts; P2 otherwise: text rendering is not device-correct
 
-Evidence: [receipt_layout_builder.dart](/Users/macbookair/jazzpos/lib/hardware/receipt_printer/receipt_layout_builder.dart:241), [receipt_rasterizer.dart](/Users/macbookair/jazzpos/lib/hardware/receipt_printer/receipt_rasterizer.dart:58), [hardware_manager.dart](/Users/macbookair/jazzpos/lib/hardware/hardware_manager.dart:313).
+Evidence: [receipt_layout_builder.dart](/Users/macbookair/tracepos/lib/hardware/receipt_printer/receipt_layout_builder.dart:241), [receipt_rasterizer.dart](/Users/macbookair/tracepos/lib/hardware/receipt_printer/receipt_rasterizer.dart:58), [hardware_manager.dart](/Users/macbookair/tracepos/lib/hardware/hardware_manager.dart:313).
 
 Every receipt string is UTF-8 encoded, although profiles advertise PC850; no profile code-page selection or Arabic shaping/raster fallback is connected to receipt generation. French accents and Arabic output therefore depend on unsupported assumptions about printer mode. An on-screen Unicode preview does not prove paper rendering.
 
 The “Arabic/raster” test generates borders and a circle. Its `text` argument is unused. The probe produced identical bitmap bytes for Arabic and unrelated English text. This test cannot certify Arabic printing. Render actual shaped text or use a verified printer-specific character encoding, then check paper output with the client.
 
-Additional layout issues: `setTextSize(doubleWidth: true)` emits `0x20`, which Epson defines as triple width; double width is `0x10`. This can unexpectedly wrap store headers. [Epson GS ! reference](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_exclamation.html), [esc_pos_commands.dart](/Users/macbookair/jazzpos/lib/hardware/receipt_printer/esc_pos_commands.dart:20).
+Additional layout issues: `setTextSize(doubleWidth: true)` emits `0x20`, which Epson defines as triple width; double width is `0x10`. This can unexpectedly wrap store headers. [Epson GS ! reference](https://download4.epson.biz/sec_pubs/pos/reference_en/escpos/gs_exclamation.html), [esc_pos_commands.dart](/Users/macbookair/tracepos/lib/hardware/receipt_printer/esc_pos_commands.dart:20).
 
 Receipt Code 128 uses fixed module width 2 and subset B. The normal 18-character receipt number needs approximately 466 dots before quiet zones, exceeding a common 384-dot 58 mm print area. This is a format calculation, not a physical print measurement; narrow-printer handling must be tested and adapted. Label generators also use fixed coordinates irrespective of chosen label size; ZPL does not use document width/height, and neither generator escapes printer-language delimiters in product text. Print long size/color names and prices on the actual stock, then scan each barcode back.
 
@@ -124,7 +124,7 @@ Checkout opens the drawer after a cash/mixed sale and avoids doing so for card-o
 
 ### R1 — P1: payment keypad can break the payment screen
 
-Evidence: [payment_dialog.dart](/Users/macbookair/jazzpos/lib/ui/screens/checkout/widgets/payment_dialog.dart:57), [numpad.dart](/Users/macbookair/jazzpos/lib/ui/widgets/numpad.dart:39).
+Evidence: [payment_dialog.dart](/Users/macbookair/tracepos/lib/ui/screens/checkout/widgets/payment_dialog.dart:57), [numpad.dart](/Users/macbookair/tracepos/lib/ui/widgets/numpad.dart:39).
 
 The keypad appends arbitrary decimal keys, and the widget calls strict `Money.parse` while building. The audit reproduced a `FormatException` by pressing `.` twice. More than three fractional digits follows the same unguarded parsing path. Validate input incrementally, keep invalid entry recoverable, and use a safe parse result. The same probe recorded French payment-layout overflows at a 1440×1100 test viewport before typing; the fixed dialog/column widths need focused layout correction and Windows DPI checks.
 
@@ -134,15 +134,15 @@ The keypad appends arbitrary decimal keys, and the widget calls strict `Money.pa
 
 ### R3 — P1: fresh Windows CI/package flow is inconsistent
 
-The installer script outputs `Trace-POS-Setup-x64.exe`. The workflow then requires `JAZZ-POS-Setup-x64.exe` and `JAZZ-POS-Windows-x64.zip`, without a step that creates those outputs. It also runs unfiltered tests that depend on a developer's live Windows paths. A fresh runner is not equivalent to the developer's machine. See [.github/workflows/windows_release.yml](/Users/macbookair/jazzpos/.github/workflows/windows_release.yml:108), [jazzpos_setup.iss](/Users/macbookair/jazzpos/windows/installer/jazzpos_setup.iss:33).
+The installer script outputs `Trace-POS-Setup-x64.exe`. The workflow then requires `Trace-POS-Setup-x64.exe` and `Trace-POS-Windows-x64.zip`, without a step that creates those outputs. It also runs unfiltered tests that depend on a developer's live Windows paths. A fresh runner is not equivalent to the developer's machine. See [.github/workflows/windows_release.yml](/Users/macbookair/tracepos/.github/workflows/windows_release.yml:108), [tracepos_setup.iss](/Users/macbookair/tracepos/windows/installer/tracepos_setup.iss:33).
 
 The local VC++ redistributable source folder is absent; Inno Setup makes bundling conditional on its existence. CI has a download step, but a local installer can omit it. The existing installer's prerequisite contents were not extracted/verified in this audit. Verify clean Windows installation with no previously installed runtime.
 
 ### R4 — P1: duplicate launch can terminate a healthy starting instance
 
-Evidence: [main.cpp](/Users/macbookair/jazzpos/windows/runner/main.cpp:26).
+Evidence: [main.cpp](/Users/macbookair/tracepos/windows/runner/main.cpp:26).
 
-If the named mutex exists but no window is found yet, startup enumerates and forcibly terminates processes named `jazzpos.exe` or `Trace POS.exe`. A healthy first instance may still be initializing. This path can kill it and lose unsaved cashier work; it is not a proven stale-process check. Replace it with bounded waiting/activation and verified ownership. This is source-reviewed, not reproduced on Windows. Existing platform tests do not demonstrate this startup race.
+If the named mutex exists but no window is found yet, startup enumerates and forcibly terminates processes named `tracepos.exe` or `Trace POS.exe`. A healthy first instance may still be initializing. This path can kill it and lose unsaved cashier work; it is not a proven stale-process check. Replace it with bounded waiting/activation and verified ownership. This is source-reviewed, not reproduced on Windows. Existing platform tests do not demonstrate this startup race.
 
 ### R5 — P2: release evidence and delivery documents need updating
 
@@ -204,14 +204,14 @@ Until blockers are fixed and the required checks pass, restrict any delivery to 
 
 ## 8. Reproducible evidence
 
-- [Analysis log](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-hardware/analyze.log)
-- [Existing-suite log](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-hardware/tests.log)
-- [Audit probes](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-hardware/audit_probes_test.dart)
-- [Audit-probe results](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-hardware/audit-probes.log)
-- [macOS release-build log](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-hardware/macos-release.log)
-- [Artifact hashes and manifest checks](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-hardware/artifact-audit.json)
-- [Saved Windows hardware diagnostic](/Users/macbookair/jazzpos/release_audit/live_windows_machine_diagnostic.json) — historical, not a current client-device test
-- [Saved signing report](/Users/macbookair/jazzpos/release_audit/CODE_SIGNING_REPORT.md) — test certificate, not fresh trust validation
+- [Analysis log](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-hardware/analyze.log)
+- [Existing-suite log](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-hardware/tests.log)
+- [Audit probes](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-hardware/audit_probes_test.dart)
+- [Audit-probe results](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-hardware/audit-probes.log)
+- [macOS release-build log](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-hardware/macos-release.log)
+- [Artifact hashes and manifest checks](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-hardware/artifact-audit.json)
+- [Saved Windows hardware diagnostic](/Users/macbookair/tracepos/release_audit/live_windows_machine_diagnostic.json) — historical, not a current client-device test
+- [Saved signing report](/Users/macbookair/tracepos/release_audit/CODE_SIGNING_REPORT.md) — test certificate, not fresh trust validation
 
 Audit probe command:
 

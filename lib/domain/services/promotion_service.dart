@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/data/database/app_database.dart';
 import '../models/cart_item.dart';
 
 class PromotionService {

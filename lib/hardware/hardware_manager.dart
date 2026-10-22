@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
 import 'package:path/path.dart' as p;
 import 'barcode_scanner/barcode_scanner_interface.dart';
 import 'barcode_scanner/fake_barcode_scanner.dart';

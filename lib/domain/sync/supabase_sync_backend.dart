@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import 'cloud_sync_backend.dart';
 
 /// Supabase PostgREST implementation of [CloudSyncBackend].

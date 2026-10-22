@@ -1,13 +1,13 @@
-import 'package:jazzpos/providers/auth_provider.dart';
+import 'package:tracepos/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/domain/services/report_service.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/money_display.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/domain/services/report_service.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/money_display.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});

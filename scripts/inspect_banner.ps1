@@ -1,6 +1,6 @@
 Add-Type -AssemblyName System.Drawing
 
-$imgFile = "C:\Users\nourm\Desktop\jazzpos\windows\installer\assets\hero_official_virex_clean.png"
+$imgFile = "C:\Users\nourm\Desktop\tracepos\windows\installer\assets\hero_official_virex_clean.png"
 $bmp = [System.Drawing.Bitmap]::FromFile($imgFile)
 
 Write-Host "Width: $($bmp.Width), Height: $($bmp.Height)"

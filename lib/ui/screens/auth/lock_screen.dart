@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/core/localization/locale_provider.dart';
-import 'package:jazzpos/core/sound/sound_effect_service.dart';
-import 'package:jazzpos/providers/auth_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
-import 'package:jazzpos/ui/widgets/numpad.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/core/localization/locale_provider.dart';
+import 'package:tracepos/core/sound/sound_effect_service.dart';
+import 'package:tracepos/providers/auth_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/manager_override_dialog.dart';
+import 'package:tracepos/ui/widgets/numpad.dart';
 
 class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});

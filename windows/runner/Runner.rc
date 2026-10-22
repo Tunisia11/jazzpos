@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "Trace POS" "\0"
             VALUE "FileDescription", "Trace POS — Point de Vente & Commerce" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "jazzpos" "\0"
+            VALUE "InternalName", "tracepos" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 Trace POS. Tous droits réservés." "\0"
-            VALUE "OriginalFilename", "jazzpos.exe" "\0"
+            VALUE "OriginalFilename", "tracepos.exe" "\0"
             VALUE "ProductName", "Trace POS" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

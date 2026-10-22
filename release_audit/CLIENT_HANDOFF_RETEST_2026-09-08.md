@@ -43,7 +43,7 @@ Live database tests were not run. Their added Windows/file-existence conditions 
 
 ## New confirmed blocker: canceling payment freezes the cart
 
-Evidence: [payment_dialog.dart](/Users/macbookair/jazzpos/lib/ui/screens/checkout/widgets/payment_dialog.dart:70).
+Evidence: [payment_dialog.dart](/Users/macbookair/tracepos/lib/ui/screens/checkout/widgets/payment_dialog.dart:70).
 
 `dispose()` calls `ref.read(cartNotifierProvider.notifier).unlockCart()`. Riverpod refuses use of this widget ref after disposal starts.
 
@@ -66,14 +66,14 @@ Recomputed hashes match the earlier audit exactly:
 | Artifact | SHA-256 |
 |---|---|
 | `dist/Trace-POS-Setup-x64.exe` | `78c8a38f649e7e6bfa8ce826bd98fafc1a8efab567d2d9d92ceafe31a60b47c5` |
-| `dist/JAZZ-POS-Setup-x64.exe` | `0337822fcb4424852179100950d381c9d52846438d8cc6b072b93cf709060fc7` |
-| `build/windows/x64/runner/Release/jazzpos.exe` | `07cc4b38d335ccd2b624d9b09e652b9e0857da4a463b6d1249e6e22cc08c5de8` |
+| `dist/Trace-POS-Setup-x64.exe` | `0337822fcb4424852179100950d381c9d52846438d8cc6b072b93cf709060fc7` |
+| `build/windows/x64/runner/Release/tracepos.exe` | `07cc4b38d335ccd2b624d9b09e652b9e0857da4a463b6d1249e6e22cc08c5de8` |
 
 Those files do not establish that the new source changes are included. Rebuild on Windows after correcting the remaining blockers, generate new artifact evidence, then install and test that exact build. The emergency report's Windows build/installer PASS claims are not substantiated by new artifacts in this checkout.
 
 ### 2. Native receipt submission still needs correction and Windows verification
 
-Evidence: [windows_spooler_printer.dart](/Users/macbookair/jazzpos/lib/hardware/receipt_printer/windows_spooler_printer.dart:123).
+Evidence: [windows_spooler_printer.dart](/Users/macbookair/tracepos/lib/hardware/receipt_printer/windows_spooler_printer.dart:123).
 
 The bridge uses `OpenPrinterA`/`StartDocPrinterA`, rather than the Unicode W APIs claimed in the emergency report. `StartDocPrinter` is declared as a bool instead of preserving its job identifier, and completion-call results are ignored.
 
@@ -85,7 +85,7 @@ The status query still considers an empty successful result online. Process time
 
 ### 3. Drawer and printer configuration are only partially restored
 
-Evidence: [hardware_manager.dart](/Users/macbookair/jazzpos/lib/hardware/hardware_manager.dart:164).
+Evidence: [hardware_manager.dart](/Users/macbookair/tracepos/lib/hardware/hardware_manager.dart:164).
 
 Only the queue name and timestamp are saved; profile/58 mm width is not. Startup restores `genericWindows`. File write failures are logged and swallowed, after which Settings still reports activation success.
 
@@ -100,20 +100,20 @@ The manual dropdown includes every discovered queue rather than filtering by rec
 - Receipt strings still use `utf8.encode`; the unchanged renderer does not implement the CP858/CP1252 encoding claimed in the new report. The Arabic raster test still ignores its text argument; this was reproduced again.
 - The payment screen still produces French layout overflows in the widget probe. They were recorded separately from the dismissal failure.
 - Stale Enter acceptance, unfinished-buffer retention across stop/start and unsupported Tab suffix were reproduced again. The shared scanner listener still dispatches under modals; checkout now has a route guard, so the original checkout finding is partially addressed rather than unchanged in full.
-- The Windows workflow creates the ZIP but still verifies/uploads `JAZZ-POS-Setup-x64.exe` while Inno Setup outputs `Trace-POS-Setup-x64.exe`. The naming mismatch remains.
+- The Windows workflow creates the ZIP but still verifies/uploads `Trace-POS-Setup-x64.exe` while Inno Setup outputs `Trace-POS-Setup-x64.exe`. The naming mismatch remains.
 
 ## Decision
 
 The 141 passing tests are reproducible, but the broader statement that all critical blockers are resolved is not. **Do not hand the existing installer to the shop as the repaired release.** First fix payment closing/unlocking, complete and verify receipt/drawer configuration, rebuild the Windows installer, then test the actual scanner and printer against that artifact. If garment-label printing is required inside the POS, it remains a delivery blocker.
 
-Use the physical acceptance checklist in the [original audit](/Users/macbookair/jazzpos/release_audit/CLIENT_HANDOFF_AUDIT_2026-09-08.md), with this retest taking precedence for changed findings.
+Use the physical acceptance checklist in the [original audit](/Users/macbookair/tracepos/release_audit/CLIENT_HANDOFF_AUDIT_2026-09-08.md), with this retest taking precedence for changed findings.
 
 ## Evidence
 
-- [Current analysis](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-retest/analyze.log)
-- [141-test run](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-retest/tests.log)
-- [Independent probe source](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-retest/retest_probes_test.dart)
-- [Probe results and payment-close failure](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-retest/probes.log)
-- [Release compilation](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-retest/macos-release.log)
-- [Source snapshot at retest start](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-retest/source-before.json)
-- [Changed hardware files since earlier audit](/Users/macbookair/jazzpos/release_audit/evidence/2026-09-08-retest/changed-since-audit.json)
+- [Current analysis](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-retest/analyze.log)
+- [141-test run](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-retest/tests.log)
+- [Independent probe source](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-retest/retest_probes_test.dart)
+- [Probe results and payment-close failure](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-retest/probes.log)
+- [Release compilation](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-retest/macos-release.log)
+- [Source snapshot at retest start](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-retest/source-before.json)
+- [Changed hardware files since earlier audit](/Users/macbookair/tracepos/release_audit/evidence/2026-09-08-retest/changed-since-audit.json)

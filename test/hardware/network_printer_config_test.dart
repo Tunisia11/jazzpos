@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/hardware/barcode_scanner/fake_barcode_scanner.dart';
-import 'package:jazzpos/hardware/cash_drawer/printer_kick_cash_drawer.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/hardware/receipt_printer/esc_pos_network_printer.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_profile.dart';
+import 'package:tracepos/hardware/barcode_scanner/fake_barcode_scanner.dart';
+import 'package:tracepos/hardware/cash_drawer/printer_kick_cash_drawer.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
+import 'package:tracepos/hardware/receipt_printer/esc_pos_network_printer.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_profile.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

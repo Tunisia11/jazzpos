@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/environment_diagnostics_service.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
 
 /// Generates and exports sanitized technical diagnostic reports for remote support.
 /// Strictly excludes customer personal data, PINs, passwords, and transaction records.
@@ -20,7 +20,6 @@ class ExportDiagnosticReportService {
 
     return {
       'traceposVersion': '1.0.0+1',
-      'jazzposVersion': '1.0.0+1', // Legacy compatibility key
       'generatedAt': DateTime.now().toIso8601String(),
       'system': {
         'os': env.osName,

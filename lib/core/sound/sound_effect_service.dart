@@ -5,8 +5,8 @@ import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
 
 typedef _PlaySoundC = Int32 Function(Pointer<Utf16> pszSound, IntPtr hmod, Uint32 fdwSound);
 typedef _PlaySoundDart = int Function(Pointer<Utf16> pszSound, int hmod, int fdwSound);

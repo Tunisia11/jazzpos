@@ -1,4 +1,4 @@
-import 'package:jazzpos/hardware/barcode_scanner/scanner_route_observer.dart';
+import 'package:tracepos/hardware/barcode_scanner/scanner_route_observer.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -88,7 +88,7 @@ void main() async {
   // 5. Launch UI immediately - REQUIRED ARCHITECTURE:
   // AppPaths -> database -> show login/setup/POS.
   // Hardware & environment diagnostics MUST run asynchronously in background.
-  runApp(const ProviderScope(child: JazzPosApp()));
+  runApp(const ProviderScope(child: TracePosApp()));
 
   // 6. Asynchronous Background Initialization (Hardware & Diagnostics)
   Future.microtask(() async {
@@ -187,8 +187,6 @@ class TracePosApp extends ConsumerWidget {
   }
 }
 
-/// Backward compatibility alias for tests
-typedef JazzPosApp = TracePosApp;
 
 class StartupFailureApp extends StatelessWidget {
   final Object error;

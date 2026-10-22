@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
 
 /// Creates a resilient SQLite database connection for desktop POS environments.
 ///
@@ -16,7 +16,7 @@ import 'package:jazzpos/core/platform/app_paths.dart';
 ///
 /// To protect retail transactions in production:
 ///   - Hardware POS terminals should be backed by a UPS (battery buffer).
-///   - If power instability is severe, set JAZZPOS_STRICT_SYNC=1 for synchronous = FULL.
+///   - If power instability is severe, set TRACEPOS_STRICT_SYNC=1 for synchronous = FULL.
 ///   - Periodic hot backups via VACUUM INTO provide disaster recovery.
 ///   - DatabaseIntegrityService verifies PRAGMA integrity_check and rebuilds
 ///     cached stock balances from the immutable stock_movements ledger.
@@ -51,8 +51,8 @@ LazyDatabase createDatabaseConnection({
 
     // In production retail POS, synchronous = FULL is the default to guarantee physical
     // storage synchronization (FlushFileBuffers/fsync) on every completed sale transaction.
-    // Set JAZZPOS_RELAXED_SYNC=1 only for high-speed synthetic batch benchmarks.
-    final isRelaxedSync = Platform.environment['JAZZPOS_RELAXED_SYNC'] == '1';
+    // Set TRACEPOS_RELAXED_SYNC=1 only for high-speed synthetic batch benchmarks.
+    final isRelaxedSync = Platform.environment['TRACEPOS_RELAXED_SYNC'] == '1';
 
     return NativeDatabase.createInBackground(
       dbFile,

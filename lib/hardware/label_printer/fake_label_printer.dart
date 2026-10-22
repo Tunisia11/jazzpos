@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import 'label_document.dart';
 import 'label_printer_interface.dart';
 import 'tspl_commands.dart';

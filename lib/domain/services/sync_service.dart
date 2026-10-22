@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/sync/cloud_sync_backend.dart';
-import 'package:jazzpos/domain/sync/conflict_resolver.dart';
-import 'package:jazzpos/domain/sync/supabase_sync_backend.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/sync/cloud_sync_backend.dart';
+import 'package:tracepos/domain/sync/conflict_resolver.dart';
+import 'package:tracepos/domain/sync/supabase_sync_backend.dart';
 
 class SyncService {
   final AppDatabase db;

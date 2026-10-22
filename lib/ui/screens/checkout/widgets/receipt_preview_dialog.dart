@@ -1,16 +1,16 @@
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/providers/auth_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/theme/app_theme.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
+import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/providers/auth_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/theme/app_theme.dart';
 
 class ReceiptPreviewDialog extends ConsumerStatefulWidget {
   final ReceiptDocument document;

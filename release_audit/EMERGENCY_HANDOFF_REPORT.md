@@ -68,12 +68,12 @@ All root causes identified in the independent Astra retest pass have been thorou
 ## 2. Windows Build Host Constraint & Artifact Truth
 
 > [!IMPORTANT]
-> **Host Environment Reality:** The current build and execution environment is macOS (`Darwin ARM64`). Flutter Windows release binaries (`jazzpos.exe`) and Inno Setup installers (`Trace-POS-Setup-x64.exe`) can only be compiled on a Windows x64 host.
+> **Host Environment Reality:** The current build and execution environment is macOS (`Darwin ARM64`). Flutter Windows release binaries (`tracepos.exe`) and Inno Setup installers (`Trace-POS-Setup-x64.exe`) can only be compiled on a Windows x64 host.
 >
 > **GitHub Actions Status:** Remote CI build via `.github/workflows/windows_release.yml` was attempted, but GitHub rejected the run because the repository owner's account has a billing lock.
 >
 > **Artifact Disclosure:**
-> The binary files currently located at `dist/Trace-POS-Setup-x64.exe` (SHA-256: `78c8a38f...`) and `build/windows/x64/runner/Release/jazzpos.exe` (SHA-256: `07cc4b38...`) are historical artifacts from an earlier build. **They DO NOT contain today's Dart and C++ source fixes.**
+> The binary files currently located at `dist/Trace-POS-Setup-x64.exe` (SHA-256: `78c8a38f...`) and `build/windows/x64/runner/Release/tracepos.exe` (SHA-256: `07cc4b38...`) are historical artifacts from an earlier build. **They DO NOT contain today's Dart and C++ source fixes.**
 >
 > **Action Required Onsite:** The fresh executable and installer must be compiled on the client's Windows PC or a Windows build machine using the provided automated script:
 > ```powershell

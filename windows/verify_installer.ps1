@@ -14,11 +14,11 @@ Get-ChildItem $ReleaseDirectory -File -Recurse | ForEach-Object {
   $verified++
 }
 $info=Get-Content (Join-Path $installRoot 'build-info.json') -Raw | ConvertFrom-Json
-$app=Start-Process (Join-Path $installRoot 'jazzpos.exe') -PassThru
+$app=Start-Process (Join-Path $installRoot 'tracepos.exe') -PassThru
 try {
   Start-Sleep -Seconds 12
   if ($app.HasExited) { throw 'Installed application exited during startup.' }
-  $second=Start-Process (Join-Path $installRoot 'jazzpos.exe') -PassThru
+  $second=Start-Process (Join-Path $installRoot 'tracepos.exe') -PassThru
   if (!$second.WaitForExit(15000)) { Stop-Process -Id $second.Id; throw 'Second instance did not exit.' }
   $app.Refresh()
   if ($app.HasExited) { throw 'Second launch killed first instance.' }

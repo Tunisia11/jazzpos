@@ -1,9 +1,9 @@
-$exe = "$env:LOCALAPPDATA\Programs\JAZZ POS\jazzpos.exe"
-$startupLog = "$env:APPDATA\JazzPOS\JAZZ POS\logs\startup.log"
-$dbFile = "$env:APPDATA\JazzPOS\JAZZ POS\database\jazzpos.sqlite"
+$exe = "$env:LOCALAPPDATA\Programs\Trace POS\tracepos.exe"
+$startupLog = "$env:APPDATA\TracePOS\Trace POS\logs\startup.log"
+$dbFile = "$env:APPDATA\TracePOS\Trace POS\database\tracepos.sqlite"
 
 Write-Host "============================================================"
-Write-Host "JAZZ POS REAL WINDOWS 10x RELAUNCH & STABILITY VERIFICATION"
+Write-Host "Trace POS REAL WINDOWS 10x RELAUNCH & STABILITY VERIFICATION"
 Write-Host "Target: $exe"
 Write-Host "============================================================"
 

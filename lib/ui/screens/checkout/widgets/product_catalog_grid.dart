@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/domain/services/catalog_service.dart';
-import 'package:jazzpos/providers/cart_provider.dart';
-import 'package:jazzpos/providers/catalog_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
-import 'package:jazzpos/ui/widgets/common/app_status_badge.dart';
-import 'package:jazzpos/ui/widgets/common/price_text.dart';
-import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/domain/services/catalog_service.dart';
+import 'package:tracepos/providers/cart_provider.dart';
+import 'package:tracepos/providers/catalog_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/common/app_empty_state.dart';
+import 'package:tracepos/ui/widgets/common/app_status_badge.dart';
+import 'package:tracepos/ui/widgets/common/price_text.dart';
+import 'package:tracepos/ui/widgets/common/product_thumbnail.dart';
 import 'variant_selection_dialog.dart';
 
 class ProductCatalogGrid extends ConsumerStatefulWidget {

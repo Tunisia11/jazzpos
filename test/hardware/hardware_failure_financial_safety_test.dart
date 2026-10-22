@@ -1,16 +1,16 @@
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/models/cart_item.dart';
-import 'package:jazzpos/domain/models/checkout_request.dart';
-import 'package:jazzpos/domain/services/inventory_service.dart';
-import 'package:jazzpos/domain/services/sale_service.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/core/utils/id_generator.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/models/cart_item.dart';
+import 'package:tracepos/domain/models/checkout_request.dart';
+import 'package:tracepos/domain/services/inventory_service.dart';
+import 'package:tracepos/domain/services/sale_service.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
+import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
 
 void main() {
   setUpAll(() {

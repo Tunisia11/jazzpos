@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_profile.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_layout_builder.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_rasterizer.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_profile.dart';
+import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
+import 'package:tracepos/hardware/receipt_printer/receipt_layout_builder.dart';
+import 'package:tracepos/hardware/receipt_printer/receipt_rasterizer.dart';
 
 void main() {
   group('PrinterProfile Presets', () {
@@ -67,7 +67,7 @@ void main() {
       'builds complete receipt bytes with header, items, totals, payments, and cut',
       () {
         final doc = ReceiptDocument(
-          storeName: 'BOUTIQUE JAZZ',
+          storeName: 'BOUTIQUE TRACE',
           storeAddress: 'Avenue Habib Bourguiba, Tunis',
           storePhone: '+216 71 123 456',
           fiscalId: '1234567/A/M/000',
@@ -116,7 +116,7 @@ void main() {
 
         // Verify text presence in Latin-1 representation
         final decoded = latin1.decode(bytes, allowInvalid: true);
-        expect(decoded, contains('BOUTIQUE JAZZ'));
+        expect(decoded, contains('BOUTIQUE TRACE'));
         expect(decoded, contains('Chemise Slim Fit'));
         expect(decoded, contains('130.000 TND'));
         expect(decoded, contains('Ahmed'));
@@ -129,7 +129,7 @@ void main() {
 
     test('reprinted receipt includes DUPLICATA banner', () {
       final doc = ReceiptDocument(
-        storeName: 'BOUTIQUE JAZZ',
+        storeName: 'BOUTIQUE TRACE',
         receiptNumber: 'T-2026-002',
         dateTime: DateTime.now(),
         cashierName: 'Sarra',

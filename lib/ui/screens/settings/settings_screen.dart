@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
 import 'tabs/backup_data_tab.dart';
 import 'tabs/boutique_general_tab.dart';
 import 'tabs/categories_management_tab.dart';

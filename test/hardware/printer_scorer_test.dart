@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_candidate.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_scorer.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_candidate.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_scorer.dart';
 
 void main() {
   group('PrinterScorer Candidate Evaluation', () {

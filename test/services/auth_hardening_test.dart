@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/utils/password_hasher.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/auth_service.dart';
-import 'package:jazzpos/domain/services/boutique_settings_service.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/utils/password_hasher.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/auth_service.dart';
+import 'package:tracepos/domain/services/boutique_settings_service.dart';
 
 void main() {
   late AppDatabase db;

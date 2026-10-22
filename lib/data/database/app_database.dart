@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import 'database_connection.dart';
 import 'tables/company_tables.dart';
 import 'tables/user_tables.dart';

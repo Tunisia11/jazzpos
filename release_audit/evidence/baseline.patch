@@ -16,8 +16,8 @@ index 933a686..8eb0af2 100644
    Directory get tempDir => _tempDir;
 +  Directory get imagesDir => _imagesDir;
  
-   String get databaseFilePath => p.join(_databaseDir.path, 'jazzpos.sqlite');
-   String get logFilePath => p.join(_logsDir.path, 'jazzpos.log');
+   String get databaseFilePath => p.join(_databaseDir.path, 'tracepos.sqlite');
+   String get logFilePath => p.join(_logsDir.path, 'tracepos.log');
 @@ -53,12 +55,14 @@ class AppPaths {
      _logsDir = Directory(p.join(_baseDir.path, 'logs'));
      _backupsDir = Directory(p.join(_baseDir.path, 'backups'));
@@ -1423,12 +1423,12 @@ index 544ac5e..0560571 100644
  import 'core/platform/app_paths.dart';
  import 'hardware/hardware_manager.dart';
 @@ -56,15 +59,25 @@ void main() async {
-   runApp(const ProviderScope(child: JazzPosApp()));
+   runApp(const ProviderScope(child: TracePosApp()));
  }
  
--class JazzPosApp extends StatelessWidget {
-+class JazzPosApp extends ConsumerWidget {
-   const JazzPosApp({super.key});
+-class TracePosApp extends StatelessWidget {
++class TracePosApp extends ConsumerWidget {
+   const TracePosApp({super.key});
  
    @override
 -  Widget build(BuildContext context) {
@@ -1436,8 +1436,8 @@ index 544ac5e..0560571 100644
 +    final currentLocale = ref.watch(localeProvider);
 +
      return MaterialApp(
--      title: 'JazzPOS — Point de Vente Prêt-à-Porter',
-+      title: 'JAZZ POS',
+-      title: 'TracePOS — Point de Vente Prêt-à-Porter',
++      title: 'Trace POS',
        debugShowCheckedModeBanner: false,
 -      theme: AppTheme.darkTheme,
 +      theme: AppTheme.lightTheme,
@@ -1456,14 +1456,14 @@ diff --git a/lib/providers/app_providers.dart b/lib/providers/app_providers.dart
 index 95b186c..fbdd025 100644
 --- a/lib/providers/app_providers.dart
 +++ b/lib/providers/app_providers.dart
-@@ -11,6 +11,7 @@ import 'package:jazzpos/domain/services/inventory_service.dart';
- import 'package:jazzpos/domain/services/pricing_service.dart';
- import 'package:jazzpos/domain/services/promotion_service.dart';
- import 'package:jazzpos/domain/services/purchase_service.dart';
-+import 'package:jazzpos/domain/services/product_image_service.dart';
- import 'package:jazzpos/domain/services/report_service.dart';
- import 'package:jazzpos/domain/services/return_service.dart';
- import 'package:jazzpos/domain/services/sale_service.dart';
+@@ -11,6 +11,7 @@ import 'package:tracepos/domain/services/inventory_service.dart';
+ import 'package:tracepos/domain/services/pricing_service.dart';
+ import 'package:tracepos/domain/services/promotion_service.dart';
+ import 'package:tracepos/domain/services/purchase_service.dart';
++import 'package:tracepos/domain/services/product_image_service.dart';
+ import 'package:tracepos/domain/services/report_service.dart';
+ import 'package:tracepos/domain/services/return_service.dart';
+ import 'package:tracepos/domain/services/sale_service.dart';
 @@ -25,6 +26,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
    return db;
  });
@@ -1482,10 +1482,10 @@ index 116c7d4..b8cbe46 100644
 @@ -1,7 +1,9 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
- import 'package:jazzpos/core/constants/permissions.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/core/constants/permissions.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
  import '../screens/auth/lock_screen.dart';
  import '../screens/auth/login_screen.dart';
  import '../screens/catalog/product_list_screen.dart';
@@ -1493,7 +1493,7 @@ index 116c7d4..b8cbe46 100644
  import '../screens/settings/settings_screen.dart';
  import '../screens/shifts/shift_management_screen.dart';
  import '../widgets/manager_override_dialog.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
  
  enum AppNavDestination {
    checkout,
@@ -1585,7 +1585,7 @@ index 116c7d4..b8cbe46 100644
                        if (_isDrawerOpen) ...[
                          const SizedBox(width: 8),
 -                        const Text(
--                          'JAZZ POS',
+-                          'Trace POS',
 -                          style: TextStyle(
 -                            fontWeight: FontWeight.bold,
 -                            fontSize: 16,
@@ -2050,13 +2050,13 @@ index 2cef357..62ac4be 100644
  import 'package:flutter/material.dart';
  import 'package:flutter/services.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
-+import 'package:jazzpos/core/localization/locale_provider.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
- import 'package:jazzpos/ui/widgets/numpad.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
++import 'package:tracepos/core/localization/locale_provider.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/manager_override_dialog.dart';
+ import 'package:tracepos/ui/widgets/numpad.dart';
  
 @@ -99,213 +101,295 @@ class _LockScreenState extends ConsumerState<LockScreen> {
    }
@@ -2513,14 +2513,14 @@ index d660bbf..1d7488f 100644
  import 'package:flutter/material.dart';
  import 'package:flutter/services.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
-+import 'package:jazzpos/core/localization/locale_provider.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/numpad.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
++import 'package:tracepos/core/localization/locale_provider.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/numpad.dart';
  import 'setup_wizard_screen.dart';
  
 @@ -100,14 +102,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
@@ -2660,7 +2660,7 @@ index d660bbf..1d7488f 100644
 -              ),
 -              const SizedBox(height: 16),
 -              const Text(
--                'Bienvenue sur JazzPOS',
+-                'Bienvenue sur TracePOS',
 -                style: TextStyle(
 -                  fontSize: 24,
 -                  fontWeight: FontWeight.bold,
@@ -2827,7 +2827,7 @@ index d660bbf..1d7488f 100644
 +                              Row(
                                  children: [
 -                                  Text(
--                                    'JAZZ POS',
+-                                    'Trace POS',
 -                                    style: TextStyle(
 -                                      fontSize: 22,
 -                                      fontWeight: FontWeight.bold,
@@ -2856,7 +2856,7 @@ index d660bbf..1d7488f 100644
 +                                          CrossAxisAlignment.start,
 +                                      children: [
 +                                        const Text(
-+                                          'JAZZ POS',
++                                          'Trace POS',
 +                                          style: TextStyle(
 +                                            fontSize: 22,
 +                                            fontWeight: FontWeight.bold,
@@ -3347,12 +3347,12 @@ diff --git a/lib/ui/screens/auth/setup_wizard_screen.dart b/lib/ui/screens/auth/
 index f2f4dae..867d68e 100644
 --- a/lib/ui/screens/auth/setup_wizard_screen.dart
 +++ b/lib/ui/screens/auth/setup_wizard_screen.dart
-@@ -6,7 +6,7 @@ import 'package:jazzpos/core/constants/roles.dart';
- import 'package:jazzpos/core/utils/id_generator.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/providers/app_providers.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+@@ -6,7 +6,7 @@ import 'package:tracepos/core/constants/roles.dart';
+ import 'package:tracepos/core/utils/id_generator.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
  
  class SetupWizardScreen extends ConsumerStatefulWidget {
    const SetupWizardScreen({super.key});
@@ -3433,10 +3433,10 @@ index f2f4dae..867d68e 100644
 -      backgroundColor: AppTheme.background,
 +      backgroundColor: AppDesignTokens.canvas,
        appBar: AppBar(
--        title: const Text('Assistant d\'Installation & Configuration JazzPOS'),
+-        title: const Text('Assistant d\'Installation & Configuration TracePOS'),
 -        backgroundColor: AppTheme.surface,
 +        title: const Text(
-+          'Assistant d\'Installation & Configuration JazzPOS',
++          'Assistant d\'Installation & Configuration TracePOS',
 +          style: TextStyle(
 +            color: AppDesignTokens.textPrimary,
 +            fontWeight: FontWeight.bold,
@@ -3816,17 +3816,17 @@ index cb42b34..e778be1 100644
 @@ -1,12 +1,15 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/domain/models/variant_matrix.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
- import 'package:jazzpos/providers/catalog_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-+import 'package:jazzpos/ui/widgets/common/app_button.dart';
-+import 'package:jazzpos/ui/widgets/common/app_card.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/domain/models/variant_matrix.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+ import 'package:tracepos/providers/catalog_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
++import 'package:tracepos/ui/widgets/common/app_button.dart';
++import 'package:tracepos/ui/widgets/common/app_card.dart';
  import 'variant_matrix_editor.dart';
  
  class ProductEditScreen extends ConsumerStatefulWidget {
@@ -4101,21 +4101,21 @@ index ce4336c..01b4c30 100644
  import 'package:drift/drift.dart' show Value;
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/domain/services/catalog_service.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/catalog_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-+import 'package:jazzpos/ui/widgets/common/app_button.dart';
-+import 'package:jazzpos/ui/widgets/common/app_card.dart';
-+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
-+import 'package:jazzpos/ui/widgets/common/app_page_header.dart';
-+import 'package:jazzpos/ui/widgets/common/app_search_field.dart';
-+import 'package:jazzpos/ui/widgets/common/app_status_badge.dart';
-+import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/domain/services/catalog_service.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/catalog_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
++import 'package:tracepos/ui/widgets/common/app_button.dart';
++import 'package:tracepos/ui/widgets/common/app_card.dart';
++import 'package:tracepos/ui/widgets/common/app_empty_state.dart';
++import 'package:tracepos/ui/widgets/common/app_page_header.dart';
++import 'package:tracepos/ui/widgets/common/app_search_field.dart';
++import 'package:tracepos/ui/widgets/common/app_status_badge.dart';
++import 'package:tracepos/ui/widgets/common/product_thumbnail.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  import '../labels/label_studio_screen.dart';
  import 'product_edit_screen.dart';
 @@ -52,23 +60,38 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
@@ -4927,12 +4927,12 @@ index cc38673..dc3fd31 100644
 @@ -1,9 +1,10 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/domain/models/variant_matrix.dart';
- import 'package:jazzpos/providers/app_providers.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/domain/models/variant_matrix.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
  
  class VariantMatrixEditor extends ConsumerStatefulWidget {
    final String productCode;
@@ -5732,16 +5732,16 @@ index 734bf73..02e1781 100644
  import 'package:flutter/services.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
  import 'package:intl/intl.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/hardware/hardware_manager.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
- import 'package:jazzpos/providers/cart_provider.dart';
- import 'package:jazzpos/providers/shift_provider.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/theme/app_theme.dart';
- import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/hardware/hardware_manager.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+ import 'package:tracepos/providers/cart_provider.dart';
+ import 'package:tracepos/providers/shift_provider.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/theme/app_theme.dart';
+ import 'package:tracepos/ui/widgets/barcode_scanner_listener.dart';
  import 'widgets/cart_view.dart';
 @@ -99,9 +101,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
        await HardwareManager.instance.cashDrawer.openDrawer();
@@ -5884,7 +5884,7 @@ index 734bf73..02e1781 100644
                          borderRadius: BorderRadius.circular(6),
                        ),
 -                      child: const Text(
--                        'JAZZ POS',
+-                        'Trace POS',
 -                        style: TextStyle(
 +                      child: Text(
 +                        context.loc.appTitle,
@@ -6110,17 +6110,17 @@ index 807cdda..7e48a97 100644
 @@ -1,11 +1,15 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/domain/models/cart_item.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
- import 'package:jazzpos/providers/cart_provider.dart';
- import 'package:jazzpos/providers/shift_provider.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/widgets/common/app_button.dart';
-+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/domain/models/cart_item.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+ import 'package:tracepos/providers/cart_provider.dart';
+ import 'package:tracepos/providers/shift_provider.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/widgets/common/app_button.dart';
++import 'package:tracepos/ui/widgets/common/app_empty_state.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  import 'payment_dialog.dart';
  import 'suspended_sales_dialog.dart';
 @@ -24,9 +28,10 @@ class CartView extends ConsumerWidget {
@@ -6852,19 +6852,19 @@ index a49e3d0..66ce7d4 100644
 @@ -1,6 +1,7 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
- import 'package:jazzpos/core/constants/app_constants.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/domain/models/checkout_request.dart';
- import 'package:jazzpos/hardware/hardware_manager.dart';
-@@ -8,7 +9,7 @@ import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
- import 'package:jazzpos/providers/cart_provider.dart';
- import 'package:jazzpos/providers/shift_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
- import 'package:jazzpos/ui/widgets/numpad.dart';
+ import 'package:tracepos/core/constants/app_constants.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/domain/models/checkout_request.dart';
+ import 'package:tracepos/hardware/hardware_manager.dart';
+@@ -8,7 +9,7 @@ import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+ import 'package:tracepos/providers/cart_provider.dart';
+ import 'package:tracepos/providers/shift_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
+ import 'package:tracepos/ui/widgets/numpad.dart';
  import 'receipt_preview_dialog.dart';
 @@ -100,15 +101,16 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
    Future<void> _submitCheckout() async {
@@ -7232,17 +7232,17 @@ index c8178db..c0dbf6f 100644
 @@ -1,10 +1,14 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/domain/services/catalog_service.dart';
- import 'package:jazzpos/providers/cart_provider.dart';
- import 'package:jazzpos/providers/catalog_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
--import 'package:jazzpos/ui/widgets/money_display.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
-+import 'package:jazzpos/ui/widgets/common/app_status_badge.dart';
-+import 'package:jazzpos/ui/widgets/common/price_text.dart';
-+import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/domain/services/catalog_service.dart';
+ import 'package:tracepos/providers/cart_provider.dart';
+ import 'package:tracepos/providers/catalog_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
+-import 'package:tracepos/ui/widgets/money_display.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
++import 'package:tracepos/ui/widgets/common/app_empty_state.dart';
++import 'package:tracepos/ui/widgets/common/app_status_badge.dart';
++import 'package:tracepos/ui/widgets/common/price_text.dart';
++import 'package:tracepos/ui/widgets/common/product_thumbnail.dart';
  import 'variant_selection_dialog.dart';
  
  class ProductCatalogGrid extends ConsumerStatefulWidget {
@@ -7592,12 +7592,12 @@ index 26b8dfe..d895b16 100644
 @@ -1,8 +1,10 @@
  import 'package:flutter/material.dart';
  import 'package:intl/intl.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/hardware/hardware_manager.dart';
- import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/theme/app_theme.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/hardware/hardware_manager.dart';
+ import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/theme/app_theme.dart';
  
  class ReceiptPreviewDialog extends StatefulWidget {
 @@ -30,6 +32,7 @@ class _ReceiptPreviewDialogState extends State<ReceiptPreviewDialog> {
@@ -7737,15 +7737,15 @@ index 6a85679..e6c28c2 100644
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
  import 'package:intl/intl.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/cart_provider.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/cart_provider.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/widgets/common/app_empty_state.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  
  class SuspendedSalesDialog extends ConsumerStatefulWidget {
 @@ -51,27 +54,27 @@ class _SuspendedSalesDialogState extends ConsumerState<SuspendedSalesDialog> {
@@ -8183,12 +8183,12 @@ index ad55613..e0e2c3f 100644
 @@ -1,8 +1,9 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
- import 'package:jazzpos/domain/services/catalog_service.dart';
- import 'package:jazzpos/providers/cart_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
+ import 'package:tracepos/domain/services/catalog_service.dart';
+ import 'package:tracepos/providers/cart_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  
  class VariantSelectionDialog extends ConsumerWidget {
 @@ -29,12 +30,14 @@ class VariantSelectionDialog extends ConsumerWidget {
@@ -8373,21 +8373,21 @@ index e18783b..04b70b9 100644
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
  import 'package:intl/intl.dart';
-+import 'package:jazzpos/core/constants/permissions.dart';
-+import 'package:jazzpos/core/constants/roles.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-+import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/domain/services/catalog_service.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
-+import 'package:jazzpos/providers/catalog_provider.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/widgets/common/app_button.dart';
-+import 'package:jazzpos/ui/widgets/common/app_status_badge.dart';
-+import 'package:jazzpos/ui/widgets/common/product_thumbnail.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/constants/permissions.dart';
++import 'package:tracepos/core/constants/roles.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
++import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/domain/services/catalog_service.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
++import 'package:tracepos/providers/catalog_provider.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/widgets/common/app_button.dart';
++import 'package:tracepos/ui/widgets/common/app_status_badge.dart';
++import 'package:tracepos/ui/widgets/common/product_thumbnail.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  import 'stock_count_screen.dart';
  
 @@ -23,6 +34,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
@@ -10201,16 +10201,16 @@ index 2106d64..d194502 100644
 @@ -1,11 +1,13 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/domain/services/inventory_count_service.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
-+import 'package:jazzpos/ui/widgets/common/app_button.dart';
- import 'package:jazzpos/ui/widgets/manager_override_dialog.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/domain/services/inventory_count_service.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/barcode_scanner_listener.dart';
++import 'package:tracepos/ui/widgets/common/app_button.dart';
+ import 'package:tracepos/ui/widgets/manager_override_dialog.dart';
  
  class StockCountScreen extends ConsumerStatefulWidget {
 @@ -54,8 +56,8 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
@@ -10901,15 +10901,15 @@ index 84b3e6b..bf1fd74 100644
  import 'package:barcode_widget/barcode_widget.dart';
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/domain/services/catalog_service.dart';
- import 'package:jazzpos/hardware/hardware_manager.dart';
- import 'package:jazzpos/hardware/label_printer/label_document.dart';
- import 'package:jazzpos/providers/catalog_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/domain/services/catalog_service.dart';
+ import 'package:tracepos/hardware/hardware_manager.dart';
+ import 'package:tracepos/hardware/label_printer/label_document.dart';
+ import 'package:tracepos/providers/catalog_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  
  class LabelStudioScreen extends ConsumerStatefulWidget {
 @@ -42,6 +44,7 @@ class _LabelStudioScreenState extends ConsumerState<LabelStudioScreen> {
@@ -11343,19 +11343,19 @@ index a000fcb..8cef91d 100644
 @@ -1,5 +1,6 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/domain/services/catalog_service.dart';
-@@ -7,8 +8,9 @@ import 'package:jazzpos/domain/services/purchase_service.dart';
- import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
- import 'package:jazzpos/providers/catalog_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
-+import 'package:jazzpos/ui/widgets/common/app_button.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/domain/services/catalog_service.dart';
+@@ -7,8 +8,9 @@ import 'package:tracepos/domain/services/purchase_service.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+ import 'package:tracepos/providers/catalog_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/barcode_scanner_listener.dart';
++import 'package:tracepos/ui/widgets/common/app_button.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  
  class GoodsReceivingScreen extends ConsumerStatefulWidget {
 @@ -92,20 +94,21 @@ class _GoodsReceivingScreenState extends ConsumerState<GoodsReceivingScreen> {
@@ -12103,15 +12103,15 @@ index 544d5cc..abdfe5f 100644
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
  import 'package:intl/intl.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/providers/app_providers.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-+import 'package:jazzpos/ui/widgets/common/app_button.dart';
-+import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
++import 'package:tracepos/ui/widgets/common/app_button.dart';
++import 'package:tracepos/ui/widgets/common/app_empty_state.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  import 'goods_receiving_screen.dart';
  
 @@ -53,136 +56,157 @@ class _PurchaseOrdersScreenState extends ConsumerState<PurchaseOrdersScreen> {
@@ -12382,14 +12382,14 @@ index 2fe2925..b52d1a0 100644
 @@ -1,9 +1,11 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/domain/services/report_service.dart';
- import 'package:jazzpos/providers/app_providers.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/domain/services/report_service.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  
  class ReportsScreen extends ConsumerStatefulWidget {
 @@ -70,22 +72,44 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
@@ -12991,20 +12991,20 @@ index 8faa4b0..d7963f3 100644
 @@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
  import 'package:intl/intl.dart';
- import 'package:jazzpos/core/constants/app_constants.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/domain/models/cart_item.dart';
-@@ -12,7 +14,7 @@ import 'package:jazzpos/providers/app_providers.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
- import 'package:jazzpos/providers/catalog_provider.dart';
- import 'package:jazzpos/providers/shift_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/barcode_scanner_listener.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
+ import 'package:tracepos/core/constants/app_constants.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/domain/models/cart_item.dart';
+@@ -12,7 +14,7 @@ import 'package:tracepos/providers/app_providers.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+ import 'package:tracepos/providers/catalog_provider.dart';
+ import 'package:tracepos/providers/shift_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/barcode_scanner_listener.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
  
 @@ -77,6 +79,7 @@ class _ReturnsExchangesScreenState
          db.saleLines,
@@ -13822,18 +13822,18 @@ index 4a3fdce..95ce59a 100644
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
  import 'package:intl/intl.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-+import 'package:jazzpos/core/localization/locale_provider.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/core/platform/app_paths.dart';
- import 'package:jazzpos/core/platform/windows_startup.dart';
-@@ -12,7 +14,8 @@ import 'package:jazzpos/hardware/hardware_manager.dart';
- import 'package:jazzpos/hardware/label_printer/label_document.dart';
- import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
- import 'package:jazzpos/providers/app_providers.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-+import 'package:jazzpos/ui/widgets/common/app_card.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
++import 'package:tracepos/core/localization/locale_provider.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/core/platform/app_paths.dart';
+ import 'package:tracepos/core/platform/windows_startup.dart';
+@@ -12,7 +14,8 @@ import 'package:tracepos/hardware/hardware_manager.dart';
+ import 'package:tracepos/hardware/label_printer/label_document.dart';
+ import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
++import 'package:tracepos/ui/widgets/common/app_card.dart';
  
  class SettingsScreen extends ConsumerStatefulWidget {
    const SettingsScreen({super.key});
@@ -13906,7 +13906,7 @@ index 4a3fdce..95ce59a 100644
      try {
 -      const doc = LabelDocument(
 +      final doc = LabelDocument(
-         storeName: 'JAZZ FASHION',
+         storeName: 'TRACE FASHION',
 -        productName: 'Chemise Slim Fit Test',
 +        productName: 'Polo Piqué Noir',
          size: 'L',
@@ -14079,7 +14079,7 @@ index 4a3fdce..95ce59a 100644
 +          AppCard(
 +            child: Column(
 +              children: [
-+                const _InfoRow('Application :', 'JazzPOS Desktop v1.0.0 (Production)'),
++                const _InfoRow('Application :', 'TracePOS Desktop v1.0.0 (Production)'),
 +                const Divider(color: AppDesignTokens.border),
 +                const _InfoRow('Moteur de Base de Données :', 'SQLite 3 via Drift (WAL Mode, Schema v2)'),
 +                const Divider(color: AppDesignTokens.border),
@@ -14123,7 +14123,7 @@ index 4a3fdce..95ce59a 100644
 +                          children: [
 +                            Text('Démarrage automatique Windows :', style: TextStyle(fontWeight: FontWeight.bold, color: AppDesignTokens.textPrimary)),
 +                            Text(
-+                              'Lancer JAZZ POS automatiquement au démarrage du terminal caisse',
++                              'Lancer Trace POS automatiquement au démarrage du terminal caisse',
 +                              style: TextStyle(fontSize: 12, color: AppDesignTokens.textSecondary),
 +                            ),
 +                          ],
@@ -14781,7 +14781,7 @@ index 4a3fdce..95ce59a 100644
 -              children: [
 -                const _InfoRow(
 -                  'Application :',
--                  'JazzPOS Desktop v1.0.0-RC1 (Release Candidate 1)',
+-                  'TracePOS Desktop v1.0.0-RC1 (Release Candidate 1)',
 -                ),
 -                const Divider(color: AppTheme.border),
 -                const _InfoRow(
@@ -14859,7 +14859,7 @@ index 4a3fdce..95ce59a 100644
 -                              style: TextStyle(fontWeight: FontWeight.bold),
 -                            ),
 -                            Text(
--                              'Lancer JAZZ POS automatiquement au démarrage du terminal caisse',
+-                              'Lancer Trace POS automatiquement au démarrage du terminal caisse',
 -                              style: TextStyle(
 -                                fontSize: 12,
 -                                color: AppTheme.textSecondary,
@@ -14934,14 +14934,14 @@ index a71ce41..d0a6ec7 100644
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
  import 'package:intl/intl.dart';
-+import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
- import 'package:jazzpos/core/money/money.dart';
- import 'package:jazzpos/providers/auth_provider.dart';
- import 'package:jazzpos/providers/shift_provider.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
- import 'package:jazzpos/ui/widgets/money_display.dart';
- import 'package:jazzpos/ui/widgets/numpad.dart';
++import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+ import 'package:tracepos/core/money/money.dart';
+ import 'package:tracepos/providers/auth_provider.dart';
+ import 'package:tracepos/providers/shift_provider.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
+ import 'package:tracepos/ui/widgets/money_display.dart';
+ import 'package:tracepos/ui/widgets/numpad.dart';
  
 @@ -31,17 +32,30 @@ class _ShiftManagementScreenState extends ConsumerState<ShiftManagementScreen> {
    }
@@ -15724,11 +15724,11 @@ index 4c4d2c3..192d98f 100644
 @@ -1,8 +1,9 @@
  import 'package:flutter/material.dart';
  import 'package:flutter_riverpod/flutter_riverpod.dart';
-+import 'package:jazzpos/core/localization/app_localizations.dart';
- import 'package:jazzpos/data/database/app_database.dart';
- import 'package:jazzpos/providers/app_providers.dart';
--import 'package:jazzpos/ui/theme/app_theme.dart';
-+import 'package:jazzpos/ui/theme/app_design_tokens.dart';
++import 'package:tracepos/core/localization/app_localizations.dart';
+ import 'package:tracepos/data/database/app_database.dart';
+ import 'package:tracepos/providers/app_providers.dart';
+-import 'package:tracepos/ui/theme/app_theme.dart';
++import 'package:tracepos/ui/theme/app_design_tokens.dart';
  import 'numpad.dart';
  
  /// Modal dialog requesting manager authorization PIN without logging out the cashier
@@ -15874,7 +15874,7 @@ index 6ff076a..245193d 100644
 +++ b/lib/ui/widgets/money_display.dart
 @@ -1,5 +1,6 @@
  import 'package:flutter/material.dart';
- import 'package:jazzpos/core/money/money.dart';
+ import 'package:tracepos/core/money/money.dart';
 +import 'common/price_text.dart';
  
  class MoneyDisplay extends StatelessWidget {

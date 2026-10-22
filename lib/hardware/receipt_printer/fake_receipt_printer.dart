@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/hardware/models/hardware_fingerprint.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 import 'printer_profile.dart';
 import 'receipt_document.dart';
 import 'receipt_printer_interface.dart';

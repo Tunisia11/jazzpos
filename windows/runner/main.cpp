@@ -5,7 +5,7 @@
 #include "flutter_window.h"
 #include "utils.h"
 
-constexpr const wchar_t kSingleInstanceMutexName[] = L"Local\\JazzPOS_SingleInstance_Mutex";
+constexpr const wchar_t kSingleInstanceMutexName[] = L"Local\\TracePOS_SingleInstance_Mutex";
 
 bool ActivateExistingWindow() {
   // Check for window with a brief retry loop in case primary instance is launching
@@ -57,7 +57,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"jazzpos", origin, size)) {
+  if (!window.Create(L"tracepos", origin, size)) {
     if (hMutex != nullptr) {
       ::ReleaseMutex(hMutex);
       ::CloseHandle(hMutex);

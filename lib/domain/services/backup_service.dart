@@ -6,14 +6,14 @@ import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite;
-import 'package:jazzpos/core/constants/permissions.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/utils/backup_crypto.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/permission_guard.dart';
+import 'package:tracepos/core/constants/permissions.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/utils/backup_crypto.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/utils/id_generator.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/permission_guard.dart';
 
 class BackupService {
   final AppDatabase db;
@@ -44,7 +44,7 @@ class BackupService {
       }
     } catch (_) {
       if (!AppPaths.instance.isInitialized) {
-        final fallbackDir = Directory.systemTemp.createTempSync('jazzpos_app_');
+        final fallbackDir = Directory.systemTemp.createTempSync('tracepos_app_');
         await AppPaths.instance.initialize(customBaseDir: fallbackDir);
       }
     }
@@ -74,7 +74,7 @@ class BackupService {
       'temp_snapshot_$timestampStr.sqlite',
     );
     final backupZipFileName =
-        'jazzpos_backup_$timestampStr.zip${encrypt ? '.enc' : ''}';
+        'tracepos_backup_$timestampStr.zip${encrypt ? '.enc' : ''}';
     final backupZipFilePath = p.join(resolvedBackupDir.path, backupZipFileName);
 
     try {

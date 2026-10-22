@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
-import 'package:jazzpos/core/utils/password_hasher.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/core/utils/id_generator.dart';
+import 'package:tracepos/core/utils/password_hasher.dart';
+import 'package:tracepos/data/database/app_database.dart';
 
 void main() {
   late AppDatabase db;
@@ -29,7 +29,7 @@ void main() {
           .insert(
             CompaniesCompanion.insert(
               id: companyId,
-              name: 'Jazz Fashion SARL',
+              name: 'Trace Fashion SARL',
               fiscalId: const Value('1234567/A/M/000'),
               phone: const Value('+216 71 000 000'),
               address: const Value('Avenue Habib Bourguiba, Tunis'),

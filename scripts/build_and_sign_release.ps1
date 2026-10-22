@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    JAZZ POS (Trace POS) Production Windows Code Signing & Release Pipeline.
+    Trace POS (Trace POS) Production Windows Code Signing & Release Pipeline.
 
 .DESCRIPTION
     Automates the full production packaging and signing lifecycle:
-    1. Compiles Flutter Windows release binary (jazzpos.exe)
+    1. Compiles Flutter Windows release binary (tracepos.exe)
     2. Signs release executable and native DLLs using SHA-256 Authenticode
     3. Verifies executable signature with signtool.exe and Get-AuthenticodeSignature
     4. Compiles Inno Setup installer
@@ -60,7 +60,7 @@ $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ProjectRoot = (Resolve-Path (Join-Path $ScriptRoot "..")).Path
 
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "   JAZZ POS (TRACE POS) - WINDOWS CODE SIGNING PIPELINE     " -ForegroundColor Cyan
+Write-Host "   Trace POS (TRACE POS) - WINDOWS CODE SIGNING PIPELINE     " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "Project Root: $ProjectRoot"
 
@@ -116,12 +116,12 @@ if ($ConfigPath -and (Test-Path $ConfigPath)) {
 }
 
 # Apply environment variable overrides
-if ($env:JAZZPOS_SIGN_MODE -and $Mode -eq 'auto') { $Mode = $env:JAZZPOS_SIGN_MODE }
-if ($env:JAZZPOS_SIGN_PFX_PATH -and -not $PfxPath) { $PfxPath = $env:JAZZPOS_SIGN_PFX_PATH }
-if ($env:JAZZPOS_SIGN_PFX_PASSWORD -and -not $PfxPassword) { $PfxPassword = $env:JAZZPOS_SIGN_PFX_PASSWORD }
-if ($env:JAZZPOS_SIGN_CERT_SHA1 -and -not $CertThumbprint) { $CertThumbprint = $env:JAZZPOS_SIGN_CERT_SHA1 }
-if ($env:JAZZPOS_SIGN_TIMESTAMP_URL) { $TimestampUrl = $env:JAZZPOS_SIGN_TIMESTAMP_URL }
-if ($env:JAZZPOS_REQUIRE_SIGNING -eq 'true') { $RequireSignature = $true }
+if ($env:TRACEPOS_SIGN_MODE -and $Mode -eq 'auto') { $Mode = $env:TRACEPOS_SIGN_MODE }
+if ($env:TRACEPOS_SIGN_PFX_PATH -and -not $PfxPath) { $PfxPath = $env:TRACEPOS_SIGN_PFX_PATH }
+if ($env:TRACEPOS_SIGN_PFX_PASSWORD -and -not $PfxPassword) { $PfxPassword = $env:TRACEPOS_SIGN_PFX_PASSWORD }
+if ($env:TRACEPOS_SIGN_CERT_SHA1 -and -not $CertThumbprint) { $CertThumbprint = $env:TRACEPOS_SIGN_CERT_SHA1 }
+if ($env:TRACEPOS_SIGN_TIMESTAMP_URL) { $TimestampUrl = $env:TRACEPOS_SIGN_TIMESTAMP_URL }
+if ($env:TRACEPOS_REQUIRE_SIGNING -eq 'true') { $RequireSignature = $true }
 
 # Read from JSON config if values are still empty
 if ($Config) {
@@ -161,7 +161,7 @@ if ($RequireSignature -and $Mode -eq 'skip') {
 # 3. Compile Windows Flutter Release Application
 # -------------------------------------------------------------------------
 $ReleaseDir = Join-Path $ProjectRoot "build\windows\x64\runner\Release"
-$ReleaseExe = Join-Path $ReleaseDir "jazzpos.exe"
+$ReleaseExe = Join-Path $ReleaseDir "tracepos.exe"
 
 if (-not $SkipFlutterBuild) {
     Write-Host "`n[1/6] Compiling Flutter Windows release binary..." -ForegroundColor Cyan
@@ -190,7 +190,7 @@ $global:TestCertThumbprint = $null
 
 function Get-OrCreateTestCertificate {
     $existing = Get-ChildItem -Path Cert:\CurrentUser\My -CodeSigningCert -ErrorAction SilentlyContinue |
-        Where-Object { $_.Subject -match "JAZZ POS Automated Test Signer" } |
+        Where-Object { $_.Subject -match "Trace POS Automated Test Signer" } |
         Select-Object -First 1
 
     if ($existing) { return $existing }
@@ -198,7 +198,7 @@ function Get-OrCreateTestCertificate {
     Write-Host "[TEST-CERT] Generating isolated self-signed test code-signing certificate..." -ForegroundColor Yellow
     $cert = New-SelfSignedCertificate `
         -Type CodeSigningCert `
-        -Subject "CN=JAZZ POS Automated Test Signer, O=Virex Test, C=TN" `
+        -Subject "CN=Trace POS Automated Test Signer, O=Virex Test, C=TN" `
         -CertStoreLocation "Cert:\CurrentUser\My" `
         -HashAlgorithm "SHA256" `
         -KeyLength 2048 `
@@ -342,7 +342,7 @@ if ($RequireSignature -and $ExeVerification.Status -ne 'Valid') {
 $DistDir = Join-Path $ProjectRoot "dist"
 if (-not (Test-Path $DistDir)) { New-Item -ItemType Directory -Path $DistDir -Force | Out-Null }
 
-$InstallerIss = Join-Path $ProjectRoot "windows\installer\jazzpos_setup.iss"
+$InstallerIss = Join-Path $ProjectRoot "windows\installer\tracepos_setup.iss"
 $InstallerExePrimary = Join-Path $DistDir "Trace-POS-Setup-x64.exe"
 
 if (-not $SkipInstaller) {
@@ -452,7 +452,7 @@ $instStatus = if ($InstallerVerification -and $InstallerVerification.Status -in 
 $tamperText = if ($TamperTestPassed) { "PASSED (Tampering invalidates Authenticode signature with HashMismatch)" } else { "SKIPPED/FAILED" }
 
 $lines = @(
-    "# JAZZ POS (Trace POS) - Windows Code Signing & Release Audit Report",
+    "# Trace POS (Trace POS) - Windows Code Signing & Release Audit Report",
     "",
     "Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss K')",
     "Signing Mode: $Mode",

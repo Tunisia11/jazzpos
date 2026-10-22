@@ -198,7 +198,7 @@
   "windows/flutter/CMakeLists.txt": "bd05e3268b2f246bcbafdb778165fe67a7bafdba04eb73599502563a67b8ae7e",
   "windows/flutter/generated_plugins.cmake": "a72072537dc4e65c28a7619187242c6c3b53032bfd79975b7f60fbd6a7cd537d",
   "windows/flutter/generated_plugin_registrant.h": "dbc11635d7b1ba1887adf40df5b83d634e9c3ab0bee34510c71528bb4d73602a",
-  "windows/installer/jazzpos_setup.iss": "a93c704c8beb3b3264c3c9a7b6f917c433b1a81b5994be2c0dbe440fe89d81db",
+  "windows/installer/tracepos_setup.iss": "a93c704c8beb3b3264c3c9a7b6f917c433b1a81b5994be2c0dbe440fe89d81db",
   "windows/installer/assets/wizard_hero_150.bmp": "25db960a21cab79d5a61deb5bd9eb3171b735b1981d6971533b5e57f2f5ae43b",
   "windows/installer/assets/wizard_small_200.bmp": "702667bd0e71e7bfe3cc5c7550347b95bdbf07a79092cf9c369ebc79ec972a95",
   "windows/installer/assets/wizard_hero_125.bmp": "f5f6bd82e71cdd831eee36bd3a9c8a12b1e267132b6015fe96211712aeb89d9b",

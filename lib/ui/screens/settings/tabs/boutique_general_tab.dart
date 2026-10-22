@@ -1,17 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/core/localization/locale_provider.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/platform/windows_startup.dart';
-import 'package:jazzpos/core/sound/sound_effect_service.dart';
-import 'package:jazzpos/domain/services/boutique_settings_service.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/providers/auth_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/common/app_card.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/core/localization/locale_provider.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/platform/windows_startup.dart';
+import 'package:tracepos/core/sound/sound_effect_service.dart';
+import 'package:tracepos/domain/services/boutique_settings_service.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/providers/auth_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/common/app_card.dart';
 
 class BoutiqueGeneralTab extends ConsumerStatefulWidget {
   const BoutiqueGeneralTab({super.key});

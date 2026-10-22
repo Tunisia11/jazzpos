@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 
 class StartupStageRecord {
   final String stage;
@@ -23,7 +23,7 @@ class StartupStageRecord {
 
 /// Centralized startup performance and lifecycle tracer.
 /// Logs startup milestones to console, PosLogger, and writes directly
-/// to `%APPDATA%\JazzPOS\JAZZ POS\logs\startup.log`.
+/// to `%APPDATA%\TracePOS\Trace POS\logs\startup.log`.
 class StartupTracker {
   static final StartupTracker instance = StartupTracker._();
   StartupTracker._();

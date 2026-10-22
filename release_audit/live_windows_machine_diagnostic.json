@@ -1,6 +1,6 @@
 {
   "traceposVersion": "1.0.0+1",
-  "jazzposVersion": "1.0.0+1",
+  "traceposVersion": "1.0.0+1",
   "generatedAt": "2026-09-07T13:31:46.210189",
   "system": {
     "os": "windows",
@@ -24,7 +24,7 @@
   },
   "storageAndDatabase": {
     "appDirectory": "C:\\src\\flutter\\bin\\cache\\artifacts\\engine\\windows-x64",
-    "dataDirectory": "C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS",
+    "dataDirectory": "C:\\Users\\nourm\\AppData\\Roaming\\TracePOS\\Trace POS",
     "dataDirWritable": true,
     "backupDirWritable": true,
     "sqliteAccessible": true,

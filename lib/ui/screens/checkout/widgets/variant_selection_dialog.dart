@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/domain/services/catalog_service.dart';
-import 'package:jazzpos/providers/cart_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/money_display.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/domain/services/catalog_service.dart';
+import 'package:tracepos/providers/cart_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/money_display.dart';
 
 class VariantSelectionDialog extends ConsumerWidget {
   final String productName;

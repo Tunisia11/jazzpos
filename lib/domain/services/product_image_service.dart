@@ -4,10 +4,10 @@ import 'package:file_selector/file_selector.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/data/database/app_database.dart';
 
 /// Represents an image validated, normalized, and staged in a temporary directory
 class StagedProductImage {

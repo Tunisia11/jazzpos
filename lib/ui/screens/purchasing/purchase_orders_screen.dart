@@ -2,14 +2,14 @@ import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/common/app_button.dart';
-import 'package:jazzpos/ui/widgets/common/app_empty_state.dart';
-import 'package:jazzpos/ui/widgets/money_display.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/common/app_button.dart';
+import 'package:tracepos/ui/widgets/common/app_empty_state.dart';
+import 'package:tracepos/ui/widgets/money_display.dart';
 import 'goods_receiving_screen.dart';
 
 class PurchaseOrdersScreen extends ConsumerStatefulWidget {

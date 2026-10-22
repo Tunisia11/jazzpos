@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import '../../theme/app_design_tokens.dart';
 import '../../theme/app_theme.dart';
 

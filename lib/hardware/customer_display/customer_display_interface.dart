@@ -1,5 +1,5 @@
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 
 enum CustomerDisplayMode {
   disabled('DISABLED'),

@@ -2,7 +2,7 @@ import 'dart:collection';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
 
 enum LogLevel { debug, info, warning, error }
 

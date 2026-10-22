@@ -1,4 +1,4 @@
-# JAZZ POS — WINDOWS & POSBANK RELEASE CERTIFICATION (RC1)
+# Trace POS — WINDOWS & POSBANK RELEASE CERTIFICATION (RC1)
 
 **Document Version**: 1.0.0-RC1  
 **Target Environment**: POSBANK Apexa G / AnyPOS / Windows 10 & 11 IoT Enterprise LTSC (x64)  
@@ -10,7 +10,7 @@
 ## 1. EXECUTIVE SUMMARY & DURABILITY REALISM
 
 ### 1.1 Release Candidate Assessment
-The software core of JAZZ POS has completed architectural validation on macOS and passed all 47 automated tests (100% pass rate). All Windows-specific runtime plumbing—application directory resolution under `%APPDATA%\JazzPOS`, rotating log persistence, atomic hot backup snapshots (`VACUUM INTO`), Windows startup registry hooks, Inno Setup packaging, and DPI awareness manifests—has been built and integrated into the Release Candidate 1 (RC1) codebase.
+The software core of Trace POS has completed architectural validation on macOS and passed all 47 automated tests (100% pass rate). All Windows-specific runtime plumbing—application directory resolution under `%APPDATA%\TracePOS`, rotating log persistence, atomic hot backup snapshots (`VACUUM INTO`), Windows startup registry hooks, Inno Setup packaging, and DPI awareness manifests—has been built and integrated into the Release Candidate 1 (RC1) codebase.
 
 ### 1.2 Durability Realism: Correction of Power-Loss Assumptions
 In mission-critical retail POS engineering, **claiming that SQLite Write-Ahead Logging (WAL) guarantees zero corruption under every conceivable power-loss condition is technically incorrect and dangerous.**
@@ -21,8 +21,8 @@ In mission-critical retail POS engineering, **claiming that SQLite Write-Ahead L
 3. **`PRAGMA synchronous = NORMAL` vs `FULL`**: In `NORMAL` synchronous mode, transactions are committed to the WAL file without an immediate physical disk barrier until a WAL checkpoint occurs. An abrupt power cut will cause uncheckpointed commits in the OS disk buffer to disappear.
 4. **Production Architecture Requirement**:
    - **Hardware Level**: POSBANK terminals in production **MUST** be connected to an Uninterruptible Power Supply (UPS) or 12V battery-backed power brick.
-   - **Database Level**: JAZZ POS provides `JAZZPOS_STRICT_SYNC=1` (setting `PRAGMA synchronous = FULL;`) for merchants operating in environments without UPS protection, trading write IOPS for strict disk flush guarantees.
-   - **Application Level**: JAZZ POS performs `DatabaseIntegrityService.runDiagnostics()` on startup, maintains an immutable `stock_movements` ledger for automated self-repair, and executes periodic hot backups (`VACUUM INTO`) with SHA-256 validation.
+   - **Database Level**: Trace POS provides `TRACEPOS_STRICT_SYNC=1` (setting `PRAGMA synchronous = FULL;`) for merchants operating in environments without UPS protection, trading write IOPS for strict disk flush guarantees.
+   - **Application Level**: Trace POS performs `DatabaseIntegrityService.runDiagnostics()` on startup, maintains an immutable `stock_movements` ledger for automated self-repair, and executes periodic hot backups (`VACUUM INTO`) with SHA-256 validation.
 
 ---
 
@@ -31,11 +31,11 @@ In mission-critical retail POS engineering, **claiming that SQLite Write-Ahead L
 | # | Validation Item | Status | Test Method / Verification Evidence |
 | :--- | :--- | :--- | :--- |
 | **1** | **Windows Release Build** | `SIMULATED PASS` | CMake x64 build configuration in `windows/CMakeLists.txt` and `windows/runner/CMakeLists.txt` verified. Build automation scripted via `windows/build_windows_release.ps1` and `.bat`. Requires Windows runner in CI. |
-| **2** | **Windows Installer** | `SIMULATED PASS` | Inno Setup 6 script created at `windows/installer/jazzpos_setup.iss`. Bundles complete release directory, shortcuts, and silent VC++ redistributable install. |
-| **3** | **Clean-Machine Installation** | `NOT TESTED` | Requires running `JazzPOS_Setup_v1.0.0.exe` on a fresh Windows 10/11 IoT LTSC POSBANK terminal with no pre-existing Flutter or Visual Studio dependencies. |
-| **4** | **SQLite DB Persistence on Windows** | `SIMULATED PASS` | Centralized `AppPaths` directs database file to `%APPDATA%\JazzPOS\database\jazzpos.sqlite`. Writable by standard cashier Windows users without Administrator elevation. Requires actual Windows executable disk write verification. |
+| **2** | **Windows Installer** | `SIMULATED PASS` | Inno Setup 6 script created at `windows/installer/tracepos_setup.iss`. Bundles complete release directory, shortcuts, and silent VC++ redistributable install. |
+| **3** | **Clean-Machine Installation** | `NOT TESTED` | Requires running `TracePOS_Setup_v1.0.0.exe` on a fresh Windows 10/11 IoT LTSC POSBANK terminal with no pre-existing Flutter or Visual Studio dependencies. |
+| **4** | **SQLite DB Persistence on Windows** | `SIMULATED PASS` | Centralized `AppPaths` directs database file to `%APPDATA%\TracePOS\database\tracepos.sqlite`. Writable by standard cashier Windows users without Administrator elevation. Requires actual Windows executable disk write verification. |
 | **5** | **App Restart Recovery** | `SIMULATED PASS` | Verified via test suite on engine level: closed database connections reopen cleanly, schema migrations and indexes are retained. Requires Windows process restart cycle. |
-| **6** | **Windows Process Kill Recovery** | `SIMULATED PASS` | Atomic Drift SQLite transactions roll back uncommitted multi-table operations. Verified via unit test transaction rollback simulation. Physical `taskkill /F /IM jazzpos.exe` to be executed on Windows. |
+| **6** | **Windows Process Kill Recovery** | `SIMULATED PASS` | Atomic Drift SQLite transactions roll back uncommitted multi-table operations. Verified via unit test transaction rollback simulation. Physical `taskkill /F /IM tracepos.exe` to be executed on Windows. |
 | **7** | **Actual Power-Loss / Restart Recovery** | `NOT TESTED` | Physical power plug pull while processing cart transactions. Requires physical POSBANK test to evaluate disk controller flush and WAL recovery. |
 | **8** | **Physical Receipt Printer** | `SIMULATED PASS` | Raw ESC/POS byte generation (`EscPosReceiptPrinter`) verified for character formatting, tables, Arabic/French text, and barcode 128. Physical spooler / COM / USB connection to POSBANK A7/A11 printer required on-site. |
 | **9** | **Physical Barcode Scanner** | `SIMULATED PASS` | `KeyboardBarcodeScanner` intercepts rapid USB HID keystroke bursts (<300ms) with trailing `Enter` keys via global `HardwareKeyboard`. Physical Honeywell / Datalogic handheld scanner test required on-site. |
@@ -58,17 +58,17 @@ In mission-critical retail POS engineering, **claiming that SQLite Write-Ahead L
 | Prerequisite Item | Status | Details / Location in Codebase |
 | :--- | :--- | :--- |
 | **Windows x64 Release Build** | **READY** | Configured via `windows/CMakeLists.txt`, `windows/runner/CMakeLists.txt`, and automated build script `windows/build_windows_release.bat`. |
-| **Visual C++ Runtime (x64)** | **READY** | Automated check in `windows/installer/jazzpos_setup.iss` (`VCRedistNeedsInstall` registry query on `HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64`) with silent installer bundle. |
-| **Installer** | **READY** | Production-grade Inno Setup script created at `windows/installer/jazzpos_setup.iss`. |
-| **Application Data Directory** | **READY** | Implemented in `lib/core/platform/app_paths.dart`. Resolves to `%APPDATA%\JazzPOS` on Windows. |
-| **Writable SQLite Location** | **READY** | Standardized at `%APPDATA%\JazzPOS\database\jazzpos.sqlite`. Writable without UAC elevation. |
-| **Log Directory** | **READY** | Standardized at `%APPDATA%\JazzPOS\logs\jazzpos.log` with automatic 10MB rotation, secret redaction, and startup initialization. |
-| **Backup Directory** | **READY** | Standardized at `%APPDATA%\JazzPOS\backups\` with rotating 10-backup retention and pre-restore rollback protection. |
+| **Visual C++ Runtime (x64)** | **READY** | Automated check in `windows/installer/tracepos_setup.iss` (`VCRedistNeedsInstall` registry query on `HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64`) with silent installer bundle. |
+| **Installer** | **READY** | Production-grade Inno Setup script created at `windows/installer/tracepos_setup.iss`. |
+| **Application Data Directory** | **READY** | Implemented in `lib/core/platform/app_paths.dart`. Resolves to `%APPDATA%\TracePOS` on Windows. |
+| **Writable SQLite Location** | **READY** | Standardized at `%APPDATA%\TracePOS\database\tracepos.sqlite`. Writable without UAC elevation. |
+| **Log Directory** | **READY** | Standardized at `%APPDATA%\TracePOS\logs\tracepos.log` with automatic 10MB rotation, secret redaction, and startup initialization. |
+| **Backup Directory** | **READY** | Standardized at `%APPDATA%\TracePOS\backups\` with rotating 10-backup retention and pre-restore rollback protection. |
 | **Printer Permissions** | **READY** | Standard user execution. No admin elevation required for raw TCP/IP port 9100 or COM port access. |
 | **Firewall / Network Rules** | **READY** | Standard Windows Firewall allows client outbound TCP connections (Port 9100) by default. No redundant or invasive firewall rules added. |
 | **COM Permissions** | **READY** | Standard Win32 serial port access supported without kernel elevation. |
 | **Startup Registration** | **READY** | Implemented via `WindowsStartup` class and Inno Setup Startup Task. Controllable directly in Settings Screen. |
-| **Update Strategy** | **READY** | Inno Setup upgrade installer preserves `%APPDATA%\JazzPOS` data, checks running instances (`CloseApplications=yes`), and Drift schema migration system handles version migrations. |
+| **Update Strategy** | **READY** | Inno Setup upgrade installer preserves `%APPDATA%\TracePOS` data, checks running instances (`CloseApplications=yes`), and Drift schema migration system handles version migrations. |
 
 ---
 
@@ -90,13 +90,13 @@ In mission-critical retail POS engineering, **claiming that SQLite Write-Ahead L
 ### EXECUTION CHECKLIST & SCORECARD
 
 #### PHASE 1: Terminal Setup & Clean Install
-- [ ] **Step 1.1**: Transfer `JazzPOS_Setup_v1.0.0.exe` to a clean POSBANK terminal via USB drive.
+- [ ] **Step 1.1**: Transfer `TracePOS_Setup_v1.0.0.exe` to a clean POSBANK terminal via USB drive.
 - [ ] **Step 1.2**: Execute installer with standard privileges (verify UAC prompt). Check "Démarrer automatiquement avec Windows".
 - [ ] **Step 1.3**: Confirm silent installation of Microsoft Visual C++ 2015-2022 x64 Redistributable if not present.
-- [ ] **Step 1.4**: Confirm desktop icon, start menu shortcut, and installation directory at `C:\Program Files\JAZZ POS\` (or `C:\Program Files (x86)\JAZZ POS\`).
-- [ ] **Step 1.5**: Launch JAZZ POS. Verify `%APPDATA%\JazzPOS\` directory structure:
-  - `database\jazzpos.sqlite`
-  - `logs\jazzpos.log`
+- [ ] **Step 1.4**: Confirm desktop icon, start menu shortcut, and installation directory at `C:\Program Files\Trace POS\` (or `C:\Program Files (x86)\Trace POS\`).
+- [ ] **Step 1.5**: Launch Trace POS. Verify `%APPDATA%\TracePOS\` directory structure:
+  - `database\tracepos.sqlite`
+  - `logs\tracepos.log`
   - `backups\`
   - `temp\`
 - [ ] **Step 1.6**: Navigate to **Paramètres $\to$ SYSTÈME & BOUTIQUE**. Verify "Santé Stockage / Permissions" reports **TOUS DOSSIERS ACCESSIBLES EN ÉCRITURE (OK)**.
@@ -145,19 +145,19 @@ In mission-critical retail POS engineering, **claiming that SQLite Write-Ahead L
   - Add 3 clothing items to cart. Open payment modal.
   - From Windows Command Prompt (Admin), execute:
     ```cmd
-    taskkill /F /IM jazzpos.exe
+    taskkill /F /IM tracepos.exe
     ```
-  - Re-launch JAZZ POS.
+  - Re-launch Trace POS.
   - Verify database integrity: `PRAGMA integrity_check` passes with zero corruption.
   - Verify no ghost partial sale was committed in sales ledger.
 - [ ] **Step 5.2 (Windows Reboot & Auto-Start)**:
   - Initiate Windows Restart from Start Menu.
   - Allow POSBANK terminal to reboot.
-  - Verify JAZZ POS automatically launches upon user login (Kiosk mode).
+  - Verify Trace POS automatically launches upon user login (Kiosk mode).
 - [ ] **Step 5.3 (Hard Power Disconnect Test)**:
   - While terminal is idle in open shift, pull the 12V DC power plug from POSBANK terminal.
   - Wait 15 seconds. Reconnect power and boot terminal.
-  - Launch JAZZ POS. Verify database opens cleanly and shift state is intact.
+  - Launch Trace POS. Verify database opens cleanly and shift state is intact.
 
 #### PHASE 6: Backup, Restore & Disaster Recovery
 - [ ] **Step 6.1 (Hot Backup Creation)**:
@@ -165,10 +165,10 @@ In mission-critical retail POS engineering, **claiming that SQLite Write-Ahead L
   - Click **CRÉER SAUVEGARDE ATOMIQUE**.
   - Verify new snapshot appears in backup table with valid SHA-256 checksum and file size.
 - [ ] **Step 6.2 (Restore to Test Machine)**:
-  - Copy backup file `jazzpos_backup_*.sqlite` to a second test computer.
+  - Copy backup file `tracepos_backup_*.sqlite` to a second test computer.
   - Verify SQLite header and table catalog integrity using SQLite command line:
     ```cmd
-    sqlite3 jazzpos_backup.sqlite "PRAGMA integrity_check;"
+    sqlite3 tracepos_backup.sqlite "PRAGMA integrity_check;"
     ```
   - Verify all 50+ sales, stock movements, and customer records match primary terminal.
 

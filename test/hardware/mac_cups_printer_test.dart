@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
-import 'package:jazzpos/hardware/receipt_printer/mac_cups_printer.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_profile.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
+import 'package:tracepos/hardware/receipt_printer/mac_cups_printer.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_profile.dart';
+import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
 
 void main() {
   group('MacCupsPrinter', () {

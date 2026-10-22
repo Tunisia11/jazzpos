@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/common/app_card.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/common/app_card.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 
 class OwnerSyncView extends ConsumerStatefulWidget {
   const OwnerSyncView({super.key});

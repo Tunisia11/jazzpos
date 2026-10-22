@@ -1,17 +1,17 @@
-# JAZZ POS — Évaluation Technique de Compatibilité Windows 7
+# Trace POS — Évaluation Technique de Compatibilité Windows 7
 
 **Document de Référence Technique & Audit de Déploiement**  
 **Date :** 06 Septembre 2026  
-**Auteur :** Antigravity Engine / JAZZ POS Core Engineering Team  
+**Auteur :** Antigravity Engine / Trace POS Core Engineering Team  
 **Statut Officiel :** **CONCLUSION C — SYSTÈME NON SUPPORTÉ (UNSUPPORTED)**
 
 ---
 
 ## 1. Contexte & Objectif
 
-Dans le cadre des déploiements sur site de JAZZ POS chez des commerçants de prêt-à-porter en Tunisie, le matériel de caisse rencontré est extrêmement hétérogène (terminaux tactiles tout-en-un POSBANK Apexa G, AnyPOS, clones industriels, PC reconditionnés). Certains terminaux anciens fonctionnent encore sous Windows 7 Édition Intégrale / Professionnel (x86 ou x64).
+Dans le cadre des déploiements sur site de Trace POS chez des commerçants de prêt-à-porter en Tunisie, le matériel de caisse rencontré est extrêmement hétérogène (terminaux tactiles tout-en-un POSBANK Apexa G, AnyPOS, clones industriels, PC reconditionnés). Certains terminaux anciens fonctionnent encore sous Windows 7 Édition Intégrale / Professionnel (x86 ou x64).
 
-Ce document consigne l'évaluation technique approfondie de la faisabilité, de la stabilité et des risques associés à l'exécution du build de production JAZZ POS (Flutter 3.38 / Dart 3.x / Drift SQLite) sous Windows 7.
+Ce document consigne l'évaluation technique approfondie de la faisabilité, de la stabilité et des risques associés à l'exécution du build de production Trace POS (Flutter 3.38 / Dart 3.x / Drift SQLite) sous Windows 7.
 
 ---
 
@@ -34,7 +34,7 @@ Ce document consigne l'évaluation technique approfondie de la faisabilité, de 
 
 ### 2.3 Rendu Typographique de l'Arabe (Uniscribe vs ESC/POS Raster)
 * **Faiblesse d'Uniscribe sous Windows 7 :** Les tables de ligature OpenType pour la langue arabe (utilisée sur les tickets fiscaux tunisiens et les noms d'articles en arabe) souffrent de bugs de déconnexion de glyphes sous Windows 7.
-* **Solution robuste JAZZ POS :** Pour contourner ce problème, JAZZ POS intègre un moteur de rasterisation logicielle autonome (`ReceiptRasterizer`) convertissant les textes arabes et logos en bitmaps 1-bit (`GS v 0`). Bien que l'impression thermique ESC/POS soit ainsi totalement immunisée contre les défauts de Windows 7, l'interface graphique Flutter elle-même reste vulnérable aux anomalies de rendu de polices.
+* **Solution robuste Trace POS :** Pour contourner ce problème, Trace POS intègre un moteur de rasterisation logicielle autonome (`ReceiptRasterizer`) convertissant les textes arabes et logos en bitmaps 1-bit (`GS v 0`). Bien que l'impression thermique ESC/POS soit ainsi totalement immunisée contre les défauts de Windows 7, l'interface graphique Flutter elle-même reste vulnérable aux anomalies de rendu de polices.
 
 ### 2.4 Pilotes Matériels & Périphériques POS (USB / COM / Spooler)
 * **Pilotes USB PnP / Virtual COM :** Les puces USB-Série courantes sur les caisses POSBANK (Prolific PL2303, FTDI, CH340, Silicon Labs CP210x) requièrent sous Windows 7 l'installation manuelle de pilotes signés avec désactivation de l'obligation de signature SHA-2 (mise à jour KB4474419 obligatoire).
@@ -59,7 +59,7 @@ Ce document consigne l'évaluation technique approfondie de la faisabilité, de 
 
 ### **CONCLUSION RETENUE : OPTION C — NON SUPPORTÉ (UNSUPPORTED)**
 
-Le build principal de production `JAZZ-POS-Setup-x64.exe` cible officiellement et exclusivement **Windows 10 et Windows 11 (64-bit)**.
+Le build principal de production `Trace-POS-Setup-x64.exe` cible officiellement et exclusivement **Windows 10 et Windows 11 (64-bit)**.
 
 Windows 7 est classé comme **Système d'Exploitation Non Supporté** pour les motifs suivants :
 1. **Risque d'interruption de vente :** Les plantages aléatoires du runtime graphique Flutter et les blocages FFI sur Windows 7 sont incompatibles avec l'exigence de disponibilité continue d'une caisse enregistreuse.
@@ -70,7 +70,7 @@ Windows 7 est classé comme **Système d'Exploitation Non Supporté** pour les m
 
 ## 5. Protocole de Sécurité Opérateur sur le Terrain
 
-Si l'installateur JAZZ POS ou l'exécutable est lancé sur un terminal sous Windows 7 ou Windows 8 :
+Si l'installateur Trace POS ou l'exécutable est lancé sur un terminal sous Windows 7 ou Windows 8 :
 
 1. **Détection Non-Destructive Immédiate :**
    * Au démarrage de l'application, le service `EnvironmentDiagnosticsService` analyse les numéros de version majeurs du noyau Windows (`osVersion.major < 10` ou `osBuild < 17763`).

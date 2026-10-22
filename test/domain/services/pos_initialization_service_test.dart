@@ -1,11 +1,11 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/constants/permissions.dart';
-import 'package:jazzpos/core/constants/roles.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/auth_service.dart';
-import 'package:jazzpos/domain/services/pos_initialization_service.dart';
+import 'package:tracepos/core/constants/permissions.dart';
+import 'package:tracepos/core/constants/roles.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/auth_service.dart';
+import 'package:tracepos/domain/services/pos_initialization_service.dart';
 
 void main() {
   group('PosInitializationService & Bootstrap Architecture', () {

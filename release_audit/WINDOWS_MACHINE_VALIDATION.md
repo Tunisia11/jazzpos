@@ -1,9 +1,9 @@
-# JAZZ POS — Rapport d'Homologation & Validation sur Machine Réelle Windows
+# Trace POS — Rapport d'Homologation & Validation sur Machine Réelle Windows
 
 **Type d'évaluation :** Audit d'exécution sur machine hôte réelle Windows (Live Runtime Hardware & System Audit)  
 **Date d'évaluation :** 06 Septembre 2026  
 **Poste audité (Hostname) :** `LAPTOP-4KGH5S68`  
-**Auditeur :** Antigravity Engine / JAZZ POS QA Core Lead  
+**Auditeur :** Antigravity Engine / Trace POS QA Core Lead  
 **Classification Finale :** **YELLOW (JAUNE)**
 
 ---
@@ -21,7 +21,7 @@ Toutes les métriques suivantes ont été extraites via les API natives Windows 
 | **Modèle Processeur** | `13th Gen Intel(R) Core(TM) i3-1315U` | 6 cœurs physiques (2 Performance + 4 Efficient) |
 | **Threads CPU** | `8 threads logiques` (Fréquence base 1.20 GHz, Turbo 4.50 GHz) | Largement suffisant pour l'UI Flutter + SQLite WAL |
 | **Mémoire RAM Totale** | `7.70 Go` (~8 Go physiques installés) | Conforme aux prérequis recommandés (min 4 Go) |
-| **Mémoire RAM Libre** | `1.18 Go` (Disponible au moment de l'audit) | Suffisant pour l'empreinte JAZZ POS (~249 Mo) |
+| **Mémoire RAM Libre** | `1.18 Go` (Disponible au moment de l'audit) | Suffisant pour l'empreinte Trace POS (~249 Mo) |
 | **Disque Système** | `C:\` — `474.53 Go` total, **`370.87 Go` libres** | Système de fichiers NTFS avec support complet WAL |
 | **Compte Utilisateur** | `LAPTOP-4KGH5S68\nourm` | Exécution en utilisateur standard (non-administrateur) |
 | **Statut Privilège** | Utilisateur standard (Non-Admin, UAC actif) | Valide le fonctionnement en droits restreints |
@@ -43,12 +43,12 @@ Toutes les métriques suivantes ont été extraites via les API natives Windows 
 
 ---
 
-## 3. Identification du Binaire JAZZ POS Audité
+## 3. Identification du Binaire Trace POS Audité
 
 | Métrique Binaire | Valeur Constatée |
 | :--- | :--- |
 | **Version Applicative** | `1.0.0+1` (Release Candidate 1) |
-| **Chemin Exécutable** | `C:\Users\nourm\Desktop\jazzpos\build\windows\x64\runner\Release\jazzpos.exe` |
+| **Chemin Exécutable** | `C:\Users\nourm\Desktop\tracepos\build\windows\x64\runner\Release\tracepos.exe` |
 | **Taille du Fichier** | `92 160 octets` (90.0 Ko) |
 | **Empreinte SHA-256** | `740BBCD28705C0E4439CD5494F9298C35D21E90033468941178D19907B967B6E` |
 | **Bibliothèque AOT** | `build\windows\x64\runner\Release\data\app.so` (`10 814 344 octets`) |
@@ -61,7 +61,7 @@ Toutes les métriques suivantes ont été extraites via les API natives Windows 
 
 L'inspection exhaustive du dossier de déploiement `Release` confirme la présence de 100% des dépendances natives :
 
-- [x] **`jazzpos.exe`** (92 160 octets) : Point d'entrée Win32.
+- [x] **`tracepos.exe`** (92 160 octets) : Point d'entrée Win32.
 - [x] **`flutter_windows.dll`** (21 274 112 octets) : Moteur d'intégration Flutter Desktop.
 - [x] **`sqlite3.dll`** (1 327 616 octets) : Bibliothèque native SQLite compilée pour Windows x64.
 - [x] **`sqlite3_flutter_libs_plugin.dll`** (9 728 octets) : Pont Drift FFI.
@@ -92,12 +92,12 @@ L'application a été lancée et monitorée sur le processus réel **PID 6204** 
 ## 6. Répertoire de Données & Permissions du Système de Fichiers
 
 Emplacement physique réel identifié sous le profil utilisateur :
-📁 **`C:\Users\nourm\AppData\Roaming\JazzPOS\JAZZ POS\`**
+📁 **`C:\Users\nourm\AppData\Roaming\TracePOS\Trace POS\`**
 
 Sous-arborescence vérifiée et validée en écriture :
-- `database\` : Contient `jazzpos.sqlite`, `jazzpos.sqlite-wal` (1.08 Mo), `jazzpos.sqlite-shm`.
+- `database\` : Contient `tracepos.sqlite`, `tracepos.sqlite-wal` (1.08 Mo), `tracepos.sqlite-shm`.
 - `backups\` : Contient les instantanés locaux automatiques.
-- `logs\` : Contient le journal actif tournant `jazzpos.log`.
+- `logs\` : Contient le journal actif tournant `tracepos.log`.
 - `product_images\` : Dossier dédié au stockage local des visuels articles.
 - `temp\` : Répertoire de mise en scène temporaire pour exports et impressions.
 
@@ -134,7 +134,7 @@ Un test contrôlé de crash et de coupure brutale (`test/db_persistence_and_cras
 Exécuté sur disque réel via `test/backup_restore_live_test.dart` :
 - **Mécanisme utilisé :** SQLite atomique `VACUUM INTO` (garantissant la capture des frames du WAL sans lock d'arrêt).
 - **Durée de génération de la sauvegarde :** **`13 millisecondes`**.
-- **Fichier généré :** `jazzpos_backup_2026-09-06T15-32-18-826387.sqlite` (`536 576 octets`).
+- **Fichier généré :** `tracepos_backup_2026-09-06T15-32-18-826387.sqlite` (`536 576 octets`).
 - **Validation d'intégrité de la sauvegarde :** `PRAGMA integrity_check: ok` (50 tables présentes).
 - **Test de restauration en environnement isolé :** La sauvegarde a été copiée dans un répertoire de test temporaire, ouverte avec succès, et une transaction d'écriture a été effectuée sans anomalie.
 
@@ -175,8 +175,8 @@ Durant l'audit d'exécution des tests sur la machine Windows réelle, un bogue s
 ## 12. Intégration Windows, Sécurité & Réseau
 
 - **Mode Développeur Windows :** Activé dans le Registre (`AllowDevelopmentWithoutDevLicense = 1`), permettant la création sans restriction des liens symboliques requis par les plugins Flutter.
-- **Windows Defender :** Antivirus activé, aucune quarantaine ni blocage sur `jazzpos.exe` ou `sqlite3.dll`.
-- **Pare-feu Windows :** Actif. Aucun port d'écoute entrant n'est requis par JAZZ POS en mode autonome, évitant toute alerte de sécurité bloquante pour l'opérateur.
+- **Windows Defender :** Antivirus activé, aucune quarantaine ni blocage sur `tracepos.exe` ou `sqlite3.dll`.
+- **Pare-feu Windows :** Actif. Aucun port d'écoute entrant n'est requis par Trace POS en mode autonome, évitant toute alerte de sécurité bloquante pour l'opérateur.
 - **Mode Zéro-Matériel :** Entièrement opérationnel. L'application permet d'ouvrir une caisse, d'enregistrer des ventes, de prévisualiser les tickets à l'écran, d'encaisser, d'effectuer des remboursements et de clôturer le service sans exiger aucun périphérique physique branché.
 
 ---
@@ -185,4 +185,4 @@ Durant l'audit d'exécution des tests sur la machine Windows réelle, un bogue s
 
 ### **VERDICT GLOBAL : YELLOW (JAUNE)**
 
-> **« Le binaire JAZZ POS Release x64, le moteur de base de données SQLite WAL, le runtime Flutter Windows et l'ensemble des modules logiciels sont 100% validés et stables sur cette machine Windows 11. Le verdict est maintenu à JAUNE car aucun périphérique physique réel (imprimante thermique de caisse, douchette code-barres USB, tiroir-caisse) n'est physiquement raccordé à cet ordinateur portable. Le matériel client devra faire l'objet de l'ultime test d'impression physique sur site. »**
+> **« Le binaire Trace POS Release x64, le moteur de base de données SQLite WAL, le runtime Flutter Windows et l'ensemble des modules logiciels sont 100% validés et stables sur cette machine Windows 11. Le verdict est maintenu à JAUNE car aucun périphérique physique réel (imprimante thermique de caisse, douchette code-barres USB, tiroir-caisse) n'est physiquement raccordé à cet ordinateur portable. Le matériel client devra faire l'objet de l'ultime test d'impression physique sur site. »**

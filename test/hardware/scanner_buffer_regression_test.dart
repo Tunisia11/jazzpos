@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/hardware/barcode_scanner/scanner_input_service.dart';
+import 'package:tracepos/hardware/barcode_scanner/scanner_input_service.dart';
 void key(LogicalKeyboardKey logical,PhysicalKeyboardKey physical,{String? character}) {
   HardwareKeyboard.instance.handleKeyEvent(KeyDownEvent(logicalKey:logical,physicalKey:physical,character:character,timeStamp:Duration.zero));
   HardwareKeyboard.instance.handleKeyEvent(KeyUpEvent(logicalKey:logical,physicalKey:physical,timeStamp:Duration.zero));

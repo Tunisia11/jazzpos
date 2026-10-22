@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/catalog_service.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/catalog_service.dart';
 import 'app_providers.dart';
 
 class CatalogState {

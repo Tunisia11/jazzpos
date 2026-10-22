@@ -1,4 +1,4 @@
-# JAZZ POS release audit — 6 September 2026
+# Trace POS release audit — 6 September 2026
 
 ## Verdict: Yellow
 
@@ -10,8 +10,8 @@ The final macOS release was built from the audited working tree. The audit did n
 
 | Item | Result |
 | --- | --- |
-| Product/version | JAZZ POS, `1.0.0+1` |
-| Release artifact | `build/macos/Build/Products/Release/jazzpos.app` |
+| Product/version | Trace POS, `1.0.0+1` |
+| Release artifact | `build/macos/Build/Products/Release/tracepos.app` |
 | Debug and release macOS builds | Passed |
 | Release executable SHA-256 | `4999af1bd2e7b86ab1631c10189223112440e43d41ab0205bec35c97a0b45ce7` |
 | Bundle signature verification | `codesign --verify --deep --strict` passed |
@@ -19,7 +19,7 @@ The final macOS release was built from the audited working tree. The audit did n
 | Automated tests | `flutter test` passed: 60 tests |
 | Diff whitespace check | `git diff --check` passed |
 
-The configured macOS app identifier is still `com.example.jazzpos`. Do not change it the day before an upgrade: a bundle-ID change can change the macOS sandbox path and make an existing database appear missing. Plan an identifier/data-path migration for a future signed, notarized release.
+The configured macOS app identifier is still `com.example.tracepos`. Do not change it the day before an upgrade: a bundle-ID change can change the macOS sandbox path and make an existing database appear missing. Plan an identifier/data-path migration for a future signed, notarized release.
 
 ## Architecture and coverage
 
@@ -45,7 +45,7 @@ No schema migration was changed. The existing v1-to-v2 migration adds product/va
 | P1 | Checkout could use a stale/closed/wrong-register shift; close summary could race a sale. | Checkout revalidates its open register shift in the transaction; shift calculation and close run in one transaction. | Fixed/tested |
 | P1 | Receipt-linked returns could cumulatively refund more than the original line. | Prior refund total is checked against the original payable line. | Fixed/tested |
 | P1 | Purchase receiving could duplicate or over-receive an order. | Order state, line identity, and remaining quantity are verified inside the transaction. | Fixed/tested |
-| P1 | Receipt, label, test-print and setup flows exposed JAZZ FASHION/sample identity and a default owner PIN. | Printed brand comes from configured company. Setup is blank and requires company, store, register, location, owner identity and matching PIN. | Fixed/analyzed/tested |
+| P1 | Receipt, label, test-print and setup flows exposed TRACE FASHION/sample identity and a default owner PIN. | Printed brand comes from configured company. Setup is blank and requires company, store, register, location, owner identity and matching PIN. | Fixed/analyzed/tested |
 | P1 | An inaccessible data folder could show a blank startup screen. | Startup presents a clear French permission/recovery view without moving data. The failure path was manually launched and inspected. | Fixed/manually verified |
 
 ## Financial, stock, cash, and backup evidence
@@ -76,7 +76,7 @@ The codebase was also reviewed for routes, services, schema/migrations, money re
 
 ## Exact safe demo/install procedure
 
-1. On the target machine, create a permanently writable user data folder. If `JAZZPOS_DATA_DIR` is set, point it there before first launch; never use a temporary folder.
+1. On the target machine, create a permanently writable user data folder. If `TRACEPOS_DATA_DIR` is set, point it there before first launch; never use a temporary folder.
 2. For an upgrade, close the old app and copy the complete existing data folder first. Do not change the bundle identifier or run fresh setup against the existing database.
 3. Start the final app. On a new install, fill every setup field with the actual client business identity and create a unique owner PIN.
 4. In Settings, verify storage health and create a backup. Confirm a timestamped backup record appears and copy it off the machine.

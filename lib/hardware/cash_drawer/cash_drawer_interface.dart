@@ -1,4 +1,4 @@
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 
 enum CashDrawerMode {
   disabled('DISABLED'),

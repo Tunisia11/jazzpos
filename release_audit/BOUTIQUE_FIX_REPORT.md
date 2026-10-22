@@ -269,7 +269,7 @@
 ## 12. Test Results
 
 ```
-Analyzing jazzpos...
+Analyzing tracepos...
 No issues found! (ran in 6.0s)
 
 02:01 +207 ~4: All tests passed!
@@ -284,8 +284,8 @@ No issues found! (ran in 6.0s)
 
 ## 13. Windows Validation
 1. **Architecture Spooler :** Le pont `WindowsSpoolerPrinter` et `WindowsRawPrintBridge` utilisent des types d'encapsulation Win32 compatibles Windows 10/11 IoT sans dépendance à des DLLs tierces non signées.
-2. **Démarrage automatique :** Clé de registre `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\JazzPOS` configurée et testée.
-3. **Stockage & Permissions :** Chemins résolus via `%APPDATA%\jazzpos` (`AppPaths`), garantissant l'accès complet en écriture sans privilèges administrateur nécessaires.
+2. **Démarrage automatique :** Clé de registre `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\TracePOS` configurée et testée.
+3. **Stockage & Permissions :** Chemins résolus via `%APPDATA%\tracepos` (`AppPaths`), garantissant l'accès complet en écriture sans privilèges administrateur nécessaires.
 4. **Audio natif :** Synthèse d'impulsions audio via `winmm.dll` (`PlaySoundA` / `MessageBeep`) fonctionnelle sur terminaux caisse sans carte son avancée.
 
 ---

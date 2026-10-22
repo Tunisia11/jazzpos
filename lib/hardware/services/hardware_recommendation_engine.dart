@@ -1,5 +1,5 @@
-import 'package:jazzpos/hardware/receipt_printer/printer_candidate.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_profile.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_candidate.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_profile.dart';
 import 'hardware_discovery_service.dart';
 
 enum RecommendationConfidence {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jazzpos/core/money/money.dart';
+import 'package:tracepos/core/money/money.dart';
 import 'common/price_text.dart';
 
 class MoneyDisplay extends StatelessWidget {

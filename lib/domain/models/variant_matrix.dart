@@ -1,5 +1,5 @@
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/core/utils/id_generator.dart';
 
 /// An attribute selection for matrix generation (e.g. Color with values [Black, White])
 class MatrixAttribute {

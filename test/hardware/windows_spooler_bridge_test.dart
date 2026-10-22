@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/platform/process_utils.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
-import 'package:jazzpos/hardware/receipt_printer/windows_raw_print_bridge.dart';
-import 'package:jazzpos/hardware/receipt_printer/windows_spooler_printer.dart';
+import 'package:tracepos/core/platform/process_utils.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
+import 'package:tracepos/hardware/receipt_printer/windows_raw_print_bridge.dart';
+import 'package:tracepos/hardware/receipt_printer/windows_spooler_printer.dart';
 
 void main() {
   for(final name in ['EPSON TM-T20III','POS-80',r'Caisse $1',"John's Printer",r'\\SHOP-PC\Receipt Printer','Caisse Élégance "été"']) {

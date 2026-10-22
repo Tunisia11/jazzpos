@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/hardware/receipt_printer/windows_spooler_printer.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/hardware/receipt_printer/windows_spooler_printer.dart';
 
 void main() {
   test('WindowsSpoolerPrinter.printRaw does not crash when AppPaths is uninitialized', () async {

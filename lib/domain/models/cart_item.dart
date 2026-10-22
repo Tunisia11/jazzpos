@@ -1,4 +1,4 @@
-import 'package:jazzpos/core/money/money.dart';
+import 'package:tracepos/core/money/money.dart';
 
 /// A line item in the POS sale cart with immutable product snapshot details.
 class CartItem {

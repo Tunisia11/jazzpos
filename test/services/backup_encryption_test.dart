@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/utils/backup_crypto.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/utils/backup_crypto.dart';
 
 void main() {
   setUpAll(() => BackupCrypto.iterations = 1000);

@@ -1,8 +1,8 @@
-# JAZZ POS — Protocole de Réception Matérielle sur Site (Onsite Acceptance)
+# Trace POS — Protocole de Réception Matérielle sur Site (Onsite Acceptance)
 
 **Document de Procédure Opérateur & Liste de Contrôle Déploiement Caisse**  
 **Date d'audit :** 06 Septembre 2026  
-**Version de l'application :** JAZZ POS 1.0.0+1 (Architecture Multi-Périphériques v2)  
+**Version de l'application :** Trace POS 1.0.0+1 (Architecture Multi-Périphériques v2)  
 **Classification Globale :** **VERIFICATION SUR SITE OBLIGATOIRE (ONSITE VALIDATION REQUIRED)**  
 **Durée estimée :** 15 à 20 minutes en caisse  
 
@@ -12,9 +12,9 @@
 
 > [!IMPORTANT]
 > **Règle d'or de sécurité financière :**
-> JAZZ POS découple strictement la transaction comptable (SQLite avec atomicité immédiate) des transmissions matérielles. Même si une imprimante se déconnecte, brûle son fusible ou bourre son papier, **la vente, le stock et le paiement demeurent intègres**. Ne tentez jamais de modifier la base de données manuellement sur le terminal du client.
+> Trace POS découple strictement la transaction comptable (SQLite avec atomicité immédiate) des transmissions matérielles. Même si une imprimante se déconnecte, brûle son fusible ou bourre son papier, **la vente, le stock et le paiement demeurent intègres**. Ne tentez jamais de modifier la base de données manuellement sur le terminal du client.
 
-Ce protocole pas-à-pas doit être exécuté par le technicien JAZZ POS directement devant le terminal point de vente du commerçant avant toute mise en exploitation réelle.
+Ce protocole pas-à-pas doit être exécuté par le technicien Trace POS directement devant le terminal point de vente du commerçant avant toute mise en exploitation réelle.
 
 ---
 
@@ -22,9 +22,9 @@ Ce protocole pas-à-pas doit être exécuté par le technicien JAZZ POS directem
 
 | Étape | Action Opérateur & Condition de Succès | Statut | Remarques / Constat Terrain |
 | :---: | :--- | :---: | :--- |
-| **01** | **Installation de JAZZ POS**<br>Exécuter l'installateur `JAZZ-POS-Setup-x64.exe` avec privilèges Administrateur. Vérifier la création de l'icône sur le bureau et le démarrage automatique sans erreur DLL. | [ ] PASS<br>[ ] FAIL | Répertoire d'installation vérifié (`C:\Program Files\JAZZ POS`). |
-| **02** | **Exécution du Scan Environnement**<br>Accéder à *Paramètres > Diagnostic Système*. Vérifier que l'OS détecté est Windows 10/11 x64, que le chemin `%APPDATA%\JazzPOS` est accessible en écriture, et que l'intégrité SQLite affiche `SAIN (OK)`. | [ ] PASS<br>[ ] FAIL | Si Windows 7/8 est détecté, vérifier que l'écran d'alerte non-destructif s'affiche sans bloquer de données. |
-| **03** | **Création de la Sauvegarde Initiale**<br>Dans *Paramètres > Sauvegardes*, cliquer sur *« Créer une sauvegarde immédiate »*. Vérifier qu'un fichier snapshot timestampé `.db` non vide est généré et copié sur clé USB de secours. | [ ] PASS<br>[ ] FAIL | Emplacement : `%APPDATA%\JazzPOS\backups`. |
+| **01** | **Installation de Trace POS**<br>Exécuter l'installateur `Trace-POS-Setup-x64.exe` avec privilèges Administrateur. Vérifier la création de l'icône sur le bureau et le démarrage automatique sans erreur DLL. | [ ] PASS<br>[ ] FAIL | Répertoire d'installation vérifié (`C:\Program Files\Trace POS`). |
+| **02** | **Exécution du Scan Environnement**<br>Accéder à *Paramètres > Diagnostic Système*. Vérifier que l'OS détecté est Windows 10/11 x64, que le chemin `%APPDATA%\TracePOS` est accessible en écriture, et que l'intégrité SQLite affiche `SAIN (OK)`. | [ ] PASS<br>[ ] FAIL | Si Windows 7/8 est détecté, vérifier que l'écran d'alerte non-destructif s'affiche sans bloquer de données. |
+| **03** | **Création de la Sauvegarde Initiale**<br>Dans *Paramètres > Sauvegardes*, cliquer sur *« Créer une sauvegarde immédiate »*. Vérifier qu'un fichier snapshot timestampé `.db` non vide est généré et copié sur clé USB de secours. | [ ] PASS<br>[ ] FAIL | Emplacement : `%APPDATA%\TracePOS\backups`. |
 | **04** | **Lancement de l'Auto-Scan Matériel**<br>Dans l'assistant matériel, cliquer sur *« Scanner le matériel »*. Vérifier que la recherche inspecte le Spooler Windows, les ports COM, et les écrans secondaires sans planter l'application. | [ ] PASS<br>[ ] FAIL | Durée du scan constatée (< 2 secondes). |
 | **05** | **Vérification de l'Imprimante Recommandée**<br>Contrôler le candidat présélectionné par l'algorithme `PrinterScorer`. Vérifier qu'aucune imprimante virtuelle (*Microsoft Print to PDF, XPS, OneNote, Fax*) n'est sélectionnée. | [ ] PASS<br>[ ] FAIL | Nom de l'imprimante POS détectée : ____________________ |
 | **06** | **Impression du Ticket de Test**<br>Cliquer sur *« Imprimer un ticket de test »*. Vérifier que l'imprimante thermique s'active et émet le ticket d'étalonnage. | [ ] PASS<br>[ ] FAIL | Profil sélectionné : `POSBANK` / `EPSON ESC/POS` / `Générique 80mm`. |
@@ -42,8 +42,8 @@ Ce protocole pas-à-pas doit être exécuté par le technicien JAZZ POS directem
 | **18** | **Vérification de Survie de la Vente (Zéro Perte)**<br>Vérifier que :<br>1. La vente est bien enregistrée dans le journal des ventes.<br>2. Le stock a bien été décrémenté.<br>3. Une boîte de dialogue propose la réimpression ou l'aperçu écran sans perte financière. | [ ] PASS<br>[ ] FAIL | **CRITIQUE :** La comptabilité et le stock sont 100% justes malgré l'échec d'impression. |
 | **19** | **Reconnexion de l'Imprimante Thermique**<br>Rebrancher le câble USB ou rallumer l'imprimante. Attendre 3 secondes pour la détection Windows. | [ ] PASS<br>[ ] FAIL | Statut périphérique repasse à `OPÉRATIONNEL` ou `PRÊT`. |
 | **20** | **Réimpression du Ticket Historique**<br>Ouvrir l'historique des ventes, sélectionner la vente effectuée en mode dégradé, et cliquer sur *« Réimprimer »*. Vérifier que le ticket sort avec la mention explicite `*** DUPLICATA ***`. | [ ] PASS<br>[ ] FAIL | Vérifier qu'aucun mouvement de stock ou doublon de vente n'a été créé. |
-| **21** | **Redémarrage Complet de JAZZ POS**<br>Fermer l'application JAZZ POS et la relancer à partir de l'icône du bureau. | [ ] PASS<br>[ ] FAIL | Temps de démarrage constaté : _____ secondes. |
-| **22** | **Contrôle de Persistance de la Configuration**<br>Vérifier que les périphériques configurés (imprimante, profil 80mm, tiroir, douchette) sont immédiatement reconnectés sans repasser par l'assistant. | [ ] PASS<br>[ ] FAIL | Configuration chargée depuis `%APPDATA%\JazzPOS\config.json`. |
+| **21** | **Redémarrage Complet de Trace POS**<br>Fermer l'application Trace POS et la relancer à partir de l'icône du bureau. | [ ] PASS<br>[ ] FAIL | Temps de démarrage constaté : _____ secondes. |
+| **22** | **Contrôle de Persistance de la Configuration**<br>Vérifier que les périphériques configurés (imprimante, profil 80mm, tiroir, douchette) sont immédiatement reconnectés sans repasser par l'assistant. | [ ] PASS<br>[ ] FAIL | Configuration chargée depuis `%APPDATA%\TracePOS\config.json`. |
 | **23** | **Création de la Sauvegarde Finale Pré-Exploitation**<br>Créer une seconde sauvegarde propre avant de céder le terminal au commerçant. Exporter le rapport technique de déploiement via *« Exporter le rapport d'audit »*. | [ ] PASS<br>[ ] FAIL | Rapport horodaté et copie de sécurité archivée sur clé USB externe. |
 
 ---

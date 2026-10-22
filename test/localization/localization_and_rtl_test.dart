@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/core/localization/translations/translations_ar.dart';
-import 'package:jazzpos/core/localization/translations/translations_en.dart';
-import 'package:jazzpos/core/localization/translations/translations_fr.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/core/localization/translations/translations_ar.dart';
+import 'package:tracepos/core/localization/translations/translations_en.dart';
+import 'package:tracepos/core/localization/translations/translations_fr.dart';
 
 void main() {
   group('Localization and RTL Test Suite', () {

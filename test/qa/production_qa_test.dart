@@ -2,32 +2,32 @@ import 'dart:io';
 import 'package:drift/drift.dart' hide isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/constants/permissions.dart';
-import 'package:jazzpos/core/constants/roles.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
-import 'package:jazzpos/core/utils/password_hasher.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/models/cart_item.dart';
-import 'package:jazzpos/domain/models/checkout_request.dart';
-import 'package:jazzpos/domain/models/variant_matrix.dart';
-import 'package:jazzpos/domain/services/auth_service.dart';
-import 'package:jazzpos/domain/services/backup_service.dart';
-import 'package:jazzpos/domain/services/catalog_service.dart';
-import 'package:jazzpos/domain/services/database_integrity_service.dart';
-import 'package:jazzpos/domain/services/exchange_service.dart';
-import 'package:jazzpos/domain/services/inventory_count_service.dart';
-import 'package:jazzpos/domain/services/inventory_service.dart';
-import 'package:jazzpos/domain/services/purchase_service.dart';
-import 'package:jazzpos/domain/services/return_service.dart';
-import 'package:jazzpos/domain/services/sale_service.dart';
-import 'package:jazzpos/domain/services/shift_service.dart';
-import 'package:jazzpos/hardware/label_printer/label_document.dart';
-import 'package:jazzpos/hardware/label_printer/tspl_commands.dart';
-import 'package:jazzpos/hardware/receipt_printer/esc_pos_commands.dart';
-import 'package:jazzpos/hardware/receipt_printer/receipt_document.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/constants/permissions.dart';
+import 'package:tracepos/core/constants/roles.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/core/utils/id_generator.dart';
+import 'package:tracepos/core/utils/password_hasher.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/models/cart_item.dart';
+import 'package:tracepos/domain/models/checkout_request.dart';
+import 'package:tracepos/domain/models/variant_matrix.dart';
+import 'package:tracepos/domain/services/auth_service.dart';
+import 'package:tracepos/domain/services/backup_service.dart';
+import 'package:tracepos/domain/services/catalog_service.dart';
+import 'package:tracepos/domain/services/database_integrity_service.dart';
+import 'package:tracepos/domain/services/exchange_service.dart';
+import 'package:tracepos/domain/services/inventory_count_service.dart';
+import 'package:tracepos/domain/services/inventory_service.dart';
+import 'package:tracepos/domain/services/purchase_service.dart';
+import 'package:tracepos/domain/services/return_service.dart';
+import 'package:tracepos/domain/services/sale_service.dart';
+import 'package:tracepos/domain/services/shift_service.dart';
+import 'package:tracepos/hardware/label_printer/label_document.dart';
+import 'package:tracepos/hardware/label_printer/tspl_commands.dart';
+import 'package:tracepos/hardware/receipt_printer/esc_pos_commands.dart';
+import 'package:tracepos/hardware/receipt_printer/receipt_document.dart';
 
 void main() {
   late AppDatabase db;
@@ -80,7 +80,7 @@ void main() {
         .insert(
           CompaniesCompanion.insert(
             id: companyId,
-            name: 'Jazz Retail SARL',
+            name: 'Trace Retail SARL',
             createdAt: now,
             updatedAt: now,
           ),
@@ -93,7 +93,7 @@ void main() {
           StoresCompanion.insert(
             id: storeId,
             companyId: companyId,
-            name: 'Jazz Tunis Mall Flagship',
+            name: 'Trace Tunis Mall Flagship',
             code: 'TM-01',
             createdAt: now,
             updatedAt: now,
@@ -143,7 +143,7 @@ void main() {
           UsersCompanion.insert(
             id: ownerId,
             username: 'owner',
-            displayName: 'Mohamed Jazz Owner',
+            displayName: 'Mohamed Trace Owner',
             pinHash: ownerHash,
             pinSalt: ownerSalt,
             role: AppRoles.owner,
@@ -426,7 +426,7 @@ void main() {
         await db
             .into(db.brands)
             .insert(
-              BrandsCompanion.insert(id: brandId, name: 'Jazz Collection'),
+              BrandsCompanion.insert(id: brandId, name: 'Trace Collection'),
             );
 
         final catId = IdGenerator.uuid();
@@ -1445,7 +1445,7 @@ void main() {
           throwsA(isA<ValidationException>()),
         );
 
-        final tempDir = Directory.systemTemp.createTempSync('jazz_qa_');
+        final tempDir = Directory.systemTemp.createTempSync('trace_qa_');
         final badFile = File('${tempDir.path}/fake.sqlite');
         await badFile.writeAsString(
           'This is not a SQLite database file at all!',
@@ -1466,7 +1466,7 @@ void main() {
       '9.1 ESC/POS receipt commands generate valid bytes and drawer kick pulse',
       () {
         final doc = ReceiptDocument(
-          storeName: 'JAZZ POS TUNIS MALL',
+          storeName: 'Trace POS TUNIS MALL',
           storeAddress: 'Les Berges du Lac 2, Tunis',
           storePhone: '+216 71 000 000',
           fiscalId: '1234567/A/M/000',
@@ -1497,7 +1497,7 @@ void main() {
               change: Money.fromTnd(0.200),
             ),
           ],
-          footerMessage: 'Merci de votre visite à Jazz POS !',
+          footerMessage: 'Merci de votre visite à Trace POS !',
         );
 
         expect(doc.receiptNumber, equals('REC-20260904-001'));
@@ -1523,14 +1523,14 @@ void main() {
       '9.2 TSPL barcode label generator outputs valid TSPL/TSPL2 commands for label printer',
       () {
         final labelDoc = LabelDocument(
-          storeName: 'JAZZ POS',
+          storeName: 'Trace POS',
           productName: 'Pull Col V Mérinos',
           sku: 'PULL-NAV-L',
           barcode: '619111222002',
           price: Money.fromTnd(60.000),
           color: 'BLEU',
           size: 'L',
-          brandName: 'Jazz Collection',
+          brandName: 'Trace Collection',
           copies: 2,
           widthMm: 50,
           heightMm: 30,

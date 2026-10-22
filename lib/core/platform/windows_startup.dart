@@ -1,16 +1,17 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/platform/process_utils.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/legacy_names.dart';
+import 'package:tracepos/core/platform/process_utils.dart';
 
 /// Helper to manage Windows Auto-Start registration for POS Kiosk deployments.
 class WindowsStartup {
   static const String _registryKey =
       r'HKCU\Software\Microsoft\Windows\CurrentVersion\Run';
   static const String _appName = 'TracePOS';
-  static const String _legacyAppName = 'JazzPOS';
+  static const String _legacyAppName = LegacyNames.startupRegistryName;
 
-  /// Check if Trace POS (or legacy JazzPOS) is registered to start on Windows boot
+  /// Check if Trace POS (or a pre-rename entry) is registered to start on Windows boot
   static Future<bool> isAutoStartEnabled() async {
     if (!Platform.isWindows) return false;
     try {

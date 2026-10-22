@@ -3,17 +3,17 @@
   "sourceChangesDuringRetest": [],
   "artifacts": [
     {
-      "path": "/Users/macbookair/jazzpos/dist/Trace-POS-Setup-x64.exe",
+      "path": "/Users/macbookair/tracepos/dist/Trace-POS-Setup-x64.exe",
       "sha256": "78c8a38f649e7e6bfa8ce826bd98fafc1a8efab567d2d9d92ceafe31a60b47c5",
       "unchangedSincePriorAudit": true
     },
     {
-      "path": "/Users/macbookair/jazzpos/dist/JAZZ-POS-Setup-x64.exe",
+      "path": "/Users/macbookair/tracepos/dist/Trace-POS-Setup-x64.exe",
       "sha256": "0337822fcb4424852179100950d381c9d52846438d8cc6b072b93cf709060fc7",
       "unchangedSincePriorAudit": true
     },
     {
-      "path": "/Users/macbookair/jazzpos/build/windows/x64/runner/Release/jazzpos.exe",
+      "path": "/Users/macbookair/tracepos/build/windows/x64/runner/Release/tracepos.exe",
       "sha256": "07cc4b38d335ccd2b624d9b09e652b9e0857da4a463b6d1249e6e22cc08c5de8",
       "unchangedSincePriorAudit": true
     }

@@ -44,7 +44,7 @@ void main() {
         .lookupFunction<CloseHandleC, CloseHandleDart>('CloseHandle');
 
     final mutexName =
-        'Local\\JazzPOS_Test_SingleInstance_${DateTime.now().millisecondsSinceEpoch}'
+        'Local\\TracePOS_Test_SingleInstance_${DateTime.now().millisecondsSinceEpoch}'
             .toNativeUtf16();
 
     // 1. First instance acquires mutex

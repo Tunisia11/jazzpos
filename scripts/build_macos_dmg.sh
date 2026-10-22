@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# JazzPOS - macOS DMG Installer Packaging Script
+# TracePOS - macOS DMG Installer Packaging Script
 # ==============================================================================
 set -e
 
 echo "========================================================"
-echo "  JazzPOS - Construction du package DMG pour macOS"
+echo "  TracePOS - Construction du package DMG pour macOS"
 echo "========================================================"
 
 # Verify platform
@@ -29,11 +29,11 @@ fi
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-APP_NAME="JazzPOS"
-BUILD_OUTPUT_APP="build/macos/Build/Products/Release/jazzpos.app"
+APP_NAME="TracePOS"
+BUILD_OUTPUT_APP="build/macos/Build/Products/Release/tracepos.app"
 DIST_DIR="dist"
 STAGING_DIR="$DIST_DIR/dmg_staging"
-DMG_NAME="JazzPOS-macOS.dmg"
+DMG_NAME="TracePOS-macOS.dmg"
 DMG_PATH="$DIST_DIR/$DMG_NAME"
 
 echo ""
@@ -54,7 +54,7 @@ mkdir -p "$DIST_DIR"
 
 # Copy the .app bundle
 echo "Copie du bundle d'application..."
-cp -R "$BUILD_OUTPUT_APP" "$STAGING_DIR/JazzPOS.app"
+cp -R "$BUILD_OUTPUT_APP" "$STAGING_DIR/TracePOS.app"
 
 # Create symlink to /Applications for drag-and-drop installation
 echo "Création du lien Applications..."
@@ -63,21 +63,21 @@ ln -s /Applications "$STAGING_DIR/Applications"
 # Create French instructions file
 cat << 'EOF' > "$STAGING_DIR/LISEZ-MOI.txt"
 ============================================================
-  JazzPOS - Point de Vente & Gestion de Stock (macOS)
+  TracePOS - Point de Vente & Gestion de Stock (macOS)
 ============================================================
 
 INSTALLATION FACILE :
-1. Glissez et déposez "JazzPOS.app" dans le dossier "Applications".
-2. Lancez JazzPOS depuis vos Applications ou Spotlight.
+1. Glissez et déposez "TracePOS.app" dans le dossier "Applications".
+2. Lancez TracePOS depuis vos Applications ou Spotlight.
 
 CONFIGURATION DU MATÉRIEL DE CAISSE :
 - Imprimante Ticket USB (CUPS) :
   Configurez votre imprimante thermique dans Préférences Système >
-  Imprimantes et scanners, puis ouvrez JazzPOS > Paramètres > Matériel
+  Imprimantes et scanners, puis ouvrez TracePOS > Paramètres > Matériel
   et sélectionnez votre imprimante dans la liste.
 
 - Imprimante Ticket Réseau (Wi-Fi / LAN) :
-  Dans JazzPOS > Paramètres > Matériel, sélectionnez "Réseau (Wi-Fi / LAN)",
+  Dans TracePOS > Paramètres > Matériel, sélectionnez "Réseau (Wi-Fi / LAN)",
   saisissez l'adresse IP de l'imprimante (ex: 192.168.1.100, port 9100),
   cliquez sur "Tester Ping" puis "Enregistrer & Activer".
 
@@ -85,7 +85,7 @@ CONFIGURATION DU MATÉRIEL DE CAISSE :
   Connectez votre tiroir-caisse au port RJ11/RJ12 de l'imprimante ticket.
   L'impulsion d'ouverture est envoyée automatiquement à chaque validation de vente.
 
-Assistance & Documentation : JazzPOS Support
+Assistance & Documentation : TracePOS Support
 EOF
 
 echo ""

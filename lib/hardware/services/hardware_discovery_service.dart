@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/widgets.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/platform/process_utils.dart';
-import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_candidate.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_scorer.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/process_utils.dart';
+import 'package:tracepos/hardware/models/hardware_fingerprint.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_candidate.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_scorer.dart';
 
 /// Discovered USB peripheral information
 class DiscoveredUsbDevice {

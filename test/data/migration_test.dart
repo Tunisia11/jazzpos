@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/data/database/app_database.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
@@ -11,7 +11,7 @@ void main() {
   late File file;
 
   setUp(() async {
-    dir = await Directory.systemTemp.createTemp('jazzpos_migration_');
+    dir = await Directory.systemTemp.createTemp('tracepos_migration_');
     file = File(p.join(dir.path, 'v1.sqlite'));
 
     // Build a database, then downgrade it to the v1 shape.

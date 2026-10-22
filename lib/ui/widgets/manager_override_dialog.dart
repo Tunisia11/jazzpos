@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/core/sound/sound_effect_service.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/core/sound/sound_effect_service.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
 import 'numpad.dart';
 
 /// Modal dialog requesting manager authorization PIN without logging out the cashier

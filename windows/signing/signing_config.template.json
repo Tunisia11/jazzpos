@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "JazzPOS Windows Code Signing Configuration Template",
-  "description": "Template configuration for JAZZ POS Authenticode Code Signing. Copy to signing_config.json and populate with your credentials. NEVER COMMIT REAL CREDENTIALS TO GIT.",
+  "title": "TracePOS Windows Code Signing Configuration Template",
+  "description": "Template configuration for Trace POS Authenticode Code Signing. Copy to signing_config.json and populate with your credentials. NEVER COMMIT REAL CREDENTIALS TO GIT.",
   "signMode": "trusted-signing",
   "_comment_signMode": "Supported values: 'trusted-signing', 'pfx', 'cert-store', 'test-simulated', 'skip'",
   "general": {
@@ -22,7 +22,7 @@
   "pfx": {
     "_comment": "Standard Authenticode PFX Certificate (OV/EV exported with private key). Keep in secure local path outside git repo.",
     "pfxPath": "C:\\path\\to\\production_code_signing.pfx",
-    "passwordEnvVar": "JAZZPOS_SIGN_PFX_PASSWORD"
+    "passwordEnvVar": "TRACEPOS_SIGN_PFX_PASSWORD"
   },
   "certStore": {
     "_comment": "Windows Certificate Store (CurrentUser or LocalMachine), used for Hardware Tokens (USB Dongles / HSM via CSP/PKCS#11).",

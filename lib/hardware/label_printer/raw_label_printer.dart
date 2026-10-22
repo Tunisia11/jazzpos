@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/hardware/receipt_printer/windows_raw_print_bridge.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/hardware/receipt_printer/windows_raw_print_bridge.dart';
 
 import 'label_document.dart';
 import 'label_printer_interface.dart';

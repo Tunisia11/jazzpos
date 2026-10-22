@@ -1,5 +1,5 @@
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 import 'cash_drawer_interface.dart';
 
 /// Disabled cash drawer (used in Zero-Hardware mode or manual key drawer setups).

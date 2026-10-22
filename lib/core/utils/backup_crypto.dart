@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
-import 'package:jazzpos/core/errors/failure.dart';
+import 'package:tracepos/core/errors/failure.dart';
 
 /// Passphrase encryption for backup packages.
 ///

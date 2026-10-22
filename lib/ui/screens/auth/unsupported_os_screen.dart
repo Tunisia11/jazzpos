@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/platform/environment_diagnostics_service.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/platform/environment_diagnostics_service.dart';
 
 /// Screen displayed when Trace POS detects an unsupported or legacy operating system
 /// (e.g., Windows 7, Windows 8, 32-bit x86). Prevents data corruption.

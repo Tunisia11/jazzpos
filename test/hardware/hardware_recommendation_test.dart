@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_profile.dart';
-import 'package:jazzpos/hardware/receipt_printer/printer_scorer.dart';
-import 'package:jazzpos/hardware/services/hardware_discovery_service.dart';
-import 'package:jazzpos/hardware/services/hardware_recommendation_engine.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_profile.dart';
+import 'package:tracepos/hardware/receipt_printer/printer_scorer.dart';
+import 'package:tracepos/hardware/services/hardware_discovery_service.dart';
+import 'package:tracepos/hardware/services/hardware_recommendation_engine.dart';
 
 void main() {
   group('HardwareRecommendationEngine', () {

@@ -4,13 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/providers/cart_provider.dart';
-import 'package:jazzpos/ui/screens/checkout/widgets/payment_dialog.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/providers/cart_provider.dart';
+import 'package:tracepos/ui/screens/checkout/widgets/payment_dialog.dart';
 
 void main() {
   for (final size in [const Size(1366,768), const Size(1440,900), const Size(1920,1080)]) {

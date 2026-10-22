@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/core/localization/locale_provider.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/logging/startup_tracker.dart';
-import 'package:jazzpos/core/sound/sound_effect_service.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/providers/auth_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/numpad.dart';
-import 'package:jazzpos/ui/widgets/startup_recovery_widget.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/core/localization/locale_provider.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/startup_tracker.dart';
+import 'package:tracepos/core/sound/sound_effect_service.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/providers/auth_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/numpad.dart';
+import 'package:tracepos/ui/widgets/startup_recovery_widget.dart';
 import 'setup_wizard_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {

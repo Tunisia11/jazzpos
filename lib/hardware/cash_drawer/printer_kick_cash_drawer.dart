@@ -1,4 +1,4 @@
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 import '../receipt_printer/receipt_printer_interface.dart';
 import 'cash_drawer_interface.dart';
 

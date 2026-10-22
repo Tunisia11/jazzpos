@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/platform/process_utils.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/platform/process_utils.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 import 'cash_drawer_interface.dart';
 
 /// Cash drawer triggered directly via a dedicated serial COM port trigger box.

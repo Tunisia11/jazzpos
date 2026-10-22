@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/logging/startup_tracker.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/startup_tracker.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
 
 enum StartupStatus {
   initializing,

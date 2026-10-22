@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/hardware/barcode_scanner/keyboard_barcode_scanner.dart';
+import 'package:tracepos/hardware/barcode_scanner/keyboard_barcode_scanner.dart';
 
 void main() {
   test('rapid scanner burst completes on Enter', () {

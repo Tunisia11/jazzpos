@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
-import 'package:jazzpos/core/constants/roles.dart';
-import 'package:jazzpos/core/constants/permissions.dart';
-import 'package:jazzpos/core/errors/failure.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
-import 'package:jazzpos/core/utils/password_hasher.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/core/constants/roles.dart';
+import 'package:tracepos/core/constants/permissions.dart';
+import 'package:tracepos/core/errors/failure.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/utils/id_generator.dart';
+import 'package:tracepos/core/utils/password_hasher.dart';
+import 'package:tracepos/data/database/app_database.dart';
 
 class UserSession {
   final User user;

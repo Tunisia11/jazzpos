@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/core/utils/id_generator.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/models/cart_item.dart';
-import 'package:jazzpos/domain/models/checkout_request.dart';
-import 'package:jazzpos/domain/services/catalog_service.dart';
-import 'package:jazzpos/domain/services/sale_service.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/core/utils/id_generator.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/models/cart_item.dart';
+import 'package:tracepos/domain/models/checkout_request.dart';
+import 'package:tracepos/domain/services/catalog_service.dart';
+import 'package:tracepos/domain/services/sale_service.dart';
 import 'app_providers.dart';
 
 class CartState {

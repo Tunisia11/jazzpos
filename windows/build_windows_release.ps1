@@ -24,7 +24,7 @@ $flutterVersion = (& flutter --version --machine | ConvertFrom-Json)
 if ($LASTEXITCODE -ne 0) { throw 'Flutter version unavailable.' }
 Flutter-Step @('build','windows','--release',"--dart-define=TRACE_BUILD_COMMIT=$commit")
 $release = Join-Path $repo 'build\windows\x64\runner\Release'
-$exe = Join-Path $release 'jazzpos.exe'
+$exe = Join-Path $release 'tracepos.exe'
 if (!(Test-Path $exe) -or (Get-Item $exe).LastWriteTimeUtc -lt $buildStart) { throw 'No fresh Windows EXE.' }
 $dist = Join-Path $repo 'dist'
 New-Item -ItemType Directory -Force $dist | Out-Null
@@ -51,7 +51,7 @@ $redist = Join-Path $redistDir 'vc_redist.x64.exe'
 if (!(Test-Path $redist)) { Invoke-WebRequest 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile $redist }
 $signature = Get-AuthenticodeSignature $redist
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft Corporation') { throw 'Microsoft VC runtime signature is invalid.' }
-& $iscc (Join-Path $PSScriptRoot 'installer\jazzpos_setup.iss')
+& $iscc (Join-Path $PSScriptRoot 'installer\tracepos_setup.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed.' }
 $installer = Join-Path $dist 'Trace-POS-Setup-x64.exe'
 if (!(Test-Path $installer) -or (Get-Item $installer).LastWriteTimeUtc -lt $buildStart) { throw 'No fresh Trace POS installer.' }

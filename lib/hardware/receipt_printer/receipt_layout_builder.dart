@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/core/money/money.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/core/money/money.dart';
 import 'esc_pos_commands.dart';
 import 'printer_profile.dart';
 import 'receipt_document.dart';

@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/data/database/app_database.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/data/database/app_database.dart';
 
 /// Keeps `print_jobs` rows honest: a job is SUCCESS or FAILED once a print
 /// attempt finishes, and rows abandoned mid-flight (app closed, power cut)

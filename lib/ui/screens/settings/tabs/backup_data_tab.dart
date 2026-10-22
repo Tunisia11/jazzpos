@@ -1,4 +1,4 @@
-import 'package:jazzpos/core/logging/pos_logger.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:drift/drift.dart' show OrderingTerm;
@@ -6,13 +6,13 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/data/database/app_database.dart';
-import 'package:jazzpos/domain/services/database_integrity_service.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/providers/auth_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/common/app_card.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/data/database/app_database.dart';
+import 'package:tracepos/domain/services/database_integrity_service.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/providers/auth_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/common/app_card.dart';
 
 class BackupDataTab extends ConsumerStatefulWidget {
   const BackupDataTab({super.key});

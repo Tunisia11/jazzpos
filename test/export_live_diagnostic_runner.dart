@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:sqlite3/open.dart';
-import 'package:jazzpos/core/platform/app_paths.dart';
-import 'package:jazzpos/core/platform/export_diagnostic_report_service.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
+import 'package:tracepos/core/platform/app_paths.dart';
+import 'package:tracepos/core/platform/export_diagnostic_report_service.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
 
 void main() async {
   final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
-      'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
+      'C:\\Users\\nourm\\Desktop\\tracepos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
   open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
 
   await AppPaths.instance.initialize();
@@ -23,7 +23,7 @@ void main() async {
   final report = await ExportDiagnosticReportService.buildSanitizedReport();
 
   final jsonString = const JsonEncoder.withIndent('  ').convert(report);
-  final outputFile = File('C:\\Users\\nourm\\Desktop\\jazzpos\\release_audit\\live_windows_machine_diagnostic.json');
+  final outputFile = File('C:\\Users\\nourm\\Desktop\\tracepos\\release_audit\\live_windows_machine_diagnostic.json');
   await outputFile.writeAsString(jsonString);
 
   print('Diagnostic report saved to: ${outputFile.path}');

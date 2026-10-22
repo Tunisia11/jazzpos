@@ -1,16 +1,16 @@
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:jazzpos/core/constants/app_constants.dart';
-import 'package:jazzpos/core/localization/app_localizations.dart';
-import 'package:jazzpos/core/localization/app_localizations_delegate.dart';
-import 'package:jazzpos/domain/services/catalog_service.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/hardware/label_printer/label_document.dart';
-import 'package:jazzpos/providers/app_providers.dart';
-import 'package:jazzpos/providers/catalog_provider.dart';
-import 'package:jazzpos/ui/theme/app_design_tokens.dart';
-import 'package:jazzpos/ui/widgets/money_display.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
+import 'package:tracepos/core/localization/app_localizations.dart';
+import 'package:tracepos/core/localization/app_localizations_delegate.dart';
+import 'package:tracepos/domain/services/catalog_service.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
+import 'package:tracepos/hardware/label_printer/label_document.dart';
+import 'package:tracepos/providers/app_providers.dart';
+import 'package:tracepos/providers/catalog_provider.dart';
+import 'package:tracepos/ui/theme/app_design_tokens.dart';
+import 'package:tracepos/ui/widgets/money_display.dart';
 
 class LabelStudioScreen extends ConsumerStatefulWidget {
   final VariantSearchResult? initialVariant;

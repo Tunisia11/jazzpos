@@ -16,18 +16,18 @@ void main() {
     return;
   }
 
-  final liveDbPath = Platform.environment['JAZZPOS_LIVE_DB_PATH'] ??
-      'C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\database\\jazzpos.sqlite';
+  final liveDbPath = Platform.environment['TRACEPOS_LIVE_DB_PATH'] ??
+      'C:\\Users\\nourm\\AppData\\Roaming\\TracePOS\\Trace POS\\database\\tracepos.sqlite';
   if (!File(liveDbPath).existsSync()) {
     print('Skipping backup_restore_live_test: live database not found.');
     return;
   }
 
   final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
-      'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
+      'C:\\Users\\nourm\\Desktop\\tracepos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
   open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
 
-  final backupDir = Directory('C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\backups');
+  final backupDir = Directory('C:\\Users\\nourm\\AppData\\Roaming\\TracePOS\\Trace POS\\backups');
   if (!backupDir.existsSync()) {
     backupDir.createSync(recursive: true);
   }
@@ -36,7 +36,7 @@ void main() {
   final liveDb = sqlite3.open(liveDbPath);
 
   final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-').replaceAll('.', '-');
-  final backupPath = '${backupDir.path}\\jazzpos_backup_$timestamp.sqlite';
+  final backupPath = '${backupDir.path}\\tracepos_backup_$timestamp.sqlite';
 
   final sw = Stopwatch()..start();
   // Execute atomic VACUUM INTO
@@ -64,9 +64,9 @@ void main() {
   liveDb.dispose();
 
   print('\n=== RESTORE READINESS TEST (IN ISOLATED TEST DIR) ===');
-  final testRestoreDir = Directory('${Directory.systemTemp.path}\\jazzpos_restore_test_$timestamp');
+  final testRestoreDir = Directory('${Directory.systemTemp.path}\\tracepos_restore_test_$timestamp');
   testRestoreDir.createSync(recursive: true);
-  final restoredDbPath = '${testRestoreDir.path}\\restored_jazzpos.sqlite';
+  final restoredDbPath = '${testRestoreDir.path}\\restored_tracepos.sqlite';
 
   // Copy backup to test environment
   backupFile.copySync(restoredDbPath);

@@ -3,11 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/core/money/money.dart';
-import 'package:jazzpos/hardware/barcode_scanner/fake_barcode_scanner.dart';
-import 'package:jazzpos/hardware/hardware_manager.dart';
-import 'package:jazzpos/hardware/label_printer/label_document.dart';
-import 'package:jazzpos/hardware/label_printer/raw_label_printer.dart';
+import 'package:tracepos/core/money/money.dart';
+import 'package:tracepos/hardware/barcode_scanner/fake_barcode_scanner.dart';
+import 'package:tracepos/hardware/hardware_manager.dart';
+import 'package:tracepos/hardware/label_printer/label_document.dart';
+import 'package:tracepos/hardware/label_printer/raw_label_printer.dart';
 
 const _doc = LabelDocument(
   storeName: 'Trace',

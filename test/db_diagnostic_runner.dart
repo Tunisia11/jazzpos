@@ -6,10 +6,10 @@ import 'package:sqlite3/open.dart';
 
 void main() {
   final dllPath = Platform.environment['SQLITE_DLL_PATH'] ??
-      'C:\\Users\\nourm\\Desktop\\jazzpos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
+      'C:\\Users\\nourm\\Desktop\\tracepos\\build\\windows\\x64\\runner\\Release\\sqlite3.dll';
   open.overrideFor(OperatingSystem.windows, () => DynamicLibrary.open(dllPath));
 
-  final dbPath = 'C:\\Users\\nourm\\AppData\\Roaming\\JazzPOS\\JAZZ POS\\database\\jazzpos.sqlite';
+  final dbPath = 'C:\\Users\\nourm\\AppData\\Roaming\\TracePOS\\Trace POS\\database\\tracepos.sqlite';
   print('Opening DB at: $dbPath');
 
   final db = sqlite3.open(dbPath);

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:jazzpos/hardware/barcode_scanner/scanner_input_service.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/hardware/barcode_scanner/scanner_input_service.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

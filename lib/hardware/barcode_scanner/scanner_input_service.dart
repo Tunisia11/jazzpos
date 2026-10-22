@@ -2,9 +2,9 @@ import 'dart:ui' show ViewFocusEvent;
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:jazzpos/core/logging/pos_logger.dart';
-import 'package:jazzpos/hardware/models/hardware_fingerprint.dart';
-import 'package:jazzpos/hardware/models/hardware_status.dart';
+import 'package:tracepos/core/logging/pos_logger.dart';
+import 'package:tracepos/hardware/models/hardware_fingerprint.dart';
+import 'package:tracepos/hardware/models/hardware_status.dart';
 import 'barcode_scanner_interface.dart';
 
 /// Test event captured when scanning in the Hardware Setup Wizard

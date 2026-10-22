@@ -1,4 +1,4 @@
-package com.example.jazzpos
+package com.example.tracepos
 
 import io.flutter.embedding.android.FlutterActivity
 
