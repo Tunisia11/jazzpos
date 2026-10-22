@@ -10,6 +10,9 @@ class ReceiptLineItem {
   final Money total;
   final Money discount;
 
+  /// Managed product photo path, used by on-screen previews only.
+  final String? imageUrl;
+
   const ReceiptLineItem({
     required this.productName,
     required this.variantDescription,
@@ -19,6 +22,7 @@ class ReceiptLineItem {
     required this.unitPrice,
     required this.total,
     this.discount = Money.zero,
+    this.imageUrl,
   });
 }
 
