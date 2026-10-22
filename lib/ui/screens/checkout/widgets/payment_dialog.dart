@@ -349,10 +349,6 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
     try {
       final cartNotifier = ref.read(cartNotifierProvider.notifier);
-      final imageByVariant = {
-        for (final i in ref.read(cartNotifierProvider).items)
-          i.variantId: i.imageUrl,
-      };
       final db = ref.read(databaseProvider);
 
 
@@ -415,7 +411,6 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                 quantity: l.quantity,
                 unitPrice: Money.fromMillimes(l.unitPriceMillimes),
                 total: Money.fromMillimes(l.totalMillimes),
-                imageUrl: imageByVariant[l.variantId],
               ),
             )
             .toList(),

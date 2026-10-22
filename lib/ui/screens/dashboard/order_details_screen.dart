@@ -80,7 +80,6 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
             unitPrice: _m(l.line.unitPriceMillimes),
             total: _m(l.line.totalMillimes),
             discount: _m(l.line.discountMillimes),
-            imageUrl: l.imageUrl,
           ),
       ],
       subtotal: _m(sale.subtotalMillimes),

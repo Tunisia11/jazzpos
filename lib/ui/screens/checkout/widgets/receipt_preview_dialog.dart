@@ -11,7 +11,6 @@ import 'package:tracepos/providers/app_providers.dart';
 import 'package:tracepos/providers/auth_provider.dart';
 import 'package:tracepos/ui/theme/app_design_tokens.dart';
 import 'package:tracepos/ui/widgets/common/code128_barcode.dart';
-import 'package:tracepos/ui/widgets/common/product_thumbnail.dart';
 
 class ReceiptPreviewDialog extends ConsumerStatefulWidget {
   final ReceiptDocument document;
@@ -521,12 +520,6 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                 flex: 6,
                 child: Row(
                   children: [
-                    ProductThumbnail(
-                      imageUrl: line.imageUrl,
-                      size: 52,
-                      borderRadius: 10,
-                    ),
-                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
