@@ -27,6 +27,34 @@ class SaleCompletedResult {
 }
 
 class SaleService {
+
+  /// What happens when a sale would take stock below zero. Defaults to BLOCK.
+  Future<String> getNegativeStockPolicy() async {
+    final row = await (db.select(db.appSettings)
+          ..where((t) => t.key.equals(AppConstants.keyNegativeStockPolicy)))
+        .getSingleOrNull();
+    return row?.value ?? AppConstants.negativeStockBlock;
+  }
+
+  Future<void> setNegativeStockPolicy(String policy, {required String actorId}) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.manageSettings,
+    );
+    if (policy != AppConstants.negativeStockBlock &&
+        policy != AppConstants.negativeStockWarn) {
+      throw const ValidationException('Unsupported stock policy');
+    }
+    await db.into(db.appSettings).insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: AppConstants.keyNegativeStockPolicy,
+            value: policy,
+            updatedAt: DateTime.now(),
+          ),
+        );
+  }
+
   final AppDatabase db;
   final InventoryService inventoryService;
 
@@ -103,7 +131,7 @@ class SaleService {
               (tbl) => tbl.key.equals(AppConstants.keyNegativeStockPolicy),
             ))
             .getSingleOrNull();
-    final policy = setting?.value ?? AppConstants.negativeStockWarn;
+    final policy = setting?.value ?? AppConstants.negativeStockBlock;
 
     final defaultLocation = await inventoryService.getDefaultLocation(
       request.storeId,
@@ -233,7 +261,7 @@ class SaleService {
               ))
               .getSingleOrNull();
       final currentPolicy =
-          currentPolicySetting?.value ?? AppConstants.negativeStockWarn;
+          currentPolicySetting?.value ?? AppConstants.negativeStockBlock;
       for (final item in request.items) {
         final variant = await (db.select(
           db.productVariants,

@@ -174,7 +174,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             backgroundColor: AppTheme.success,
           ),
         );
-      } else {
+      } else if (ref.read(cartNotifierProvider).stockNotice == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Produit non trouvé : $barcode'),
@@ -267,6 +267,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<CartState>(cartNotifierProvider, (previous, next) {
+      final notice = next.stockNotice;
+      if (notice == null) return;
+      final isWarning = notice.startsWith('Attention');
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(notice),
+            duration: const Duration(seconds: 3),
+            backgroundColor: isWarning ? AppDesignTokens.warning : AppTheme.error,
+          ),
+        );
+    });
+
     final auth = ref.watch(authNotifierProvider);
     final shiftState = ref.watch(shiftNotifierProvider);
     final shift = shiftState.activeShift;

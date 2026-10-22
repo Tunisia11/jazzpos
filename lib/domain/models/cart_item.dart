@@ -16,6 +16,9 @@ class CartItem {
   final Money unitCost;
   final String? imageUrl;
 
+  /// Stock on hand when the item was added, used to stop overselling.
+  final int? availableStock;
+
   const CartItem({
     required this.variantId,
     required this.productId,
@@ -30,6 +33,7 @@ class CartItem {
     this.taxRatePercent = 0.0,
     this.unitCost = Money.zero,
     this.imageUrl,
+    this.availableStock,
   });
 
   Money get subtotal => unitPrice * quantity;
@@ -56,6 +60,7 @@ class CartItem {
     double? taxRatePercent,
     Money? unitCost,
     String? imageUrl,
+    int? availableStock,
   }) {
     return CartItem(
       variantId: variantId ?? this.variantId,
@@ -71,6 +76,7 @@ class CartItem {
       taxRatePercent: taxRatePercent ?? this.taxRatePercent,
       unitCost: unitCost ?? this.unitCost,
       imageUrl: imageUrl ?? this.imageUrl,
+      availableStock: availableStock ?? this.availableStock,
     );
   }
 }

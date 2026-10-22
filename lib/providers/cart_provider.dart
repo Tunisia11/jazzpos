@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tracepos/core/constants/app_constants.dart';
 import 'package:tracepos/core/logging/pos_logger.dart';
 import 'package:tracepos/core/money/money.dart';
 import 'package:tracepos/core/utils/id_generator.dart';
@@ -19,6 +20,9 @@ class CartState {
   final String? lastError;
   final String note;
 
+  /// One-shot message for the cashier (e.g. not enough stock).
+  final String? stockNotice;
+
   const CartState({
     this.items = const [],
     this.cartDiscount = Money.zero,
@@ -27,6 +31,7 @@ class CartState {
     this.isLocked = false,
     this.lastError,
     this.note = '',
+    this.stockNotice,
   });
 
   Money get tax => items.fold(Money.zero, (sum, i) => sum + i.taxAmount);
@@ -48,6 +53,7 @@ class CartState {
     bool? isLocked,
     String? lastError,
     String? note,
+    String? stockNotice,
   }) {
     return CartState(
       items: items ?? this.items,
@@ -57,6 +63,7 @@ class CartState {
       isLocked: isLocked ?? this.isLocked,
       lastError: lastError,
       note: note ?? this.note,
+      stockNotice: stockNotice,
     );
   }
 }
@@ -76,7 +83,35 @@ class CartNotifier extends StateNotifier<CartState> {
   final SaleService saleService;
 
   CartNotifier(this.catalogService, this.saleService)
-    : super(const CartState());
+    : super(const CartState()) {
+    reloadStockPolicy();
+  }
+
+  String _stockPolicy = AppConstants.negativeStockBlock;
+
+  Future<void> reloadStockPolicy() async {
+    try {
+      _stockPolicy = await saleService.getNegativeStockPolicy();
+    } catch (e) {
+      PosLogger.instance.warning('Cart', 'Could not read stock policy: $e');
+    }
+  }
+
+  /// Returns a notice when [wanted] exceeds [available]. Under BLOCK the
+  /// caller must refuse the change; under WARN it is only a warning.
+  ({bool blocked, String? notice}) _checkStock(int? available, int wanted) {
+    if (available == null || wanted <= available) {
+      return (blocked: false, notice: null);
+    }
+    final shown = available < 0 ? 0 : available;
+    final blocked = _stockPolicy != AppConstants.negativeStockWarn;
+    return (
+      blocked: blocked,
+      notice: blocked
+          ? 'Stock insuffisant : $shown disponible(s).'
+          : 'Attention : seulement $shown en stock.',
+    );
+  }
 
   final Set<Object> _paymentSessions = {};
   CartPaymentSession? _legacyLock;
@@ -98,20 +133,31 @@ class CartNotifier extends StateNotifier<CartState> {
   }
 
   /// Add item to cart from search result
-  void addItem(VariantSearchResult variant, {int quantity = 1}) {
+  /// Returns false when nothing was added (locked cart or not enough stock).
+  bool addItem(VariantSearchResult variant, {int quantity = 1}) {
     if (state.isLocked || state.isProcessing) {
       PosLogger.instance.warning('Cart', 'Cannot add item: cart is locked during payment/modal');
-      return;
+      return false;
     }
     final existingIndex = state.items.indexWhere(
       (i) => i.variantId == variant.variantId,
     );
+    final alreadyInCart =
+        existingIndex >= 0 ? state.items[existingIndex].quantity : 0;
+    final check = _checkStock(variant.stock, alreadyInCart + quantity);
+    if (check.blocked) {
+      state = state.copyWith(items: state.items, stockNotice: check.notice);
+      return false;
+    }
     if (existingIndex >= 0) {
       final existing = state.items[existingIndex];
-      final updated = existing.copyWith(quantity: existing.quantity + quantity);
+      final updated = existing.copyWith(
+        quantity: existing.quantity + quantity,
+        availableStock: variant.stock,
+      );
       final newItems = List<CartItem>.from(state.items);
       newItems[existingIndex] = updated;
-      state = state.copyWith(items: newItems);
+      state = state.copyWith(items: newItems, stockNotice: check.notice);
     } else {
       final newItem = CartItem(
         variantId: variant.variantId,
@@ -126,9 +172,14 @@ class CartNotifier extends StateNotifier<CartState> {
         taxRatePercent: variant.taxRatePercent,
         unitCost: variant.costPrice,
         imageUrl: variant.imageUrl,
+        availableStock: variant.stock,
       );
-      state = state.copyWith(items: [...state.items, newItem]);
+      state = state.copyWith(
+        items: [...state.items, newItem],
+        stockNotice: check.notice,
+      );
     }
+    return true;
   }
 
   /// Instant barcode scan handler: looks up variant using strict exact barcode matching.
@@ -144,8 +195,7 @@ class CartNotifier extends StateNotifier<CartState> {
     final variant = await catalogService.findVariantByExactBarcode(barcode);
     if (variant != null) {
       if (state.isLocked || state.isProcessing) return false;
-      addItem(variant);
-      return true;
+      return addItem(variant);
     }
     return false;
   }
@@ -159,13 +209,21 @@ class CartNotifier extends StateNotifier<CartState> {
       removeItem(variantId);
       return;
     }
+    final current = state.items.where((i) => i.variantId == variantId);
+    final check = current.isEmpty
+        ? (blocked: false, notice: null)
+        : _checkStock(current.first.availableStock, newQuantity);
+    if (check.blocked) {
+      state = state.copyWith(items: state.items, stockNotice: check.notice);
+      return;
+    }
     final newItems = state.items.map((i) {
       if (i.variantId == variantId) {
         return i.copyWith(quantity: newQuantity);
       }
       return i;
     }).toList();
-    state = state.copyWith(items: newItems);
+    state = state.copyWith(items: newItems, stockNotice: check.notice);
   }
 
   void removeItem(String variantId) {

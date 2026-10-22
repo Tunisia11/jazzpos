@@ -10,6 +10,7 @@ import 'package:tracepos/core/sound/sound_effect_service.dart';
 import 'package:tracepos/domain/services/boutique_settings_service.dart';
 import 'package:tracepos/providers/app_providers.dart';
 import 'package:tracepos/providers/auth_provider.dart';
+import 'package:tracepos/providers/cart_provider.dart';
 import 'package:tracepos/ui/theme/app_design_tokens.dart';
 import 'package:tracepos/ui/widgets/common/app_card.dart';
 
@@ -509,6 +510,9 @@ class _BoutiqueGeneralTabState extends ConsumerState<BoutiqueGeneralTab> {
 
           const SizedBox(height: AppDesignTokens.space24),
 
+          const _StockPolicyCard(),
+          const SizedBox(height: AppDesignTokens.space24),
+
           // ── Section 4: System Information & Autostart ──
           const Text(
             'Informations Système & Point de Vente',
@@ -714,6 +718,105 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+/// Chooses what the POS does when a sale needs more stock than is available.
+class _StockPolicyCard extends ConsumerStatefulWidget {
+  const _StockPolicyCard();
+
+  @override
+  ConsumerState<_StockPolicyCard> createState() => _StockPolicyCardState();
+}
+
+class _StockPolicyCardState extends ConsumerState<_StockPolicyCard> {
+  String _policy = AppConstants.negativeStockBlock;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final policy = await ref.read(saleServiceProvider).getNegativeStockPolicy();
+      if (mounted) {
+        setState(() {
+          _policy = policy == AppConstants.negativeStockWarn
+              ? AppConstants.negativeStockWarn
+              : AppConstants.negativeStockBlock;
+          _loaded = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loaded = true);
+    }
+  }
+
+  Future<void> _change(String? value) async {
+    if (value == null || value == _policy) return;
+    try {
+      await ref.read(saleServiceProvider).setNegativeStockPolicy(
+            value,
+            actorId: ref.read(authNotifierProvider).user?.id ?? '',
+          );
+      await ref.read(cartNotifierProvider.notifier).reloadStockPolicy();
+      if (mounted) setState(() => _policy = value);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e'), backgroundColor: AppDesignTokens.danger),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Stock insuffisant à la vente',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppDesignTokens.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Que faire quand un article demandé dépasse le stock disponible ?',
+          style: TextStyle(fontSize: 12, color: AppDesignTokens.textSecondary),
+        ),
+        const SizedBox(height: AppDesignTokens.space12),
+        AppCard(
+          child: !_loaded
+              ? const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: LinearProgressIndicator(),
+                )
+              : DropdownButtonFormField<String>(
+                  initialValue: _policy,
+                  decoration: const InputDecoration(border: InputBorder.none),
+                  items: const [
+                    DropdownMenuItem(
+                      value: AppConstants.negativeStockBlock,
+                      child: Text('Bloquer la vente (recommandé)'),
+                    ),
+                    DropdownMenuItem(
+                      value: AppConstants.negativeStockWarn,
+                      child: Text('Autoriser avec un avertissement (stock négatif possible)'),
+                    ),
+                  ],
+                  onChanged: _change,
+                ),
+        ),
+      ],
     );
   }
 }
