@@ -36,6 +36,17 @@ class SalesReportSummary {
   });
 }
 
+/// One slice (an hour or a day) of the sales trend.
+class TrendPoint {
+  final DateTime start;
+  final Money net;
+  final Money cost;
+
+  const TrendPoint({required this.start, required this.net, required this.cost});
+
+  Money get profit => net - cost;
+}
+
 class ClothingSizePerformance {
   final String size;
   final int unitsSold;
@@ -295,6 +306,107 @@ class ReportService {
     );
   }
 
+
+  /// Net sales and cost per hour (single day) or per day, for charts.
+  ///
+  /// Uses the same rules as [getSalesReport], so the points add up to its
+  /// totals: net = list price - discounts - refunds, cost reversed on returns.
+  Future<List<TrendPoint>> getSalesTrend({
+    required String actorId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required bool hourly,
+  }) async {
+    await PermissionGuard.requirePermission(
+      db,
+      actorId,
+      AppPermissions.viewReports,
+    );
+    final dayStart = DateTime(startDate.year, startDate.month, startDate.day);
+    final bucketCount = hourly
+        ? 24
+        : DateTime(endDate.year, endDate.month, endDate.day)
+                .difference(dayStart)
+                .inDays +
+            1;
+    int bucketOf(DateTime t) {
+      if (hourly) return t.hour;
+      final local = DateTime(t.year, t.month, t.day);
+      return local.difference(dayStart).inDays;
+    }
+
+    final net = List<int>.filled(bucketCount, 0);
+    final cost = List<int>.filled(bucketCount, 0);
+    void add(List<int> target, DateTime at, int millimes) {
+      final i = bucketOf(at);
+      if (i >= 0 && i < bucketCount) target[i] += millimes;
+    }
+
+    final sales = await (db.select(db.sales)
+          ..where((t) =>
+              t.createdAt.isBiggerOrEqualValue(startDate) &
+              t.createdAt.isSmallerOrEqualValue(endDate) &
+              t.status.isIn([
+                AppConstants.saleCompleted,
+                AppConstants.salePartiallyRefunded,
+                AppConstants.saleRefunded,
+              ])))
+        .get();
+    final saleById = {for (final x in sales) x.id: x};
+    final lines = sales.isEmpty
+        ? <SaleLine>[]
+        : await (db.select(db.saleLines)
+              ..where((t) => t.saleId.isIn(saleById.keys.toList())))
+            .get();
+    for (final x in sales) {
+      add(net, x.createdAt, -x.discountMillimes);
+    }
+    for (final l in lines) {
+      final at = saleById[l.saleId]!.createdAt;
+      add(net, at, l.originalPriceMillimes * l.quantity);
+      add(cost, at, l.unitCostMillimes * l.quantity);
+    }
+
+    final returns = await (db.select(db.returns)
+          ..where((t) =>
+              t.createdAt.isBiggerOrEqualValue(startDate) &
+              t.createdAt.isSmallerOrEqualValue(endDate)))
+        .get();
+    final returnById = {for (final r in returns) r.id: r};
+    for (final r in returns) {
+      add(net, r.createdAt, -r.totalRefundMillimes);
+    }
+    final returnLines = returns.isEmpty
+        ? <ReturnLine>[]
+        : await (db.select(db.returnLines)
+              ..where((t) => t.returnId.isIn(returnById.keys.toList())))
+            .get();
+    final originalIds = returnLines
+        .map((l) => l.originalSaleLineId)
+        .whereType<String>()
+        .toSet()
+        .toList();
+    final originals = originalIds.isEmpty
+        ? <SaleLine>[]
+        : await (db.select(db.saleLines)..where((t) => t.id.isIn(originalIds)))
+            .get();
+    final unitCost = {for (final l in originals) l.id: l.unitCostMillimes};
+    for (final l in returnLines) {
+      final c = l.originalSaleLineId == null ? null : unitCost[l.originalSaleLineId!];
+      if (c != null) add(cost, returnById[l.returnId]!.createdAt, -c * l.quantity);
+    }
+
+    return [
+      for (var i = 0; i < bucketCount; i++)
+        TrendPoint(
+          start: hourly
+              ? DateTime(dayStart.year, dayStart.month, dayStart.day, i)
+              : DateTime(dayStart.year, dayStart.month, dayStart.day + i),
+          net: Money.fromMillimes(net[i]),
+          cost: Money.fromMillimes(cost[i]),
+        ),
+    ];
+  }
 
   /// variantId -> best available image (variant photo, else product photo).
   Future<Map<String, String?>> _imagesForVariants(Iterable<String> ids) async {
